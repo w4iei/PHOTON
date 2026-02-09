@@ -1,0 +1,9 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "VCNT2025")(type "KiCad")(uri "${KIPRJMOD}/VCNT20205x01.kicad_sym")(options "")(descr ""))
+  (lib (name "2025-11-20_11-14-33_TMUX1209")(type "KiCad")(uri "${KIPRJMOD}/2025-11-20_11-14-33_TMUX1209.kicad_sym")(options "")(descr ""))
+  (lib (name "2025-11-21_08-29-10_THVD1424RGTR")(type "KiCad")(uri "${KIPRJMOD}/2025-11-21_08-29-10_THVD1424RGTR.kicad_sym")(options "")(descr ""))
+  (lib (name "tla2518")(type "KiCad")(uri "${KIPRJMOD}/tla2518.kicad_sym")(options "")(descr ""))
+  (lib (name "spst")(type "KiCad")(uri "${KIPRJMOD}/spst.kicad_sym")(options "")(descr ""))
+  (lib (name "PTVSHC3D7VU")(type "KiCad")(uri "${KIPRJMOD}/PTVSHC3D7VU.kicad_sym")(options "")(descr ""))
+)

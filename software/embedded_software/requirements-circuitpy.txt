@@ -1,0 +1,7 @@
+adafruit_pioasm
+adafruit_midi
+adafruit_midi_parser
+adafruit_st7789
+adafruit_display_text
+adafruit_bitmap_font
+adafruit_framebuf
