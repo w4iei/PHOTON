@@ -44,9 +44,9 @@ Examples:
 cd midi_controller_embedded_sw
 tools/deploy_and_monitor.sh --main
 
-# Secondary sensor node with id 1 (deprecated flag; prefer --sensor_node_id 1)
+# Sensor board with id 1 
 cd midi_controller_embedded_sw
-tools/deploy_and_monitor.sh --secondary_id 1
+tools/deploy_and_monitor.sh --sensor_node_id 1
 ```
 
 The script:
