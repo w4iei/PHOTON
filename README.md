@@ -43,6 +43,7 @@ See `hardware/README.md` for board-specific notes and layout sources.
 ## Notes
 - Firmware is primarily in CircuitPython; the RS-485 data path uses a C native module for low latency.
 - Related repo: https://github.com/w4iei/klavecimbelcircuitpython
+- **Double-manual harpsichords:** While PHOTON was designed to support a double-manual harpsichord (i.e. one set of sensor boards in each manual), practical experimentation has shown that there is almost no benefit to having sensors in both manuals. A single manual is more than sufficient and can even make the system more stable: on a shared RS-485 bus, coupled configurations cause every note-on and note-off event to be sent twice, and power consumption is doubled, with almost no added utility.
 
 ## Citation
 ```bibtex

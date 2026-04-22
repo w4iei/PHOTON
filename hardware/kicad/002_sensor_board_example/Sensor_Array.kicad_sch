@@ -1,0 +1,1110 @@
+(kicad_sch
+	(version 20250114)
+	(generator "eeschema")
+	(generator_version "9.0")
+	(uuid "2406761d-ec8b-4c07-9c01-8828e96619ae")
+	(paper "A4")
+	(title_block
+		(title "8x4-Channel LED Sensor Array")
+		(date "2026-01-02")
+		(rev "C")
+		(comment 1 "SPI Sensor Bank Connections")
+	)
+	(lib_symbols)
+	(text "Note: This sensor bank does *not* inherit from 4_Sensor_bank\nThis is to allow for DNP sensors, so the total number of sensors\ncan be a number not modulus 4"
+		(exclude_from_sim no)
+		(at 95.25 150.622 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "6b2b89f5-ff2e-4b34-8d13-73651e579339")
+	)
+	(text "Bank 0: Sensors 0-3"
+		(exclude_from_sim no)
+		(at 20.32 32.004 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "bbca69f5-fb76-41e0-815c-81c2f9256eed")
+	)
+	(text "The (up-to) 32-sensor array consists of banks of 4."
+		(exclude_from_sim no)
+		(at 28.956 21.59 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "bf32b351-6e76-439f-85a2-fec545d16f55")
+	)
+	(hierarchical_label "SPI0_SCLK"
+		(shape input)
+		(at 53.34 41.91 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "092776a1-db64-4426-8ee7-0808ce0b9aae")
+	)
+	(hierarchical_label "SPI1_SCLK"
+		(shape input)
+		(at 106.68 97.79 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "1038cb1f-3ea3-4b33-a49d-0d30881a47e3")
+	)
+	(hierarchical_label "SPI1_MISO"
+		(shape output)
+		(at 106.68 77.47 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "14fc0d65-f575-4ad0-b6b5-806fefaf57a6")
+	)
+	(hierarchical_label "BANK4_CS"
+		(shape input)
+		(at 106.68 53.34 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "1d7559f4-3be5-4c02-b183-0715ed07b159")
+	)
+	(hierarchical_label "SPI0_MISO"
+		(shape output)
+		(at 53.34 105.41 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "1ed5a2cb-f2e0-4969-bacf-5e319079a2dd")
+	)
+	(hierarchical_label "SPI1_MOSI"
+		(shape input)
+		(at 106.68 73.66 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "2488234a-a013-4506-8a3c-f4f8bb3cecc6")
+	)
+	(hierarchical_label "SPI0_MISO"
+		(shape output)
+		(at 53.34 133.35 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "2a0e3e23-233e-4e73-9b4b-2a780a431505")
+	)
+	(hierarchical_label "SPI0_SCLK"
+		(shape input)
+		(at 53.34 97.79 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "2bef8b24-5463-4479-b472-0490d89c9dba")
+	)
+	(hierarchical_label "SPI1_MISO"
+		(shape output)
+		(at 109.22 135.89 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "306febca-9f4e-43c5-80f5-862ecc6bbab7")
+	)
+	(hierarchical_label "SPI0_MOSI"
+		(shape input)
+		(at 53.34 45.72 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "317d6c2e-1260-4a79-8dbb-fd045a3c074f")
+	)
+	(hierarchical_label "BANK2_CS"
+		(shape input)
+		(at 53.34 109.22 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "39b60605-eaf4-4047-a162-043fc91c88da")
+	)
+	(hierarchical_label "SPI0_SCLK"
+		(shape input)
+		(at 53.34 69.85 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "3f5e25e0-75cc-4e20-8ba6-8cbb2f8a8d6e")
+	)
+	(hierarchical_label "BANK1_CS"
+		(shape input)
+		(at 53.34 81.28 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "43756e1a-7158-40af-a584-946a45ca56ea")
+	)
+	(hierarchical_label "SPI1_MOSI"
+		(shape input)
+		(at 106.68 45.72 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "5151d292-64ae-4632-8886-b7b8f113e00c")
+	)
+	(hierarchical_label "SPI0_MOSI"
+		(shape input)
+		(at 53.34 101.6 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "57e2b4c8-cde3-4a7d-8091-ce67302004e0")
+	)
+	(hierarchical_label "SPI0_SCLK"
+		(shape input)
+		(at 53.34 125.73 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "5807cd95-b8d3-4823-9685-cd7f355d478a")
+	)
+	(hierarchical_label "SPI1_MOSI"
+		(shape input)
+		(at 106.68 101.6 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "611670c6-1046-419b-a89d-1c3a9f36dbc3")
+	)
+	(hierarchical_label "SPI1_MOSI"
+		(shape input)
+		(at 109.22 132.08 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "6b6f2750-eb57-496a-916e-b9b4d4aab560")
+	)
+	(hierarchical_label "BANK3_CS"
+		(shape input)
+		(at 53.34 137.16 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "6df8563b-68ae-4c0d-aee6-fa8d5914709e")
+	)
+	(hierarchical_label "SPI0_MOSI"
+		(shape input)
+		(at 53.34 129.54 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "7ff1a331-b34d-43aa-a3b7-678f7305c51a")
+	)
+	(hierarchical_label "BANK0_CS"
+		(shape input)
+		(at 53.34 53.34 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "83295a33-e43a-49f1-980a-962f9ee2d96e")
+	)
+	(hierarchical_label "SPI0_MOSI"
+		(shape input)
+		(at 53.34 73.66 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "8d0a5f5b-0124-476f-85ab-842fc93c50ae")
+	)
+	(hierarchical_label "SPI1_SCLK"
+		(shape input)
+		(at 106.68 69.85 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "955e6d4c-7bd7-4eb2-a373-24ca0e2f2f8c")
+	)
+	(hierarchical_label "BANK6_CS"
+		(shape input)
+		(at 106.68 109.22 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "ab2605b7-2057-4e8d-85b0-832ae2f2428d")
+	)
+	(hierarchical_label "SPI1_SCLK"
+		(shape input)
+		(at 106.68 41.91 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "b205df9e-ceab-4db4-b83b-bf6efd3c7b12")
+	)
+	(hierarchical_label "BANK5_CS"
+		(shape input)
+		(at 106.68 81.28 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "c33b5742-6e08-4d24-84fe-cf8767c3bf30")
+	)
+	(hierarchical_label "SPI0_MISO"
+		(shape output)
+		(at 53.34 49.53 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "c93ec503-ead7-4047-b8bc-34e8fa57dde6")
+	)
+	(hierarchical_label "SPI1_MISO"
+		(shape output)
+		(at 106.68 105.41 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "d4e0fdac-a867-4638-b88d-a2d3eae691b0")
+	)
+	(hierarchical_label "BANK7_CS"
+		(shape input)
+		(at 109.22 139.7 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "d8fdf7a8-8afb-45b5-b17a-6138fb8f7b53")
+	)
+	(hierarchical_label "SPI1_SCLK"
+		(shape input)
+		(at 109.22 128.27 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "e1648125-476d-4f25-b3f6-a05cab35579c")
+	)
+	(hierarchical_label "SPI0_MISO"
+		(shape output)
+		(at 53.34 77.47 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "f2b1e9c0-a085-49ad-8b2a-e70efc5f74d4")
+	)
+	(hierarchical_label "SPI1_MISO"
+		(shape output)
+		(at 106.68 49.53 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "f5dbb196-8167-4b9c-bc30-44b83b84de4d")
+	)
+	(sheet
+		(at 21.59 36.83)
+		(size 31.75 20.32)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "1f3c5546-2135-48f1-a4dc-e0c99dc1341d")
+		(property "Sheetname" "4_Sensor_bank"
+			(at 21.59 36.1184 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "4_Sensor_Bank.kicad_sch"
+			(at 21.59 57.7346 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(property "Field2" ""
+			(at 21.59 36.83 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "BANK_CS" input
+			(at 53.34 53.34 0)
+			(uuid "acaa7359-e72d-4feb-96ea-b1b9ef6a9b53")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "SPI_MISO" output
+			(at 53.34 49.53 0)
+			(uuid "3563fa25-e9c8-47d0-933f-509cde22cc8e")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "SPI_MOSI" input
+			(at 53.34 45.72 0)
+			(uuid "0b979879-a1f0-4c1b-ab87-0d816eb4dd0b")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "SPI_SCLK" input
+			(at 53.34 41.91 0)
+			(uuid "ca04ec60-1bb4-4959-9ae9-69f5953d0e48")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(instances
+			(project "014_Sensor_PI_RS485 board"
+				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef"
+					(page "4")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 74.93 92.71)
+		(size 31.75 20.32)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "25c23f8c-98d8-4cf3-af53-bf3a2aa69c0d")
+		(property "Sheetname" "4_Sensor_bank6"
+			(at 74.93 91.9984 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "4_Sensor_Bank.kicad_sch"
+			(at 74.93 113.6146 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(property "Field2" ""
+			(at 74.93 92.71 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "BANK_CS" input
+			(at 106.68 109.22 0)
+			(uuid "18ed644d-a99c-4b2e-8dd4-793ee6abd602")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "SPI_MISO" output
+			(at 106.68 105.41 0)
+			(uuid "55aa8d2a-0763-4cd2-a812-4f6dfcb03a8a")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "SPI_MOSI" input
+			(at 106.68 101.6 0)
+			(uuid "25bf916f-06b2-413c-aa62-60ecc85d5c7b")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "SPI_SCLK" input
+			(at 106.68 97.79 0)
+			(uuid "addb077f-832e-42ed-be2d-b68c6aaea94e")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(instances
+			(project "014_Sensor_PI_RS485 board"
+				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef"
+					(page "33")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 21.59 92.71)
+		(size 31.75 20.32)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "70b52523-2629-4084-a9e1-582b7135575b")
+		(property "Sheetname" "4_Sensor_bank2"
+			(at 21.59 91.9984 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "4_Sensor_Bank.kicad_sch"
+			(at 21.59 113.6146 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(property "Field2" ""
+			(at 21.59 92.71 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "BANK_CS" input
+			(at 53.34 109.22 0)
+			(uuid "cab90b78-8781-4c78-a6db-11474cec4038")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "SPI_MISO" output
+			(at 53.34 105.41 0)
+			(uuid "52fa0061-49c3-4756-b866-f29f87d83cf9")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "SPI_MOSI" input
+			(at 53.34 101.6 0)
+			(uuid "0c31665b-38ab-40e8-924c-9dbb96e6aa28")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "SPI_SCLK" input
+			(at 53.34 97.79 0)
+			(uuid "8c42f419-2f70-4bc2-b8d7-b47f8e55abdc")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(instances
+			(project "014_Sensor_PI_RS485 board"
+				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef"
+					(page "13")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 74.93 121.92)
+		(size 34.29 21.59)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "80523f9a-b0b8-4efa-b3d9-d2f9096ba0cd")
+		(property "Sheetname" "Last_sensor_bank"
+			(at 74.93 121.2084 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "last_sensor_bank.kicad_sch"
+			(at 74.93 144.0946 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(pin "BANK_CS" input
+			(at 109.22 139.7 0)
+			(uuid "85d8ef90-db82-49dd-b3f5-0f5ae88598e6")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "SPI_MISO" output
+			(at 109.22 135.89 0)
+			(uuid "f7cf5cfd-5a52-4523-8f5d-748dfe0e5293")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "SPI_MOSI" input
+			(at 109.22 132.08 0)
+			(uuid "f151f18b-fecc-41d5-b678-18d271f4074a")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "SPI_SCLK" input
+			(at 109.22 128.27 0)
+			(uuid "0eb4e3c6-6958-441a-8837-9ebb891cefad")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(instances
+			(project "014_Sensor_PI_RS485 board"
+				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef"
+					(page "38")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 74.93 64.77)
+		(size 31.75 20.32)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "8d30b6fc-4531-43a8-bd91-9e6b22228f4d")
+		(property "Sheetname" "4_Sensor_bank5"
+			(at 74.93 64.0584 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "4_Sensor_Bank.kicad_sch"
+			(at 74.93 85.6746 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(property "Field2" ""
+			(at 74.93 64.77 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "BANK_CS" input
+			(at 106.68 81.28 0)
+			(uuid "22f097d4-f484-478f-9d44-d5331707df0b")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "SPI_MISO" output
+			(at 106.68 77.47 0)
+			(uuid "e3b6f34c-f3a4-4349-b118-c5ce67be8f5c")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "SPI_MOSI" input
+			(at 106.68 73.66 0)
+			(uuid "e8de31a0-f190-4b98-be69-551af8c57300")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "SPI_SCLK" input
+			(at 106.68 69.85 0)
+			(uuid "02d63fa7-937a-45d2-8bae-8c0111be0833")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(instances
+			(project "014_Sensor_PI_RS485 board"
+				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef"
+					(page "28")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 74.93 36.83)
+		(size 31.75 20.32)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "a2963094-a324-44eb-aae5-350c5ae995ee")
+		(property "Sheetname" "4_Sensor_bank4"
+			(at 74.93 36.1184 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "4_Sensor_Bank.kicad_sch"
+			(at 74.93 57.7346 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(property "Field2" ""
+			(at 74.93 36.83 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "BANK_CS" input
+			(at 106.68 53.34 0)
+			(uuid "3a31d6a0-ca02-477c-8063-a088b7f9f902")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "SPI_MISO" output
+			(at 106.68 49.53 0)
+			(uuid "7c3f091e-22e6-40db-b1a5-587cb3799c78")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "SPI_MOSI" input
+			(at 106.68 45.72 0)
+			(uuid "f6ebe525-5c94-46b0-8e9b-f04a560482e9")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "SPI_SCLK" input
+			(at 106.68 41.91 0)
+			(uuid "9213f931-5b26-4822-b009-7f7eed302910")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(instances
+			(project "014_Sensor_PI_RS485 board"
+				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef"
+					(page "23")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 21.59 64.77)
+		(size 31.75 20.32)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "a8414ea3-1864-4085-b09d-ba1ee86ddb1a")
+		(property "Sheetname" "4_Sensor_bank1"
+			(at 21.59 64.0584 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "4_Sensor_Bank.kicad_sch"
+			(at 21.59 85.6746 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(property "Field2" ""
+			(at 21.59 64.77 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "BANK_CS" input
+			(at 53.34 81.28 0)
+			(uuid "b8dc2a4f-df6f-441d-afd3-c3d8b776813f")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "SPI_MISO" output
+			(at 53.34 77.47 0)
+			(uuid "8b9b4b75-0874-453f-ae9b-37ae291fa018")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "SPI_MOSI" input
+			(at 53.34 73.66 0)
+			(uuid "773c55d3-ec42-4e1f-9d77-ed0d4426beb3")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "SPI_SCLK" input
+			(at 53.34 69.85 0)
+			(uuid "b8b8d0cf-66e4-4237-a904-908ed1230c3e")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(instances
+			(project "014_Sensor_PI_RS485 board"
+				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef"
+					(page "8")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 21.59 120.65)
+		(size 31.75 20.32)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "ac3e6ed6-395a-4fc3-a422-0b68eeab2252")
+		(property "Sheetname" "4_Sensor_bank3"
+			(at 21.59 119.9384 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "4_Sensor_Bank.kicad_sch"
+			(at 21.59 141.5546 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(property "Field2" ""
+			(at 21.59 120.65 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "BANK_CS" input
+			(at 53.34 137.16 0)
+			(uuid "fbd85c0a-3fbd-478e-937d-c59eb0ef2f64")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "SPI_MISO" output
+			(at 53.34 133.35 0)
+			(uuid "e1c6c98b-3e2a-4b9a-9fc1-4e183c0f846e")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "SPI_MOSI" input
+			(at 53.34 129.54 0)
+			(uuid "09127df6-6467-4183-ad3c-b985c1f8260a")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "SPI_SCLK" input
+			(at 53.34 125.73 0)
+			(uuid "e9a79221-39a5-4ef6-8813-996800072b3d")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(instances
+			(project "014_Sensor_PI_RS485 board"
+				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef"
+					(page "18")
+				)
+			)
+		)
+	)
+)

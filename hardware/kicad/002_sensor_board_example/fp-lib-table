@@ -1,0 +1,5 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "footprints")(type "KiCad")(uri "${KIPRJMOD}/footprints")(options "")(descr ""))
+  (lib (name "custom_mousebite")(type "KiCad")(uri "${KIPRJMOD}/custom_mousebite.pretty")(options "")(descr ""))
+)

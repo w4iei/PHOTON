@@ -17,8 +17,21 @@ This directory contains the KiCad sources for the PHOTON main controller board a
 - Install the KiCad Replicate Layout plugin via the KiCad Plugin and Content Manager.
 - Install the KiCad Fabrication Toolkit the same way.
 
+## Design Recommendations
+- For a PCB greater than 250mm long, it is recommended to have three mounting holes for M2.5 (wood) screws to secure the boards in place. Putty (e.g. Blu Tack) is fine for a temporary setup, but screws ensure stability over the long term, including preventing the PCBs from shifting during moving. Having one mounting hole on each end and one in the center (doesn't need to be exactly in the center) ensures that the PCB doesn't bow or flex in the middle and raise up above the wood mounting surface. Install the screws in a linear fashion — not both ends and then the center.
+
 ## Verification
 Manual review is required after replication and before fabrication.
+
+## Fully Complete Example
+### 001 Main Controller Board
+Exists as a main controler board that should be able to be used without modification. 
+It includes extra items that can be removed, if desired. For example, the VCNT2025X01 sensor is populated for debugging and proof of concepts. 
+It is not necessary for use as a main controller board. 
+
+### 002_sensor_board_example
+This project exists as a reference design for the sensor board. 
+
 
 ## Disclaimer
 No warranty is provided. Users create circuit boards at their own risk.

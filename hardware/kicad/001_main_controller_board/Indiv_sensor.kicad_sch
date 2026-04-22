@@ -5,8 +5,9 @@
 	(uuid "f7b40fd8-db97-4236-9c31-ff47f6b6e530")
 	(paper "A4")
 	(title_block
-		(date "2025-12-04")
-		(rev "B")
+		(date "2026-04-22")
+		(rev "A")
+		(company "Noah Jaffe")
 	)
 	(lib_symbols
 		(symbol "Device:R"
