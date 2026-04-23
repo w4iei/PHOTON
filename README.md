@@ -47,11 +47,13 @@ See `hardware/README.md` for board-specific notes and layout sources.
 
 ## Citation
 ```bibtex
-@article{photon2026,
+@inproceedings{photon2026,
   title       = {PHOTON: Non-Invasive Optical Tracking of Key-Lever Motion in Historical Keyboard Instruments},
   author      = {Noah Jaffe and John Ashley Burgoyne},
-  journal     = {TBD},
+  booktitle   = {Proceedings of the 2026 International Conference on New Interfaces for Musical Expression (NIME)},
   year        = {2026},
-  doi         = {TBD},
+  address     = {London, UK},
+  note        = {23--26 June 2026},
+  url         = {https://nime2026.org/},
 }
 ```
