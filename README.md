@@ -3,6 +3,9 @@
 
 PHOTON is a modular, open-source optical sensing platform for high-resolution key and motion tracking. Each module combines a KiCad-designed linear array of **VCNT2025X01** reflective sensors, **TLA2518** high-speed SPI ADCs, and an **RP2350** MCU. Modules can run standalone over USB-C or daisy-chain over RS-485 for large sensing surfaces.
 
+## Paper
+[PHOTON: Non-Invasive Optical Tracking of Key-Lever Motion in Historical Keyboard Instruments](https://arxiv.org/abs/2604.21682) (arXiv:2604.21682)
+
 ## Highlights
 - **Sensors:** [VCNT2025X01](https://www.vishay.com/en/product/84895/) reflective array with per-sensor enable lines
 - **Digitization:** [TLA2518](https://www.ti.com/product/TLA2518) SPI ADCs for high-speed readout
@@ -43,7 +46,9 @@ See `hardware/README.md` for board-specific notes and layout sources.
 ## Notes
 - Firmware is primarily in CircuitPython; the RS-485 data path uses a C native module for low latency.
 - Related repo: https://github.com/w4iei/klavecimbelcircuitpython
-- **Double-manual harpsichords:** While PHOTON was designed to support a double-manual harpsichord (i.e. one set of sensor boards in each manual), practical experimentation has shown that there is almost no benefit to having sensors in both manuals. A single manual is more than sufficient and can even make the system more stable: on a shared RS-485 bus, coupled configurations cause every note-on and note-off event to be sent twice, and power consumption is doubled, with almost no added utility.
+- **Double-manual harpsichords:** PHOTON was designed to support double-manual harpsichords (i.e. one set of sensor boards per manual), but in practice we have found limited benefit in instrumenting both manuals. Using sensors on a single manual is generally sufficient and can improve stability: on a shared RS-485 bus, coupled configurations duplicate note-on and note-off events and increase both bus contention and power consumption.
+
+  If double-manual sensing is required, we recommend assigning each manual its own RS-485 bus. This can be achieved either by using **two main controller boards** (one per manual), or by modifying a single main board to expose a **second independent RS-485 bus** using the RP2350’s second UART peripheral. In the latter case, a second RS-485 transceiver can be connected to **UART1 TX/RX pins (e.g. GPIO 4 = TX, GPIO 5 = RX; other pin mappings are also possible via the RP2350’s flexible pin mux)**, while the original bus remains on UART0. This configuration isolates traffic per manual, eliminates inter-manual collisions, and allows simultaneous events to be buffered independently by the two UART receivers.
 
 ## Citation
 ```bibtex
@@ -53,7 +58,7 @@ See `hardware/README.md` for board-specific notes and layout sources.
   booktitle   = {Proceedings of the 2026 International Conference on New Interfaces for Musical Expression (NIME)},
   year        = {2026},
   address     = {London, UK},
-  note        = {23--26 June 2026},
-  url         = {https://nime2026.org/},
+  note        = {23--26 June 2026. Preprint: arXiv:2604.21682},
+  url         = {https://arxiv.org/abs/2604.21682},
 }
 ```
