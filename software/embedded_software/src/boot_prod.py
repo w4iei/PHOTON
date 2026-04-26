@@ -5,7 +5,7 @@ import usb_cdc
 usb_cdc.enable(console=True, data=False)  # set to False to hard-disable REPL
 
 try:
-    from app.helpers import nvm_flags
+    from app import nvm_flags
 
     if nvm_flags.is_usb_drive_disabled():
         storage.disable_usb_drive()

@@ -38,3 +38,12 @@ fp-info-cache
 
 # Local project settings
 *.kicad_prl
+
+# Embedded software generated files
+software/embedded_software/.DS_Store
+software/embedded_software/**/*.DS_Store
+software/embedded_software/**/__pycache__/
+software/embedded_software/**/*.py[cod]
+software/embedded_software/.ruff_cache/
+software/embedded_software/**/*.tmp
+software/embedded_software/**/*.temp

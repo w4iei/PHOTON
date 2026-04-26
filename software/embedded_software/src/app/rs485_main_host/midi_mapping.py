@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from app.helpers.midi_play import build_index_to_midi_linear
-from app.helpers.utils import midi_to_name
+from app.midi_play import build_index_to_midi_linear
+from app.utils import midi_to_name
 
 from .constants import (
     BOARD_PAIR_SIZE,
     MANUAL_COUNT,
     MAX_SENSORS,
+    MIDI_CHANNEL_BASE,
     SENSOR_NODE_DEVICE_IDS,
     TOTAL_SENSORS,
 )
@@ -25,7 +26,7 @@ def board_manual_index(board_id: int) -> int | None:
     board_idx = board_index(board_id)
     if board_idx is None:
         return None
-    return board_idx // BOARD_PAIR_SIZE
+    return MIDI_CHANNEL_BASE + (board_idx // BOARD_PAIR_SIZE)
 
 
 def build_index_to_channel() -> dict[int, int]:
@@ -35,7 +36,7 @@ def build_index_to_channel() -> dict[int, int]:
         board_idx = board_index(board_id)
         if board_idx is None:
             continue
-        channel = board_idx // BOARD_PAIR_SIZE
+        channel = MIDI_CHANNEL_BASE + (board_idx // BOARD_PAIR_SIZE)
         base = board_idx * MAX_SENSORS
         for sensor_idx in range(MAX_SENSORS):
             global_idx = base + sensor_idx

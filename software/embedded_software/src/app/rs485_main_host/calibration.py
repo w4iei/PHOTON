@@ -8,17 +8,17 @@ from __future__ import annotations
 
 import time
 
-from app.helpers import nvm_flags
-from app.helpers import sensor_calibration
-from app.rs485_bus import (
-    FRAME_TYPE_CAL_ACK,
-    FRAME_TYPE_CAL_CMD,
+import microcontroller
+import storage
+import supervisor
+
+from app import nvm_flags
+from app import sensor_calibration
+from photon_rs485 import (
     FRAME_TYPE_EVENT,
     FRAME_TYPE_EVENT_ACK,
     FRAME_TYPE_MINMAX_RESP,
 )
-from app.rs485_common.reset import reset_board
-from app.rs485_common.storage import get_root_readonly, remount_root
 
 from .constants import (
     CAL_ACK_FAIL,
@@ -27,6 +27,8 @@ from .constants import (
     CAL_CMD_SAVE,
     CAL_CMD_TIMEOUT_S,
     CALIBRATION_PATH,
+    FRAME_TYPE_CAL_ACK,
+    FRAME_TYPE_CAL_CMD,
     MAX_SENSORS,
     SENSOR_NODE_DEVICE_IDS,
     SENSOR_VALUE_MAX,
@@ -34,8 +36,38 @@ from .constants import (
 from .protocol import apply_minmax_payload_local
 
 
+def _reset_board() -> bool:
+    try:
+        microcontroller.reset()
+        return True
+    except Exception:
+        pass
+    try:
+        supervisor.reload()
+        return True
+    except Exception:
+        pass
+    return False
+
+
+def _get_root_readonly() -> bool | None:
+    try:
+        mount = storage.getmount("/")
+    except Exception:
+        return None
+    return bool(getattr(mount, "readonly", False))
+
+
+def _remount_root(readonly: bool) -> bool:
+    try:
+        storage.remount("/", readonly=readonly)
+    except Exception:
+        return False
+    return True
+
+
 def send_cal_cmd(bus, target_id: int, cmd: int, seq: int) -> None:
-    bus.send_frame(FRAME_TYPE_CAL_CMD, target_id, bytes([cmd & 0xFF]), seq & 0xFFFF)
+    bus.send_frame(FRAME_TYPE_CAL_CMD, target_id, bytes([cmd & 0xFF]), seq & 0xFFFF, ack_timeout_us=0)
 
 
 def collect_calibration_from_sensor_node(bus, sensor_device_id: int, seq: int, timeout_s: float):
@@ -47,16 +79,16 @@ def collect_calibration_from_sensor_node(bus, sensor_device_id: int, seq: int, t
     expected_count = MAX_SENSORS
     deadline = time.monotonic() + timeout_s
     while time.monotonic() < deadline:
-        for frame_type, target_id, payload, rx_seq in bus.read_frames():
+        for frame_type, target_id, source_id, payload, rx_seq in bus.read_frames():
             if frame_type == FRAME_TYPE_EVENT:
                 event_seq = rx_seq
                 if len(payload) >= 7:
                     event_seq = int.from_bytes(payload[4:6], "little")
                 elif len(payload) >= 5:
                     event_seq = int.from_bytes(payload[3:5], "little")
-                bus.send_frame(FRAME_TYPE_EVENT_ACK, target_id, b"", event_seq)
+                bus.send_frame(FRAME_TYPE_EVENT_ACK, source_id, b"", event_seq, ack_timeout_us=0)
                 continue
-            if target_id != sensor_device_id:
+            if source_id != sensor_device_id:
                 continue
             if frame_type == FRAME_TYPE_MINMAX_RESP:
                 seen_count += apply_minmax_payload_local(payload, mins, maxs, seen)
@@ -75,18 +107,18 @@ def collect_calibration_from_sensor_node(bus, sensor_device_id: int, seq: int, t
 def wait_for_cal_ack(bus, sensor_device_id: int, cmd: int, seq: int, timeout_s: float) -> bool:
     deadline = time.monotonic() + timeout_s
     while time.monotonic() < deadline:
-        for frame_type, target_id, payload, rx_seq in bus.read_frames():
+        for frame_type, target_id, source_id, payload, rx_seq in bus.read_frames():
             if frame_type == FRAME_TYPE_EVENT:
                 event_seq = rx_seq
                 if len(payload) >= 7:
                     event_seq = int.from_bytes(payload[4:6], "little")
                 elif len(payload) >= 5:
                     event_seq = int.from_bytes(payload[3:5], "little")
-                bus.send_frame(FRAME_TYPE_EVENT_ACK, target_id, b"", event_seq)
+                bus.send_frame(FRAME_TYPE_EVENT_ACK, source_id, b"", event_seq, ack_timeout_us=0)
                 continue
             if (
                 frame_type == FRAME_TYPE_CAL_ACK
-                and target_id == sensor_device_id
+                and source_id == sensor_device_id
                 and rx_seq == (seq & 0xFFFF)
                 and len(payload) >= 2
                 and payload[0] == cmd
@@ -96,48 +128,59 @@ def wait_for_cal_ack(bus, sensor_device_id: int, cmd: int, seq: int, timeout_s: 
 
 
 def save_calibration_payload(payload: dict) -> bool:
-    readonly = get_root_readonly()
+    readonly = _get_root_readonly()
     restore_readonly = False
     if readonly is True:
-        if not remount_root(False):
+        if not _remount_root(False):
             return False
         restore_readonly = True
     ok = sensor_calibration.save_calibration_file(CALIBRATION_PATH, payload)
     if restore_readonly:
-        remount_root(True)
+        _remount_root(True)
     return ok
 
 
-def handle_cal_save(bus, cal_seq_ref: list[int]) -> bool:
+def handle_cal_save(bus, cal_seq_ref: list[int], *, max_retries: int = 3) -> bool:
     print("Requesting calibration save from sensor nodes...")
     payload = sensor_calibration.load_calibration_file(CALIBRATION_PATH)
-    all_ok = True
-    for sensor_device_id in SENSOR_NODE_DEVICE_IDS:
-        seq = cal_seq_ref[0] & 0xFFFF
-        cal_seq_ref[0] = (cal_seq_ref[0] + 1) & 0xFFFF
-        send_cal_cmd(bus, sensor_device_id, CAL_CMD_SAVE, seq)
-        mins, maxs, seen, ack_ok, expected_count = collect_calibration_from_sensor_node(
-            bus, sensor_device_id, seq, CAL_CMD_TIMEOUT_S
-        )
-        if not ack_ok:
-            print(f"Calibration save ack failed for sensor node {sensor_device_id}.")
-            all_ok = False
-        seen_count = sum(1 for entry in seen if entry)
-        if seen_count < expected_count:
-            missing = expected_count - seen_count
-            print(f"Calibration data missing for sensor node {sensor_device_id}: {missing} sensor(s).")
-            all_ok = False
-        if ack_ok and seen_count >= expected_count:
-            payload = sensor_calibration.build_payload(
-                payload,
-                sensor_device_id,
-                expected_count,
-                [int(v) for v in mins[:expected_count]],
-                [int(v) for v in maxs[:expected_count]],
+    collected = {}
+    failed_nodes = list(SENSOR_NODE_DEVICE_IDS)
+    attempt = 0
+    while failed_nodes and attempt < max_retries:
+        attempt += 1
+        if attempt > 1:
+            print(f"Retry {attempt - 1}/{max_retries - 1} for node(s) {failed_nodes}...")
+        still_failed = []
+        for sensor_device_id in failed_nodes:
+            seq = cal_seq_ref[0] & 0xFFFF
+            cal_seq_ref[0] = (cal_seq_ref[0] + 1) & 0xFFFF
+            send_cal_cmd(bus, sensor_device_id, CAL_CMD_SAVE, seq)
+            mins, maxs, seen, ack_ok, expected_count = collect_calibration_from_sensor_node(
+                bus, sensor_device_id, seq, CAL_CMD_TIMEOUT_S
             )
-    if not all_ok:
-        print("Calibration save aborted; missing ack/data.")
+            seen_count = sum(1 for entry in seen if entry)
+            if not ack_ok:
+                print(f"Calibration save ack failed for sensor node {sensor_device_id}.")
+                still_failed.append(sensor_device_id)
+            elif seen_count < expected_count:
+                missing = expected_count - seen_count
+                print(f"Calibration data missing for sensor node {sensor_device_id}: {missing} sensor(s).")
+                still_failed.append(sensor_device_id)
+            else:
+                collected[sensor_device_id] = (mins, maxs, expected_count)
+        failed_nodes = still_failed
+    if failed_nodes:
+        print(f"Calibration save aborted; no ack/data from node(s) {failed_nodes} after {max_retries} attempts.")
         return False
+    for sensor_device_id in SENSOR_NODE_DEVICE_IDS:
+        mins, maxs, expected_count = collected[sensor_device_id]
+        payload = sensor_calibration.build_payload(
+            payload,
+            sensor_device_id,
+            expected_count,
+            [int(v) for v in mins[:expected_count]],
+            [int(v) for v in maxs[:expected_count]],
+        )
     if payload is None:
         print("Calibration save aborted; no payload to write.")
         return False
@@ -152,18 +195,25 @@ def handle_cal_save(bus, cal_seq_ref: list[int]) -> bool:
     return True
 
 
-def handle_cal_reset(bus, cal_seq_ref: list[int]) -> bool:
+def handle_cal_reset(bus, cal_seq_ref: list[int], *, max_retries: int = 3) -> bool:
     print("Requesting calibration reset on all sensor nodes...")
-    all_ok = True
-    for sensor_device_id in SENSOR_NODE_DEVICE_IDS:
-        seq = cal_seq_ref[0] & 0xFFFF
-        cal_seq_ref[0] = (cal_seq_ref[0] + 1) & 0xFFFF
-        send_cal_cmd(bus, sensor_device_id, CAL_CMD_RESET, seq)
-        if not wait_for_cal_ack(bus, sensor_device_id, CAL_CMD_RESET, seq, CAL_CMD_TIMEOUT_S):
-            print(f"Calibration reset ack failed for sensor node {sensor_device_id}.")
-            all_ok = False
-    if not all_ok:
-        print("Calibration reset aborted; missing ack(s).")
+    failed_nodes = list(SENSOR_NODE_DEVICE_IDS)
+    attempt = 0
+    while failed_nodes and attempt < max_retries:
+        attempt += 1
+        if attempt > 1:
+            print(f"Retry {attempt - 1}/{max_retries - 1} for node(s) {failed_nodes}...")
+        still_failed = []
+        for sensor_device_id in failed_nodes:
+            seq = cal_seq_ref[0] & 0xFFFF
+            cal_seq_ref[0] = (cal_seq_ref[0] + 1) & 0xFFFF
+            send_cal_cmd(bus, sensor_device_id, CAL_CMD_RESET, seq)
+            if not wait_for_cal_ack(bus, sensor_device_id, CAL_CMD_RESET, seq, CAL_CMD_TIMEOUT_S):
+                print(f"Calibration reset ack failed for sensor node {sensor_device_id}.")
+                still_failed.append(sensor_device_id)
+        failed_nodes = still_failed
+    if failed_nodes:
+        print(f"Calibration reset aborted; no ack from node(s) {failed_nodes} after {max_retries} attempts.")
         return False
     flags_ok = nvm_flags.set_usb_drive_disabled(True) and nvm_flags.set_reset_calibration_on_boot(True)
     if not flags_ok:
@@ -176,5 +226,5 @@ def handle_cal_reset(bus, cal_seq_ref: list[int]) -> bool:
 def reset_reboot(reason: str) -> None:
     print(reason)
     time.sleep(0.1)
-    if not reset_board():
+    if not _reset_board():
         return

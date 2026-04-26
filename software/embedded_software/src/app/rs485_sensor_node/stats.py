@@ -13,6 +13,7 @@ class StatsTracker:
         self.active_sensors = active_sensors
         self.window = window
         self.history = array("H", [0] * (active_sensors * window))
+        self.last_valid = [0] * active_sensors
         self.sum = [0] * active_sensors
         self.sumsq = [0] * active_sensors
         self.index = 0
@@ -24,6 +25,13 @@ class StatsTracker:
             value = int(scan_buffer[sensor_idx])
             if sensor_disabled[sensor_idx]:
                 value = 0
+                self.last_valid[sensor_idx] = 0
+            elif value == 0:
+                # Zero is invalid for these sensors; keep the rolling
+                # statistics on the last known non-zero value.
+                value = self.last_valid[sensor_idx]
+            else:
+                self.last_valid[sensor_idx] = value
             old = self.history[base + sensor_idx]
             self.history[base + sensor_idx] = value
             self.sum[sensor_idx] += value - old
@@ -56,23 +64,33 @@ def refresh_data_payload(data_payload, scan_buffer, sensor_disabled, stats: Stat
             value = int(scan_buffer[sensor_idx])
             std_v = stats.std_for_sensor(sensor_idx, sensor_disabled)
         offset = sensor_idx * DATA_RECORD_BYTES
-        data_payload[offset : offset + 2] = value.to_bytes(2, "little")
-        data_payload[offset + 2 : offset + 4] = std_v.to_bytes(2, "little")
+        data_payload[offset] = value & 0xFF
+        data_payload[offset + 1] = (value >> 8) & 0xFF
+        data_payload[offset + 2] = std_v & 0xFF
+        data_payload[offset + 3] = (std_v >> 8) & 0xFF
 
 
 class ScanRateTracker:
     def __init__(self, window_s: float):
         self.window_s = window_s
         self.times = []
+        self.start_idx = 0
 
     def update(self, now: float) -> None:
         self.times.append(now)
         cutoff = now - self.window_s
-        while self.times and self.times[0] < cutoff:
-            self.times.pop(0)
+        start = self.start_idx
+        total = len(self.times)
+        while start < total and self.times[start] < cutoff:
+            start += 1
+        self.start_idx = start
+        # Compact periodically to avoid unbounded growth.
+        if self.start_idx > 256 and (self.start_idx * 2) >= len(self.times):
+            self.times = self.times[self.start_idx :]
+            self.start_idx = 0
 
     def rate_hz(self, now: float) -> float:
-        if not self.times:
+        if self.start_idx >= len(self.times):
             return 0.0
-        elapsed = max(now - self.times[0], 0.001)
-        return len(self.times) / elapsed
+        elapsed = max(now - self.times[self.start_idx], 0.001)
+        return (len(self.times) - self.start_idx) / elapsed

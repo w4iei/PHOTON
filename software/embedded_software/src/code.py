@@ -3,14 +3,14 @@ Board entry point with manual run-mode list.
 
 Available run modes (edit this docstring when adding new ones):
 - heartbeat
-- play_midi_file
+- midi-file
 - midi-file-stream
 - screen-test
 - rt-sensor-display
-- microsd-midi-play
 - microsd-midi-write
 - rs485-sensor-node
 - rs485-main-host
+- sensor-node-single-sensor-trace
 """
 
 from __future__ import annotations
@@ -19,11 +19,10 @@ import os
 import supervisor
 import time
 
-from app.helpers import nvm_flags
+from app import nvm_flags
 
-# Change this to pick which script runs on boot.
-ACTIVE_MODE = "sensor-node-debug"
-_STATUS_LEDS = []
+# Default fallback for local bench work when no role marker files are present.
+ACTIVE_MODE = "screen-test"
 
 
 def run_mode(name: str) -> None:
@@ -36,10 +35,14 @@ def run_mode(name: str) -> None:
         from app import heartbeat_midi
 
         heartbeat_midi.main()
-    elif name == "play_midi_file":
+    elif name == "midi-file":
         from app import play_midi_file
 
         play_midi_file.main()
+    elif name == "midi-file-stream":
+        from app import play_midi_file
+
+        play_midi_file.main2(filename="/assets/bwv832.mid")
     elif name == "screen-test":
         from app import screen_test
 
@@ -48,10 +51,6 @@ def run_mode(name: str) -> None:
         from app import rt_sensor_display
 
         rt_sensor_display.main()
-    elif name == "microsd-midi-play":
-        from app import play_midi_file
-
-        play_midi_file.main_sd()
     elif name == "microsd-midi-write":
         from app import microsd_midi_write
 
@@ -64,6 +63,10 @@ def run_mode(name: str) -> None:
         from app import rs485_main_host
 
         rs485_main_host.main()
+    elif name == "sensor-node-single-sensor-trace":
+        from app import sensor_node_single_sensor_trace
+
+        sensor_node_single_sensor_trace.main()
     else:
         raise ValueError("Unknown run mode '%s'" % name)
 
@@ -98,11 +101,13 @@ def main() -> None:
     import gc
 
     ram_kb = gc.mem_free() // 1024
-    print("PSRAM Present" if ram_kb > 1024 else "RAM free: %d KB" % ram_kb)
-    print("NVM flags:", nvm_flags.describe_flags())
+    print("[BOOT] PSRAM Present" if ram_kb > 1024 else "[BOOT] RAM free: %d KB" % ram_kb)
+    print("[BOOT] NVM flags:", nvm_flags.describe_flags())
     try:
         run_mode(resolve_active_mode())
     except ValueError as exc:
+        if not str(exc).startswith("Unknown run mode"):
+            raise
         print(exc)
         print("Update ACTIVE_MODE to one of the modes listed in the docstring.")
         raise

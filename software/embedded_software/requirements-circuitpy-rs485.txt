@@ -1,0 +1,4 @@
+# CircuitPython dependencies for RS485 Sensor Node
+# This is a minimal dependency set - the RS485 sensor node only uses
+# built-in CircuitPython modules and custom C drivers (photon_rs485, photon_sensorscan)
+# No additional Adafruit CircuitPython libraries are required.

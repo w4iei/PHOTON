@@ -2,17 +2,15 @@
 
 from __future__ import annotations
 
+from array import array
 import random
 import time
 
-from app.rs485_bus import FRAME_TYPE_EVENT
+from photon_rs485 import FRAME_TYPE_EVENT
 
 from .constants import (
-    ADJACENT_GUARD_PCT,
     EVENT_STATE_OFF,
     EVENT_STATE_ON,
-    POLARITY_NORMAL,
-    POLARITY_REVERSED,
     VELOCITY_WINDOW_PCT,
 )
 
@@ -44,7 +42,7 @@ class EventEngine:
         event_retry_max: int,
         event_backoff_us,
         event_queue_max: int,
-        min_event_range: int,
+        min_sensor_dynamic_range: int,
         release_pct: int,
         activation_pct: int,
         log_event_details: bool,
@@ -58,13 +56,106 @@ class EventEngine:
         self.event_retry_max = event_retry_max
         self.event_backoff_us = event_backoff_us
         self.event_queue_max = event_queue_max
-        self.min_event_range = min_event_range
+        self.min_sensor_dynamic_range = min_sensor_dynamic_range
         self.release_pct = release_pct
         self.activation_pct = activation_pct
         self.log_event_details = log_event_details
         self.event_queue = []
         self.event_in_flight = None
         self.event_seq = 0
+        self._c_process_scan_events = None
+        self._c_event_words = None
+        self._active_sensors = int(getattr(self.state, "active_sensors", 0))
+        if self._active_sensors <= 0:
+            raise ValueError("state.active_sensors must be >= 1")
+        self._init_c_fast_path()
+        self._validate_state_buffers_for_c(self._active_sensors)
+        print("Event engine: photon_sensorscan.process_scan_events (C-only)")
+
+    def _init_c_fast_path(self) -> None:
+        try:
+            module = __import__("photon_sensorscan")
+        except Exception as exc:
+            raise RuntimeError(
+                "Missing photon_sensorscan C event backend; Python event fallback has been removed."
+            ) from exc
+        process_scan_events = getattr(module, "process_scan_events", None)
+        if not callable(process_scan_events):
+            raise RuntimeError(
+                "photon_sensorscan.process_scan_events is unavailable; Python event fallback has been removed."
+            )
+        self._c_process_scan_events = process_scan_events
+        self._c_event_words = array("H", [0] * max(3, self.event_queue_max * 3))
+
+    def _validate_state_buffers_for_c(self, active: int) -> None:
+        required = (
+            "latest_values",
+            "sensor_disabled",
+            "sensor_min",
+            "sensor_max",
+            "sensor_polarity",
+            "sensor_strike_pct",
+            "sensor_on",
+            "sensor_active",
+            "sensor_strike_pending",
+            "sensor_strike_time_ms",
+            "sensor_release_pending",
+            "sensor_release_time_ms",
+        )
+        for name in required:
+            buf = getattr(self.state, name, None)
+            if buf is None:
+                raise RuntimeError(f"state.{name} is required for C event processing")
+            try:
+                size = len(buf)
+            except Exception as exc:
+                raise TypeError(f"state.{name} must be a sized writable buffer") from exc
+            if size < active:
+                raise ValueError(f"state.{name} length must be >= active_sensors ({active})")
+
+    def _process_scan_c(self, active_sensors: int) -> None:
+        if self._c_process_scan_events is None or self._c_event_words is None:
+            raise RuntimeError("C event backend is not initialized")
+        try:
+            event_count = int(
+                self._c_process_scan_events(
+                    active_sensors=active_sensors,
+                    latest_values=self.state.latest_values,
+                    sensor_disabled=self.state.sensor_disabled,
+                    sensor_min=self.state.sensor_min,
+                    sensor_max=self.state.sensor_max,
+                    sensor_polarity=self.state.sensor_polarity,
+                    sensor_strike_pct=self.state.sensor_strike_pct,
+                    sensor_on=self.state.sensor_on,
+                    sensor_active=self.state.sensor_active,
+                    sensor_strike_pending=self.state.sensor_strike_pending,
+                    sensor_strike_time_ms=self.state.sensor_strike_time_ms,
+                    sensor_release_pending=self.state.sensor_release_pending,
+                    sensor_release_time_ms=self.state.sensor_release_time_ms,
+                    min_event_range=self.min_sensor_dynamic_range,
+                    release_pct=self.release_pct,
+                    activation_pct=self.activation_pct,
+                    velocity_window_pct=VELOCITY_WINDOW_PCT,
+                    strike_window_pct=30,
+                    event_words=self._c_event_words,
+                )
+            )
+        except Exception as exc:
+            raise RuntimeError(f"photon_sensorscan.process_scan_events failed: {exc}") from exc
+        max_events = len(self._c_event_words) // 3
+        if event_count > max_events:
+            event_count = max_events
+        for event_idx in range(event_count):
+            base = event_idx * 3
+            sensor_idx = int(self._c_event_words[base])
+            state = int(self._c_event_words[base + 1])
+            dt_ms = int(self._c_event_words[base + 2])
+            if self.log_event_details:
+                print(
+                    "[RS485 node %d] EVENT %s sensor=%d dt_ms=%d"
+                    % (self.device_id, "ON" if state else "OFF", sensor_idx, dt_ms)
+                )
+            self.queue_event(sensor_idx, state, dt_ms)
 
     def _backoff_s(self) -> float:
         low = 50
@@ -91,7 +182,7 @@ class EventEngine:
         )
 
     def _send_event(self, event, now: float) -> None:
-        self.bus.send_frame(FRAME_TYPE_EVENT, self.device_id, event["payload"], event["seq"])
+        self.bus.send_frame(FRAME_TYPE_EVENT, self.device_id, event["payload"], event["seq"], ack_timeout_us=0)
         event["sent_at"] = now
         event["attempts"] += 1
         event["deadline"] = now + self.event_ack_timeout_s + self._backoff_s()
@@ -113,248 +204,20 @@ class EventEngine:
         if self.event_in_flight and seq == self.event_in_flight["seq"]:
             self.event_in_flight = None
 
-    def process_sample(self, sensor_idx: int, value: int) -> None:
-        now = time.monotonic()
-        if self.state.sensor_disabled[sensor_idx]:
-            self.state.latest_values[sensor_idx] = 0
+    def process_scan(self, readings, count: int) -> None:
+        limit = int(count)
+        if limit < 0:
             return
-        self.state.latest_values[sensor_idx] = value
-
-        def _neighbor_is_active_for_guard(neighbor_idx: int) -> bool:
-            if neighbor_idx < 0 or neighbor_idx >= self.state.active_sensors:
-                return False
-            if self.state.sensor_disabled[neighbor_idx]:
-                return False
-            neighbor_min = self.state.sensor_min[neighbor_idx]
-            neighbor_max = self.state.sensor_max[neighbor_idx]
-            neighbor_val = self.state.latest_values[neighbor_idx]
-            neighbor_low = neighbor_min if neighbor_min < neighbor_val else neighbor_val
-            neighbor_high = neighbor_max if neighbor_max > neighbor_val else neighbor_val
-            neighbor_rng = neighbor_high - neighbor_low
-            if neighbor_rng < self.min_event_range:
-                return False
-            if self.state.sensor_polarity[neighbor_idx] == POLARITY_REVERSED:
-                threshold = neighbor_high - (neighbor_rng * ADJACENT_GUARD_PCT) // 100
-                return neighbor_val <= threshold
-            threshold = neighbor_low + (neighbor_rng * ADJACENT_GUARD_PCT) // 100
-            return neighbor_val >= threshold
-
-        def _should_update_max(idx: int) -> bool:
-            rng = self.state.sensor_max[idx] - self.state.sensor_min[idx]
-            if rng < self.min_event_range:
-                return True
-            if _neighbor_is_active_for_guard(idx - 1):
-                return False
-            if _neighbor_is_active_for_guard(idx + 1):
-                return False
-            return True
-
-        if value < self.state.sensor_min[sensor_idx]:
-            self.state.sensor_min[sensor_idx] = value
-        if value > self.state.sensor_max[sensor_idx] and _should_update_max(sensor_idx):
-            self.state.sensor_max[sensor_idx] = value
-        min_v = self.state.sensor_min[sensor_idx]
-        max_v = self.state.sensor_max[sensor_idx]
-        rng = max_v - min_v
-        if rng < self.min_event_range:
-            self.state.sensor_on[sensor_idx] = False
-            self.state.sensor_active[sensor_idx] = False
-            self.state.sensor_activation_t[sensor_idx] = None
-            self.state.sensor_strike_pending[sensor_idx] = False
-            self.state.sensor_strike_time[sensor_idx] = 0.0
-            self.state.sensor_release_pending[sensor_idx] = False
-            self.state.sensor_release_time[sensor_idx] = 0.0
+        if limit > self.state.active_sensors:
+            limit = self.state.active_sensors
+        if limit <= 0:
             return
+        self._process_scan_c(limit)
 
-        strike_pct = self.state.sensor_strike_pct[sensor_idx]
-        vel_pct = strike_pct + VELOCITY_WINDOW_PCT
-        if vel_pct > 100:
-            vel_pct = 100
-        rel_pct = min(self.release_pct, strike_pct)
-        polarity = self.state.sensor_polarity[sensor_idx]
-        if polarity == POLARITY_NORMAL:
-            activation_thr = self.state.sensor_min[sensor_idx] + (rng * self.activation_pct) // 100
-            strike_thr = self.state.sensor_min[sensor_idx] + (rng * strike_pct) // 100
-            velocity_thr = self.state.sensor_min[sensor_idx] + (rng * vel_pct) // 100
-            release_thr = self.state.sensor_min[sensor_idx] + (rng * rel_pct) // 100
-            is_active = value >= activation_thr
-        else:
-            activation_thr = self.state.sensor_max[sensor_idx] - (rng * self.activation_pct) // 100
-            strike_thr = self.state.sensor_max[sensor_idx] - (rng * strike_pct) // 100
-            velocity_thr = self.state.sensor_max[sensor_idx] - (rng * vel_pct) // 100
-            release_thr = self.state.sensor_max[sensor_idx] - (rng * rel_pct) // 100
-            is_active = value <= activation_thr
-
-        if is_active:
-            if not self.state.sensor_active[sensor_idx]:
-                self.state.sensor_activation_t[sensor_idx] = now
-        else:
-            if self.state.sensor_active[sensor_idx]:
-                self.state.sensor_activation_t[sensor_idx] = None
-        self.state.sensor_active[sensor_idx] = is_active
-
-        if is_active and self.trace is not None:
-            self.trace.ensure_slot(sensor_idx, now)
-        if self.trace is not None:
-            self.trace.write_sample(sensor_idx, value, now)
-
-        def _dt_ms(start_t: float, end_t: float) -> int:
-            dt_ms = int((end_t - start_t) * 1000.0 + 0.5)
-            if dt_ms < 0:
-                dt_ms = 0
-            if dt_ms > 0xFFFF:
-                dt_ms = 0xFFFF
-            return dt_ms
-
-        if not self.state.sensor_on[sensor_idx]:
-            if not self.state.sensor_strike_pending[sensor_idx]:
-                if polarity == POLARITY_NORMAL:
-                    if value >= strike_thr:
-                        self.state.sensor_strike_pending[sensor_idx] = True
-                        self.state.sensor_strike_time[sensor_idx] = now
-                else:
-                    if value <= strike_thr:
-                        self.state.sensor_strike_pending[sensor_idx] = True
-                        self.state.sensor_strike_time[sensor_idx] = now
-            else:
-                if polarity == POLARITY_NORMAL:
-                    if value >= velocity_thr:
-                        dt_ms = _dt_ms(self.state.sensor_strike_time[sensor_idx], now)
-                        if self.log_event_details:
-                            print(
-                                "[RS485 node %d] EVENT ON sensor=%d val=%d min=%d max=%d rng=%d "
-                                "polarity=%d strike=%d%% release=%d%% activation=%d%% "
-                                "strike_thr=%d velocity_thr=%d release_thr=%d dt_ms=%d"
-                                % (
-                                    self.device_id,
-                                    sensor_idx,
-                                    value,
-                                    self.state.sensor_min[sensor_idx],
-                                    self.state.sensor_max[sensor_idx],
-                                    rng,
-                                    polarity,
-                                    strike_pct,
-                                    self.release_pct,
-                                    self.activation_pct,
-                                    strike_thr,
-                                    velocity_thr,
-                                    release_thr,
-                                    dt_ms,
-                                )
-                            )
-                        self.queue_event(sensor_idx, EVENT_STATE_ON, dt_ms)
-                        self.state.sensor_on[sensor_idx] = True
-                        self.state.sensor_strike_pending[sensor_idx] = False
-                        self.state.sensor_activation_t[sensor_idx] = None
-                        self.state.sensor_release_pending[sensor_idx] = False
-                        self.state.sensor_release_time[sensor_idx] = 0.0
-                    elif value < strike_thr:
-                        self.state.sensor_strike_pending[sensor_idx] = False
-                else:
-                    if value <= velocity_thr:
-                        dt_ms = _dt_ms(self.state.sensor_strike_time[sensor_idx], now)
-                        if self.log_event_details:
-                            print(
-                                "[RS485 node %d] EVENT ON sensor=%d val=%d min=%d max=%d rng=%d "
-                                "polarity=%d strike=%d%% release=%d%% activation=%d%% "
-                                "strike_thr=%d velocity_thr=%d release_thr=%d dt_ms=%d"
-                                % (
-                                    self.device_id,
-                                    sensor_idx,
-                                    value,
-                                    self.state.sensor_min[sensor_idx],
-                                    self.state.sensor_max[sensor_idx],
-                                    rng,
-                                    polarity,
-                                    strike_pct,
-                                    self.release_pct,
-                                    self.activation_pct,
-                                    strike_thr,
-                                    velocity_thr,
-                                    release_thr,
-                                    dt_ms,
-                                )
-                            )
-                        self.queue_event(sensor_idx, EVENT_STATE_ON, dt_ms)
-                        self.state.sensor_on[sensor_idx] = True
-                        self.state.sensor_strike_pending[sensor_idx] = False
-                        self.state.sensor_activation_t[sensor_idx] = None
-                        self.state.sensor_release_pending[sensor_idx] = False
-                        self.state.sensor_release_time[sensor_idx] = 0.0
-                    elif value > strike_thr:
-                        self.state.sensor_strike_pending[sensor_idx] = False
-        else:
-            if polarity == POLARITY_NORMAL:
-                if not self.state.sensor_release_pending[sensor_idx]:
-                    if value <= velocity_thr:
-                        self.state.sensor_release_pending[sensor_idx] = True
-                        self.state.sensor_release_time[sensor_idx] = now
-                else:
-                    if value <= release_thr:
-                        dt_ms = _dt_ms(self.state.sensor_release_time[sensor_idx], now)
-                        if self.log_event_details:
-                            print(
-                                "[RS485 node %d] EVENT OFF sensor=%d val=%d min=%d max=%d rng=%d "
-                                "polarity=%d strike=%d%% release=%d%% activation=%d%% "
-                                "strike_thr=%d velocity_thr=%d release_thr=%d dt_ms=%d"
-                                % (
-                                    self.device_id,
-                                    sensor_idx,
-                                    value,
-                                    self.state.sensor_min[sensor_idx],
-                                    self.state.sensor_max[sensor_idx],
-                                    rng,
-                                    polarity,
-                                    strike_pct,
-                                    self.release_pct,
-                                    self.activation_pct,
-                                    strike_thr,
-                                    velocity_thr,
-                                    release_thr,
-                                    dt_ms,
-                                )
-                            )
-                        self.queue_event(sensor_idx, EVENT_STATE_OFF, dt_ms)
-                        self.state.sensor_on[sensor_idx] = False
-                        self.state.sensor_strike_pending[sensor_idx] = False
-                        self.state.sensor_release_pending[sensor_idx] = False
-                        self.state.sensor_release_time[sensor_idx] = 0.0
-                    elif value > velocity_thr:
-                        self.state.sensor_release_pending[sensor_idx] = False
-            else:
-                if not self.state.sensor_release_pending[sensor_idx]:
-                    if value >= velocity_thr:
-                        self.state.sensor_release_pending[sensor_idx] = True
-                        self.state.sensor_release_time[sensor_idx] = now
-                else:
-                    if value >= release_thr:
-                        dt_ms = _dt_ms(self.state.sensor_release_time[sensor_idx], now)
-                        if self.log_event_details:
-                            print(
-                                "[RS485 node %d] EVENT OFF sensor=%d val=%d min=%d max=%d rng=%d "
-                                "polarity=%d strike=%d%% release=%d%% activation=%d%% "
-                                "strike_thr=%d velocity_thr=%d release_thr=%d dt_ms=%d"
-                                % (
-                                    self.device_id,
-                                    sensor_idx,
-                                    value,
-                                    self.state.sensor_min[sensor_idx],
-                                    self.state.sensor_max[sensor_idx],
-                                    rng,
-                                    polarity,
-                                    strike_pct,
-                                    self.release_pct,
-                                    self.activation_pct,
-                                    strike_thr,
-                                    velocity_thr,
-                                    release_thr,
-                                    dt_ms,
-                                )
-                            )
-                        self.queue_event(sensor_idx, EVENT_STATE_OFF, dt_ms)
-                        self.state.sensor_on[sensor_idx] = False
-                        self.state.sensor_strike_pending[sensor_idx] = False
-                        self.state.sensor_release_pending[sensor_idx] = False
-                        self.state.sensor_release_time[sensor_idx] = 0.0
-                    elif value < velocity_thr:
-                        self.state.sensor_release_pending[sensor_idx] = False
+        if self.trace is not None and getattr(self.trace, "enabled", False):
+            now = time.monotonic()
+            for sensor_idx in range(limit):
+                value = int(readings[sensor_idx])
+                if self.state.sensor_active[sensor_idx]:
+                    self.trace.ensure_slot(sensor_idx, now)
+                self.trace.write_sample(sensor_idx, value, now)

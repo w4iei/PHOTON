@@ -8,14 +8,30 @@ from __future__ import annotations
 
 import time
 
-from app.helpers import nvm_flags
-from app.helpers import sensor_calibration
+from app import nvm_flags
+from app import sensor_calibration
 
 from .constants import SENSOR_VALUE_MAX
-from app.rs485_common.reset import reset_board
-from app.rs485_common.storage import get_root_readonly, remount_root
-from .runtime import supervisor
+from .runtime import reset_board, storage, supervisor
 from .stats import refresh_data_payload
+
+
+def get_root_readonly() -> bool | None:
+    try:
+        mount = storage.getmount("/")
+    except Exception:
+        return None
+    return bool(getattr(mount, "readonly", False))
+
+
+def remount_root(readonly: bool, *, debug: list | None = None) -> bool:
+    try:
+        storage.remount("/", readonly=readonly)
+    except Exception as exc:
+        if debug is not None:
+            debug.append("remount failed: %s: %s" % (exc.__class__.__name__, exc))
+        return False
+    return True
 
 
 def print_disabled_sensor_warning(disabled_count: int) -> None:
@@ -23,10 +39,10 @@ def print_disabled_sensor_warning(disabled_count: int) -> None:
         return
     lines = [
         f"WARNING: {disabled_count} sensor(s) disabled.",
-        "Disabled due to high level at boot OR config override.",
+        "Disabled due to high level at boot OR system config.",
         "Please be sure that no keys are pressed",
         "when powering on the photon system.",
-        "Config source: /config/rs485_sensor_node.json -> disabled_sensors",
+        "Config source: app/rs485_system_config.py",
     ]
     frame_width = max(len(line) for line in lines)
     print("+-" + ("-" * frame_width) + "-+")
@@ -62,6 +78,7 @@ class CalibrationManager:
         *,
         device_id: int,
         active_sensors: int,
+        boot_auto_disable_enabled: bool,
         boot_disable_above: int,
         disabled_sensors_cfg: set[int],
         scanner,
@@ -71,6 +88,7 @@ class CalibrationManager:
     ):
         self.device_id = device_id
         self.active_sensors = active_sensors
+        self.boot_auto_disable_enabled = bool(boot_auto_disable_enabled)
         self.boot_disable_above = boot_disable_above
         self.disabled_sensors_cfg = disabled_sensors_cfg
         self.scanner = scanner
@@ -79,15 +97,18 @@ class CalibrationManager:
         self.calibration_path = calibration_path
 
     def init_baseline(self) -> None:
-        self.scanner.scan_into(self.state.scan_buffer)
+        self.scanner.scan_all_sensors()
         disabled = []
         for sensor_idx in range(self.active_sensors):
             value = int(self.state.scan_buffer[sensor_idx])
-            self.state.sensor_baseline[sensor_idx] = value
             self.state.latest_values[sensor_idx] = value
-            self.state.sensor_min[sensor_idx] = value
-            self.state.sensor_max[sensor_idx] = value
-            if value > self.boot_disable_above:
+            if value > 0:
+                self.state.sensor_baseline[sensor_idx] = value
+                self.state.sensor_min[sensor_idx] = value
+                self.state.sensor_max[sensor_idx] = value
+            else:
+                self.state.sensor_baseline[sensor_idx] = 0
+            if self.boot_auto_disable_enabled and value > self.boot_disable_above:
                 self.state.sensor_disabled[sensor_idx] = True
                 disabled.append(sensor_idx)
             if sensor_idx in self.disabled_sensors_cfg:
@@ -155,13 +176,12 @@ class CalibrationManager:
             for line in debug:
                 print("  - " + line)
 
-        if supervisor is not None:
-            try:
-                debug.append("usb_connected=%s" % supervisor.runtime.usb_connected)
-            except Exception as exc:
-                debug.append(
-                    "usb_connected check failed: %s: %s" % (exc.__class__.__name__, exc)
-                )
+        try:
+            debug.append("usb_connected=%s" % supervisor.runtime.usb_connected)
+        except Exception as exc:
+            debug.append(
+                "usb_connected check failed: %s: %s" % (exc.__class__.__name__, exc)
+            )
 
         restore_readonly = False
         readonly = get_root_readonly()
@@ -169,7 +189,7 @@ class CalibrationManager:
         debug.append("root_readonly=%s" % readonly)
         if readonly is not False:
             if not remount_root(False, debug=debug):
-                debug.append("hint: set NVM flag via app.helpers.nvm_flags.set_usb_drive_disabled(True)")
+                debug.append("hint: set NVM flag via app.nvm_flags.set_usb_drive_disabled(True)")
                 debug.append("save_aborted_before_write")
                 _print_save_debug()
                 return False

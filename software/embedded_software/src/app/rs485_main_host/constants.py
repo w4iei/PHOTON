@@ -1,74 +1,45 @@
 """Constants for the RS-485 main host."""
 
-UART_BAUD = 2_000_000
+from app.rs485_system_config import (
+    BOARD_PAIR_SIZE,
+    MAX_SENSORS,
+    MIDI_CHANNEL_BASE,
+    MIDI_HIGH_F,
+    MIDI_LOW_FF,
+    SENSOR_NODE_DEVICE_IDS,
+    UART_BAUD,
+    default_disabled_sensors,
+    manual_count,
+    sensors_per_manual,
+    total_sensors,
+)
 
-LCD_SPI_BAUD = 24_000_000
-DISPLAY_WIDTH = 320
-DISPLAY_HEIGHT = 240
-DISPLAY_ROTATION = 90
-DISPLAY_UPDATE_S = 2.0
-SENSOR_VALUE_MAX = 4095
-DISPLAY_VALUE_MAX = SENSOR_VALUE_MAX
-GRID_COLS = 8
-GRID_ROWS = 8
-BAR_PAD_X = 3
-BAR_PAD_Y = 4
-LABEL_PAD_X = 2
-LABEL_PAD_Y = 1
-LABEL_SCALE = 1
-BAR_COLOR = 0x00FF00
-BAR_BG = 0x000000
-ENABLE_DISPLAY = False
-ENABLE_TOUCH = False
-MIDI_LOW_FF = 29
-MIDI_HIGH_F = 89
-BASE_DISABLED_SENSORS = (31, 62, 63)
+SENSOR_VALUE_MAX = 65535
 MIN_SENSOR_RANGE = 625
 
 REQUEST_INTERVAL_S = 1 / 400  # 1/ Sample rate (hz) (not per sensor...)
 STATS_INTERVAL_S = 5.0
 STATS_RESPONSE_TIMEOUT_S = 0.3
 DATA_RESPONSE_TIMEOUT_S = 0.2
+PING_RESPONSE_TIMEOUT_S = 0.015  # 15ms wait for PONG after each PING
 PING_INTERVAL_S = 0.25
-TX_ENABLE_DELAY_S = 0.000025
-SENSOR_NODE_DEVICE_IDS = (1, 2, 3, 4)
-MAX_SENSORS = 32
-BOARD_PAIR_SIZE = 2
-SENSORS_PER_MANUAL = MAX_SENSORS * BOARD_PAIR_SIZE
-TOTAL_SENSORS = len(SENSOR_NODE_DEVICE_IDS) * MAX_SENSORS
-MANUAL_COUNT = max(1, (len(SENSOR_NODE_DEVICE_IDS) + BOARD_PAIR_SIZE - 1) // BOARD_PAIR_SIZE)
-DEFAULT_DISABLED_SENSORS = tuple(
-    base + (manual_idx * SENSORS_PER_MANUAL)
-    for manual_idx in range(MANUAL_COUNT)
-    for base in BASE_DISABLED_SENSORS
-    if base + (manual_idx * SENSORS_PER_MANUAL) < TOTAL_SENSORS
-)
+SENSORS_PER_MANUAL = sensors_per_manual()
+TOTAL_SENSORS = total_sensors()
+MANUAL_COUNT = manual_count()
+DEFAULT_DISABLED_SENSORS = default_disabled_sensors()
 STARTUP_PING_DURATION_S = 2.0
 DATA_TIMEOUT_S = 2.0
-INTER_FRAME_GAP_S = 0.002
 PRINT_INTERVAL_S = 5.0
 HEALTH_CHECK_IDLE_S = 10.0
 CAL_CMD_TIMEOUT_S = 1.5
-CONFIG_PATH = "/config/rs485_main_host.json"
 CALIBRATION_PATH = "/config/rs485_sensor_node_cal.json"
-DEFAULT_CONFIG = {
-    "event_mode": True,
-    "min_range": 170,
-    "velocity_min_ms": 8.0,
-    "velocity_max_ms": 100.0,
-    "velocity_curve": 2.54,
-    "log_velocity_details": False,
-    "disabled_sensors": list(DEFAULT_DISABLED_SENSORS),
-    "send_midi": True,
-    "trace_sample_hz": 100,
-    "trace_seconds": 10,
-    "trace_fetch_on_off": False,
-    "log_events": False,
-    "log_midi_events": True,
-}
 TRACE_CHUNK_SAMPLES = 25
 DATA_RECORD_BYTES = 4
 MINMAX_RECORD_BYTES = 6
+
+# Calibration frame types (not in photon_rs485 C driver)
+FRAME_TYPE_CAL_CMD = ord("K")
+FRAME_TYPE_CAL_ACK = ord("k")
 CAL_CMD_RESET = 1
 CAL_CMD_SAVE = 2
 CAL_ACK_OK = 1

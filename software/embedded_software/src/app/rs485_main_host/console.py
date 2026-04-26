@@ -2,49 +2,18 @@
 
 from __future__ import annotations
 
-from app.helpers.utils import midi_to_name
+from app.utils import midi_to_name, print_box, print_disabled_sensor_warning
 
 from .constants import MAX_SENSORS, SENSOR_NODE_DEVICE_IDS, TOTAL_SENSORS
 
 
 def print_usb_commands_box() -> None:
-    command_lines = [
+    print_box([
         "Press Enter to print the sensor table over USB serial.",
         "[S] Save calibration + re-enable MSC on next boot.",
         "[R] Reboot into calibration mode (disable MSC).",
-    ]
-    frame_width = max(len(line) for line in command_lines)
-    print("+-" + ("-" * frame_width) + "-+")
-    for line in command_lines:
-        padding = frame_width - len(line)
-        if padding < 0:
-            padding = 0
-        print("| " + line + (" " * padding) + " |")
-    print("+-" + ("-" * frame_width) + "-+")
-
-
-def print_disabled_sensor_warning(disabled_count: int) -> None:
-    if disabled_count <= 0:
-        return
-    lines = [
-        f"WARNING: {disabled_count} sensor(s) disabled.",
-        "Disabled due to high level at boot OR config override.",
-        "Please be sure that no keys are pressed",
-        "when powering on the photon system.",
-        "Config source: /config/rs485_main_host.json -> disabled_sensors",
-    ]
-    frame_width = max(len(line) for line in lines)
-    print("+-" + ("-" * frame_width) + "-+")
-    for line in lines:
-        padding = frame_width - len(line)
-        if padding < 0:
-            padding = 0
-        print("| " + line + (" " * padding) + " |")
-    print("+-" + ("-" * frame_width) + "-+")
-
-
-def _format_cell(val) -> str:
-    return str(val)
+        "[P] Toggle USB serial logging on/off.",
+    ])
 
 
 def print_full_table(
@@ -91,16 +60,16 @@ def print_full_table(
         note_str = midi_to_name(note)
         ena = "0"
         if values_seen[idx]:
-            val_s = _format_cell(values[idx])
+            val_s = str(values[idx])
         else:
             val_s = "None"
         if minmax_seen[idx]:
             min_v = mins[idx]
             max_v = maxs[idx]
             rng = max_v - min_v
-            min_s = _format_cell(min_v)
-            max_s = _format_cell(max_v)
-            rng_s = _format_cell(rng)
+            min_s = str(min_v)
+            max_s = str(max_v)
+            rng_s = str(rng)
             if note is not None and rng >= min_range:
                 ena = "1"
         else:
@@ -108,7 +77,7 @@ def print_full_table(
             max_s = "None"
             rng_s = "None"
         if std_seen[idx]:
-            std_s = _format_cell(stds[idx])
+            std_s = str(stds[idx])
         else:
             std_s = "None"
         print(
@@ -158,16 +127,16 @@ def print_table(
         note_str = midi_to_name(note)
         ena = "0"
         if values_seen[idx]:
-            val_s = _format_cell(values[idx])
+            val_s = str(values[idx])
         else:
             val_s = "None"
         if minmax_seen[idx]:
             min_v = mins[idx]
             max_v = maxs[idx]
             rng = max_v - min_v
-            min_s = _format_cell(min_v)
-            max_s = _format_cell(max_v)
-            rng_s = _format_cell(rng)
+            min_s = str(min_v)
+            max_s = str(max_v)
+            rng_s = str(rng)
             if note is not None and rng >= min_range:
                 ena = "1"
         else:
@@ -175,7 +144,7 @@ def print_table(
             max_s = "None"
             rng_s = "None"
         if std_seen[idx]:
-            std_s = _format_cell(stds[idx])
+            std_s = str(stds[idx])
         else:
             std_s = "None"
         row = [

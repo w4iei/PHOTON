@@ -1,86 +1,81 @@
-# Harpsichord MIDI Dev Board – Software
+# PHOTON Embedded Software
 
-CircuitPython firmware and host-side tooling for the harpsichord sensor dev board.
+CircuitPython firmware for the PHOTON RS-485 harpsichord system.
 
 ## Layout
-- `midi_controller_embedded_sw/` – primary CircuitPython sources.
-  - `src/code.py` boots the board and dispatches into the selected run mode.
-  - `src/app/` contains the production controller plus the legacy bring-up scripts.
-  - `assets/` holds MIDI files that can be played back directly from the board.
-  - `config/` captures board-specific JSON overrides (masking, calibration, etc.).
-- `host_code/` – small Python utilities that listen to the board over USB serial.
-- `Resources/` – schematics, pin maps, and other reference material.
-- `tools/` – helper shell scripts for deployment (`deploy_and_monitor.sh`) and resets.
+- `src/code.py` is the board entry point. It selects a run mode from marker files on `CIRCUITPY` and falls back to `ACTIVE_MODE` for bench scripts.
+- `src/app/rs485_sensor_node/` contains the production sensor-node runtime.
+- `src/app/rs485_main_host/` contains the production main-host runtime.
+- `src/app/rs485_system_config.py` is the checked-in system configuration source of truth.
+- `src/app/sensor_scanner.py` wraps the `photon_sensorscan` C module used by the sensor node scanner.
+- `assets/` contains board-local assets such as MIDI files.
+- `tools/` contains deployment and reset helpers.
+- `../host_code/` contains host-side serial utilities.
 
-## Choosing what runs on boot
-`code.py` now stays minimal; flip the `ACTIVE_MODE` constant when you want to run a
-different script on the board. The default production scanner is `controller`.
+## Boot mode selection
+`src/code.py` resolves the active role in this order:
 
-Available run modes live near the top of `code.py`. From a REPL you can run:
+1. `/main` on `CIRCUITPY` -> run `rs485-main-host`
+2. `/sensor_node_id` (or legacy `/secondary_sensor`) -> run `rs485-sensor-node`
+3. otherwise -> run `ACTIVE_MODE` from `src/code.py`
 
-```python
-import code
-print(code.available_modes())
-```
+For normal RS-485 deployment you should use the deploy script flags instead of editing `ACTIVE_MODE` directly.
 
-Notable entries:
-- `controller` – main 64-channel sensor → MIDI bridge.
-- `controller:f0-debug` – runs the I2S pitch tracker loop instead of sensors.
-- `heartbeat`, `single-sensor`, `sensor-bank`, `big-sensor-scan`, … – legacy bring-up tools retained for quick bench work.
-- `big-sensor-scope` – sweeps sensors, then streams oscilloscope-style captures and I2S STFT data.
+## Configuration
+The project no longer uses checked-in JSON pin maps such as `config/pins.json`. Current configuration is split across three places:
 
-## Deploying to a board
-Either drag the `src/` and `assets/` directories onto the mounted `CIRCUITPY`
-volume, or use the helper script:
+1. `src/app/rs485_system_config.py`
+   This is the main configuration file in the repo. It defines:
+   - host defaults
+   - sensor-node defaults
+   - per-node overrides in `SENSOR_NODE_OVERRIDES`
+   - bus pin assignments under `SENSOR_NODE_CONFIG["pins"]`
+   - sensor-node IDs, MIDI range, disabled-sensor defaults, and UART settings
+
+2. `/sensor_node_id` on the device
+   This is a plain-text marker file written by `tools/deploy_and_monitor.sh --sensor_node_id N`. The sensor node reads it at boot via `read_sensor_node_id()` and uses it to select the correct `device_id` and any per-node override from `rs485_system_config.py`.
+
+3. `/config/rs485_sensor_node_cal.json` on the device
+   This is a runtime-generated calibration file, not a checked-in source file. Sensor nodes load and save calibration there, and the main host reads the same file when checking calibration health or saving calibration data.
+
+In short: edit `src/app/rs485_system_config.py` for committed configuration, and treat `/config/rs485_sensor_node_cal.json` as generated device state.
+
+## Deploying
+Use the helper script from this directory:
 
 ```bash
-cd midi_controller_embedded_sw
-tools/deploy_and_monitor.sh   # deploys, tails the serial log
+tools/deploy_and_monitor.sh
 ```
 
-Examples:
+Common cases:
+
 ```bash
-# Main board
-cd midi_controller_embedded_sw
+# Deploy as the main host
 tools/deploy_and_monitor.sh --main
 
-# Sensor board with id 1 
-cd midi_controller_embedded_sw
+# Deploy as sensor node 1
 tools/deploy_and_monitor.sh --sensor_node_id 1
 ```
 
-The script:
-1. Performs a REPL break/reset (so the board reloads cleanly),
-2. Syncs `src/` (and `assets/` if present) onto the drive,
-3. Re-attaches a serial monitor so you can watch log output immediately.
+What the script does:
+1. Resets the board through USB serial when needed.
+2. Copies `src/` and `assets/` to `CIRCUITPY`.
+3. Ensures `/sd` and `/config` exist on the device.
+4. Installs CircuitPython libraries from `requirements-circuitpy-rs485.txt` by default when `circup` is available.
+5. Writes the role marker file (`/main` or `/sensor_node_id`) and reattaches the serial console.
 
-Set `MODE=prod` when you want `boot_prod.py` copied instead of the default dev boot file.
+Set `MODE=prod` to copy `src/boot_prod.py` as `boot.py` instead of the default dev boot file.
 
-## Pin configuration
-- Edit `config/pins.json` to adjust mux selects, ADC channels, UART/I2C breakouts, or status LEDs without touching the Python sources.
-- The board reads that file on boot via `app.helpers.config.pins()`. From a REPL you can call `from app.helpers.config import reload_pins; reload_pins()` after editing to pick up changes.
-- The deploy script now syncs the `config/` directory automatically; double-check the log output if your edits are not appearing on the device.
+## Sensor scanner
+`src/app/sensor_scanner.py` is still used. The RS-485 sensor node imports it in [src/app/rs485_sensor_node/hardware_setup.py](</Users/noahjaffe/Documents/UvA PhD Work/Harpsichord MIDI Capture/PHOTON_PUBLIC/software/embedded_software/src/app/rs485_sensor_node/hardware_setup.py:10>) and constructs the scanner in `setup_scanner()`. It is the Python wrapper around the `photon_sensorscan` backend and should not be deleted.
 
-## Sensor calibration & masking
-- `app/helpers/sensors.py` defines `MASKED_SENSORS`, polarities, and hysteresis tuning. Adjust
-  these constants per board revision, then redeploy.
-- `print_table()` (triggered every `PRINT_EVERY_SWEEPS` iterations) dumps a concise
-  view of min/max ranges, thresholds, and enable flags so you can sanity-check the calibration.
+## USB serial controls
+When USB serial is connected, the production RS-485 flows handle these keys:
+- `Enter`: print the current sensor table
+- `R`: reboot into calibration mode
+- `S`: save calibration and reboot
+- `X`: exit calibration without saving and reboot
 
-## Host-side tips
-- `host_code/listen_for_single_sensor_high_res.py` is handy when tuning a single IR pair.
-- All runtime logs begin with `# LOG` / `# NOTE`, making it easy to filter with `rg`, `grep`, or the host scripts.
-
-## USB serial debug keys
-When USB serial is connected (and `usb_verbose` is enabled for RS-485 sensor nodes), the following key presses are handled. Commands are case-insensitive.
-- `Enter`: print the sensor table (main host prints the full multi-node table; sensor node prints its local table).
-- `R`: enter calibration mode (main host reboots nodes into calibration mode; sensor node switches into its calibration loop).
-- `S`: save calibration + clear the reset-calibration flag, then reboot (also re-enables MSC on next boot).
-- `X`: exit calibration without saving and reboot (sensor node only).
-
-## Contributing / development workflow
-- Consolidated helpers live in `app/helpers/utils.py`, `app/helpers/midi_play.py`, and `app/helpers/sensors.py`.
-- Shared GPIO handles are managed through `app/helpers/hardware.py`; call its helpers (`claim_output`, `claim_input`) instead of instantiating `DigitalInOut` directly so multiple run modes can coexist without "pin in use" errors.
-- New experiments can be dropped into `app/` and registered in `code.RUN_MODES`
-  so they are selectable without editing the main control loop.
-- Keep comments concise and focused on hardware assumptions or non-obvious timing constraints.
+## Notes
+- `src/code.py` still contains many legacy bring-up modes. Some are useful for bench work, but the production path is `rs485-main-host` plus `rs485-sensor-node`.
+- Logs use `# LOG` and `# NOTE` prefixes so host tools can filter them reliably.

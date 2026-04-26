@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
-import json
+import os
 
-from app.helpers.midi_play import midi_setup
-from app.helpers.utils import log_note
-from app.rs485_common.config import deep_merge, load_config
+from app.midi_play import midi_setup
+from app.rs485_system_config import parse_disabled_sensors, rs485_host_config
+from app.sensor_calibration import extract_node_calibration, load_calibration_file
+from app.utils import log_note, midi_to_name
 
-from .config import parse_disabled_sensors
 from .constants import (
-    CONFIG_PATH,
-    DEFAULT_CONFIG,
+    CALIBRATION_PATH,
+    MAX_SENSORS,
     MIDI_HIGH_F,
     MIDI_LOW_FF,
     MIN_SENSOR_RANGE,
@@ -19,11 +19,8 @@ from .constants import (
     SENSORS_PER_MANUAL,
     TOTAL_SENSORS,
     UART_BAUD,
-    ENABLE_DISPLAY,
-    ENABLE_TOUCH,
 )
 from .console import print_disabled_sensor_warning, print_usb_commands_box
-from .display import disable_display, try_init_display, try_init_touch, update_bars
 from .event_mode import run_event_mode
 from .hardware_setup import setup_output, setup_rs485
 from .midi_mapping import (
@@ -37,18 +34,53 @@ from .pins import RS485_TERM_PIN
 from .polling_mode import run_polling_mode
 
 
+def _boot_cal_health_check(index_to_midi: dict) -> None:
+    """Log sensors whose calibrated min is >30% of their range."""
+    cal = load_calibration_file(CALIBRATION_PATH)
+    if cal is None:
+        log_note("CAL_HEALTH no calibration file found")
+        return
+    faults = []
+    for board_id in SENSOR_NODE_DEVICE_IDS:
+        node = extract_node_calibration(cal, board_id)
+        if node is None:
+            continue
+        mins = node.get("min", [])
+        maxs = node.get("max", [])
+        board_idx = SENSOR_NODE_DEVICE_IDS.index(board_id)
+        for sensor_idx in range(min(len(mins), len(maxs))):
+            min_v = mins[sensor_idx]
+            max_v = maxs[sensor_idx]
+            rng = max_v - min_v
+            if rng <= 0:
+                continue
+            if min_v > 0.3 * rng:
+                global_idx = board_idx * MAX_SENSORS + sensor_idx
+                note = index_to_midi.get(global_idx)
+                faults.append(
+                    "board=%d sensor=%d note=%d(%s) min=%d max=%d rng=%d"
+                    % (board_id, sensor_idx, note or 0, midi_to_name(note), min_v, max_v, rng)
+                )
+    if faults:
+        log_note("CAL_HEALTH %d sensor(s) with min >30%% of range:" % len(faults))
+        for f in faults:
+            log_note("CAL_HEALTH   %s" % f)
+    else:
+        log_note("CAL_HEALTH all sensors OK")
+
+
 def main() -> None:
     setup_output(RS485_TERM_PIN, value=True)
-    bus, use_fast = setup_rs485()
+    bus = setup_rs485()
 
-    cfg = deep_merge(DEFAULT_CONFIG, load_config(CONFIG_PATH))
+    cfg = rs485_host_config()
     event_mode = bool(cfg.get("event_mode", False))
     send_midi = bool(cfg.get("send_midi", True))
     log_midi_events = bool(cfg.get("log_midi_events", False))
     min_range = int(cfg.get("min_range", MIN_SENSOR_RANGE))
     if min_range < 0:
         min_range = 0
-    disabled_sensors = parse_disabled_sensors(cfg.get("disabled_sensors"))
+    disabled_sensors = parse_disabled_sensors(cfg.get("disabled_sensors"), TOTAL_SENSORS)
     disabled_count = len(disabled_sensors)
     index_to_channel = build_index_to_channel()
     log_note(f"index_to_channel={index_to_channel}")
@@ -65,7 +97,12 @@ def main() -> None:
     if send_midi:
         midi_setup()
     print_midi_mapping(index_to_midi, logical_index, index_to_channel)
+    _boot_cal_health_check(index_to_midi)
 
+    print("")
+    print(f"Board: {os.uname().machine}")
+    print(f"CircuitPython build: {os.uname().version}")
+    print("")
     print("")
     print(".*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*")
     print(".*        PHOTON RS485 Main Host        .*")
@@ -74,7 +111,6 @@ def main() -> None:
     print("Creator: Noah Jaffe")
     print("")
     print("--- RS485 Main Host ---")
-    print(f"UART @ {UART_BAUD} baud")
     print(f"Sensor nodes: {SENSOR_NODE_DEVICE_IDS}")
     channel_map = {}
     for board_id in SENSOR_NODE_DEVICE_IDS:
@@ -87,32 +123,12 @@ def main() -> None:
             f"ch{channel + 1}: {channel_map[channel]}" for channel in sorted(channel_map)
         ]
         print(f"MIDI channels: {', '.join(channel_entries)}")
-    rs485_driver_name = "photon_rs485" if use_fast else "python"
-    rs485_driver_kind = "C driver" if use_fast else "Python driver"
-    print(f"RS485 driver: {rs485_driver_name} ({rs485_driver_kind})")
+    print(f"RS485 UART baud rate: {UART_BAUD / 1_000_000.0:.2f} MHz")
+    print("RS485 driver: photon_rs485 (C driver)")
     print(f"Event mode: {event_mode}")
     print_disabled_sensor_warning(disabled_count)
     print("Config:")
-    try:
-        print(json.dumps(cfg, sort_keys=True, indent=2))
-    except TypeError:
-        try:
-            print(json.dumps(cfg))
-        except TypeError:
-            print(cfg)
-
-    display = None
-    bar_bitmaps = None
-    bar_w = 0
-    bar_h = 0
-    if ENABLE_DISPLAY:
-        display, bar_bitmaps, bar_w, bar_h = try_init_display()
-    else:
-        disable_display()
-    touch_dev = try_init_touch() if ENABLE_TOUCH else None
-    if display is None:
-        print("Display disabled; continuing headless.")
-    _ = touch_dev
+    print(cfg)
 
     print_usb_commands_box()
 
@@ -132,19 +148,11 @@ def main() -> None:
         )
         return
 
-    display_enabled = ENABLE_DISPLAY and bar_bitmaps is not None
-    update_display = None
-    if display_enabled:
-        def update_display(values):
-            update_bars(bar_bitmaps, values, bar_w, bar_h)
-
     run_polling_mode(
         bus,
         min_range=min_range,
         index_to_midi=index_to_midi,
         logical_index=logical_index,
-        display_enabled=display_enabled,
-        update_display=update_display,
     )
 
 

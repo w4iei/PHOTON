@@ -2,16 +2,17 @@
 
 Used from the main loop when USB serial is connected and `usb_verbose` is enabled.
 Keyboard inputs: Enter prints the sensor table; `s` saves calibration + reboots;
-`r` enters calibration mode; `x` exits without saving + reboots (case-insensitive).
+`r` enters calibration mode; `x` exits without saving + reboots; `d` prints
+scanner-driver debug state (case-insensitive).
 """
 
 from __future__ import annotations
 
 import time
 
-from app.helpers import nvm_flags
-from app.rs485_common.serial import read_serial_input
-from app.rs485_common.reset import reset_board
+from app import nvm_flags
+from app.utils import read_serial_input
+from .runtime import reset_board
 
 
 class USBConsole:
@@ -50,6 +51,7 @@ class USBConsole:
                     *row
                 )
             )
+
 
     def handle_input(self) -> None:
         data = read_serial_input()

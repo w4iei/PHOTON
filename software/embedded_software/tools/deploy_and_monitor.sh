@@ -13,7 +13,6 @@ MAX_WAIT_SERIAL_FIND=5     # look for CDC port up to N seconds
 
 SRC_DIR="${SRC_DIR:-"./src"}"
 ASSETS_DIR="${ASSETS_DIR:-"./assets"}"
-CONFIG_DIR="${CONFIG_DIR:-"./config"}"
 MODE="${MODE:-dev}"          # dev|prod|prod_recovery
 TAIL=1                       # default: attach serial at the end
 PORT_OVERRIDE=""             # optional --port
@@ -24,7 +23,7 @@ STAMP="$(date '+%Y%m%d-%H%M%S')"
 LOG_DIR="${LOG_DIR:-"./.deploy_logs"}"
 mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/deploy-$STAMP.log"
-REQS_FILE="${REQS_FILE:-"./requirements-circuitpy.txt"}"
+REQS_FILE="${REQS_FILE:-"./requirements-circuitpy-rs485.txt"}"
 RSYNC_FLAGS=(-rt --delete --modify-window=2 --no-perms --no-owner --no-group)
 RSYNC_EXCLUDES=(--exclude "__pycache__/" --exclude "*.pyc" --exclude ".DS_Store" --exclude "._*" --exclude "rs485_sensor_node_cal.json")
 
@@ -285,8 +284,10 @@ rm -f "$MOUNT/.write_test" || true
 
 # Ensure /sd exists so runtime can mount the TF card even if CIRCUITPY is later read-only.
 ensure_mount_dir "$MOUNT/sd"
+# Ensure /config exists for runtime calibration files.
+ensure_mount_dir "$MOUNT/config"
 
-# Install CircuitPython libs (if circup + requirements-circuitpy.txt present)
+# Install CircuitPython libs (if circup + the selected requirements file is present)
 install_circuitpy_libs "$REQS_FILE"
 
 ############### Deploy ###############
@@ -315,7 +316,6 @@ shopt -u nullglob
 
 [[ -d "$SRC_DIR/app" ]]  && sync_dir_to_mount "$SRC_DIR/app"  || true
 [[ -d "$ASSETS_DIR" ]]   && sync_dir_to_mount "$ASSETS_DIR"   || true
-[[ -d "$CONFIG_DIR" ]]   && sync_dir_to_mount "$CONFIG_DIR"   || true
 
 if [[ "$MAIN_MARKER" -eq 1 ]]; then
   log "--main flag detected; creating /main on CIRCUITPY."
@@ -348,36 +348,6 @@ if [[ -n "$SENSOR_NODE_ID" ]]; then
     rm -f "$MOUNT/secondary_sensor" || warn "Failed to remove /secondary_sensor on CIRCUITPY."
   fi
   log "--sensor_node_id detected; creating /sensor_node_id on CIRCUITPY."
-  log "--sensor_node_id detected; updating /config/rs485_sensor_node.json."
-  python3 - "$MOUNT/config/rs485_sensor_node.json" "$SENSOR_NODE_ID" <<'PY' 2>&1 | tee -a "$LOG_FILE"
-import json
-import os
-import sys
-
-path = sys.argv[1]
-device_id = int(sys.argv[2])
-
-data = {}
-if os.path.exists(path):
-    try:
-        with open(path, "r", encoding="utf-8") as handle:
-            data = json.load(handle)
-    except Exception:
-        data = {}
-
-data["device_id"] = device_id
-data["left_term"] = bool(device_id == 1)
-data["log_event_details"] = bool(device_id == 4)
-if device_id in (2, 4):
-    data["disabled_sensors"] = [30]
-os.makedirs(os.path.dirname(path), exist_ok=True)
-with open(path, "w", encoding="utf-8") as handle:
-    json.dump(data, handle, indent=2, sort_keys=True)
-print(
-    f"Updated {path} device_id={device_id} left_term={data['left_term']} "
-    f"log_event_details={data['log_event_details']}"
-)
-PY
   if printf "%s" "$SENSOR_NODE_ID" > "$MOUNT/sensor_node_id" 2>/dev/null; then
     if [[ -f "$MOUNT/sensor_node_id" ]]; then
       log "Wrote /sensor_node_id with value '$SENSOR_NODE_ID'."

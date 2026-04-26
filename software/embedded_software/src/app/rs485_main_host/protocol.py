@@ -4,28 +4,31 @@ from __future__ import annotations
 
 import time
 
-from app.rs485_bus import (
+from photon_rs485 import (
     FRAME_TYPE_DATA_REQ,
     FRAME_TYPE_DATA_RESP,
     FRAME_TYPE_EVENT,
     FRAME_TYPE_MINMAX_REQ,
     FRAME_TYPE_MINMAX_RESP,
+    FRAME_TYPE_PING,
+    FRAME_TYPE_PONG,
+    FRAME_TYPE_STATS_REQ,
+    FRAME_TYPE_STATS_RESP,
     FRAME_TYPE_TRACE_REQ,
     FRAME_TYPE_TRACE_RESP,
 )
 
+from app.utils import safe_print
+
 from .constants import (
     DATA_RECORD_BYTES,
-    DATA_RESPONSE_TIMEOUT_S,
-    INTER_FRAME_GAP_S,
     MAX_SENSORS,
     MINMAX_RECORD_BYTES,
-    REQUEST_INTERVAL_S,
+    PING_RESPONSE_TIMEOUT_S,
     SENSOR_NODE_DEVICE_IDS,
-    SENSOR_VALUE_MAX,
+    STATS_RESPONSE_TIMEOUT_S,
     TOTAL_SENSORS,
 )
-from .midi_mapping import board_index
 
 
 def decode_values(payload: bytes):
@@ -87,9 +90,24 @@ def apply_minmax_payload_local(payload: bytes, mins, maxs, seen) -> int:
     return new_seen
 
 
-def send_with_gap(bus, frame_type: int, target_id: int, payload: bytes, seq: int) -> None:
-    bus.send_frame(frame_type, target_id, payload, seq)
-    time.sleep(INTER_FRAME_GAP_S)
+def ping_all_sequential(bus, node_ids, ping_seq: int, *, on_frame=None):
+    """Ping each node one at a time, waiting up to PING_RESPONSE_TIMEOUT_S for a PONG."""
+    pong_received = {}
+    for nid in node_ids:
+        seq = ping_seq & 0xFFFF
+        ping_seq = (ping_seq + 1) & 0xFFFF
+        bus.send_frame(FRAME_TYPE_PING, nid, b"", seq, ack_timeout_us=0)
+        deadline = time.monotonic() + PING_RESPONSE_TIMEOUT_S
+        while time.monotonic() < deadline:
+            for frame_type, target_id, source_id, payload, rx_seq in bus.read_frames():
+                if frame_type == FRAME_TYPE_PONG and source_id == nid:
+                    pong_received[nid] = True
+                elif on_frame is not None:
+                    on_frame(frame_type, target_id, source_id, payload, rx_seq, time.monotonic())
+            if nid in pong_received:
+                break
+            time.sleep(0.0005)
+    return ping_seq, pong_received
 
 
 def poll_all_sensor_nodes(
@@ -107,13 +125,13 @@ def poll_all_sensor_nodes(
 ) -> None:
     seq = 0
     for board_id in SENSOR_NODE_DEVICE_IDS:
-        bus.send_frame(FRAME_TYPE_DATA_REQ, board_id, b"", seq & 0xFFFF)
+        bus.send_frame(FRAME_TYPE_DATA_REQ, board_id, b"", seq & 0xFFFF, ack_timeout_us=0)
         seq = (seq + 1) & 0xFFFF
         deadline = time.monotonic() + timeout_s
         received = False
         while time.monotonic() < deadline:
-            for frame_type, target_id, payload, rx_seq in bus.read_frames():
-                if frame_type == FRAME_TYPE_DATA_RESP and target_id == board_id:
+            for frame_type, target_id, source_id, payload, rx_seq in bus.read_frames():
+                if frame_type == FRAME_TYPE_DATA_RESP and source_id == board_id:
                     values, stds = decode_values(payload)
                     apply_values(
                         board_id,
@@ -127,7 +145,7 @@ def poll_all_sensor_nodes(
                     received = True
                     break
                 if frame_type == FRAME_TYPE_EVENT and on_event is not None:
-                    on_event(frame_type, target_id, payload, rx_seq, time.monotonic())
+                    on_event(frame_type, target_id, source_id, payload, rx_seq, time.monotonic())
             if received:
                 break
             time.sleep(0.0005)
@@ -167,14 +185,14 @@ def poll_minmax_for_sensor_node(
     while start < MAX_SENSORS:
         count = min(max_count, MAX_SENSORS - start)
         payload = bytes([start & 0xFF, count & 0xFF])
-        bus.send_frame(FRAME_TYPE_MINMAX_REQ, board_id, payload, seq & 0xFFFF)
+        bus.send_frame(FRAME_TYPE_MINMAX_REQ, board_id, payload, seq & 0xFFFF, ack_timeout_us=0)
         seq = (seq + 1) & 0xFFFF
         deadline = time.monotonic() + timeout_s
         received = False
         resp_count = 0
         while time.monotonic() < deadline:
-            for frame_type, target_id, payload, rx_seq in bus.read_frames():
-                if frame_type == FRAME_TYPE_MINMAX_RESP and target_id == board_id:
+            for frame_type, target_id, source_id, payload, rx_seq in bus.read_frames():
+                if frame_type == FRAME_TYPE_MINMAX_RESP and source_id == board_id:
                     if len(payload) >= 2:
                         resp_count = payload[1]
                     if resp_count <= 0:
@@ -198,7 +216,7 @@ def poll_minmax_for_sensor_node(
                     received = True
                     break
                 if frame_type == FRAME_TYPE_EVENT and on_event is not None:
-                    on_event(frame_type, target_id, payload, rx_seq, time.monotonic())
+                    on_event(frame_type, target_id, source_id, payload, rx_seq, time.monotonic())
             if received:
                 break
             time.sleep(0.0005)
@@ -209,54 +227,70 @@ def poll_minmax_for_sensor_node(
         start += count
 
 
-def calibrate_min_max(bus, duration_s: float):
-    mins = [SENSOR_VALUE_MAX] * TOTAL_SENSORS
-    maxs = [0] * TOTAL_SENSORS
-    seen = [False] * TOTAL_SENSORS
-    next_request = time.monotonic()
-    req_seq = 0
-    request_index = 0
-    data_in_flight = None
-    data_deadline = 0.0
-    deadline = time.monotonic() + duration_s
+def collect_stats(bus, seq: int, timeout_s: float, expected_source_id: int, *, on_frame=None):
+    """Request and collect STATS_RESP from a single node."""
+    responses = {}
+    deadline = time.monotonic() + timeout_s
     while time.monotonic() < deadline:
-        now = time.monotonic()
-        if data_in_flight is None and now >= next_request:
-            target_id = SENSOR_NODE_DEVICE_IDS[request_index % len(SENSOR_NODE_DEVICE_IDS)]
-            send_with_gap(bus, FRAME_TYPE_DATA_REQ, target_id, b"", req_seq & 0xFFFF)
-            req_seq += 1
-            data_in_flight = target_id
-            data_deadline = now + DATA_RESPONSE_TIMEOUT_S
-            request_index = (request_index + 1) % len(SENSOR_NODE_DEVICE_IDS)
-            next_request = now + REQUEST_INTERVAL_S
-
-        if data_in_flight is not None and now >= data_deadline:
-            data_in_flight = None
-
-        for frame_type, target_id, payload, seq in bus.read_frames():
-            if frame_type != FRAME_TYPE_DATA_RESP:
-                continue
-            values, _stds = decode_values(payload)
-            board_idx = board_index(target_id)
-            if board_idx is None:
-                continue
-            base = board_idx * MAX_SENSORS
-            for idx, value in enumerate(values):
-                sensor_idx = base + idx
-                if sensor_idx >= TOTAL_SENSORS:
-                    break
-                if not seen[sensor_idx]:
-                    seen[sensor_idx] = True
-                    mins[sensor_idx] = value
-                    maxs[sensor_idx] = value
-                else:
-                    if value < mins[sensor_idx]:
-                        mins[sensor_idx] = value
-                    if value > maxs[sensor_idx]:
-                        maxs[sensor_idx] = value
-
+        for frame_type, rx_target_id, rx_source_id, payload, rx_seq in bus.read_frames():
+            if frame_type == FRAME_TYPE_STATS_RESP and rx_seq == seq:
+                if rx_source_id != expected_source_id:
+                    continue
+                rate = None
+                if len(payload) >= 2:
+                    rate_tenths = int.from_bytes(payload[:2], "little")
+                    rate = rate_tenths / 10.0
+                evt_tx = evt_drop = evt_retry = None
+                if len(payload) >= 8:
+                    evt_tx = int.from_bytes(payload[2:4], "little")
+                    evt_drop = int.from_bytes(payload[4:6], "little")
+                    evt_retry = int.from_bytes(payload[6:8], "little")
+                responses[rx_source_id] = (rate, evt_tx, evt_drop, evt_retry)
+                return responses
+            if on_frame is not None:
+                on_frame(frame_type, rx_target_id, rx_source_id, payload, rx_seq, time.monotonic())
         time.sleep(0.0005)
-    return mins, maxs, seen
+    return responses
+
+
+def health_check(bus, stats_seq: int, *, on_frame=None):
+    """Poll all sensor nodes for stats, return (responses, new_stats_seq)."""
+    stats_responses = {}
+    for sensor_device_id in SENSOR_NODE_DEVICE_IDS:
+        seq = stats_seq & 0xFFFF
+        stats_seq = (stats_seq + 1) & 0xFFFF
+        bus.send_frame(FRAME_TYPE_STATS_REQ, sensor_device_id, b"", seq, ack_timeout_us=0)
+        stats_responses.update(
+            collect_stats(bus, seq, STATS_RESPONSE_TIMEOUT_S, sensor_device_id, on_frame=on_frame)
+        )
+    return stats_responses, stats_seq
+
+
+def print_health_results(stats_responses: dict, *, health_seen: bool, health_warned: bool):
+    """Print health check results, return (health_seen, health_warned)."""
+    if stats_responses:
+        health_seen = True
+    elif not health_seen and not health_warned:
+        safe_print(
+            "\n!!! RS485 HEALTH CHECK FAILED: no responses from any sensor node !!!\n"
+            "    Check power, wiring, device_id, and baud rate.\n"
+        )
+        health_warned = True
+    for sensor_device_id in SENSOR_NODE_DEVICE_IDS:
+        stats = stats_responses.get(sensor_device_id)
+        if stats is None:
+            safe_print(f"# status sensor node {sensor_device_id}: no response")
+            continue
+        rate, evt_tx, evt_drop, evt_retry = stats
+        rate_val = rate if rate is not None else 0.0
+        if evt_tx is None:
+            safe_print(f"# status sensor node {sensor_device_id}: alive rate={rate_val:.1f} Hz")
+        else:
+            safe_print(
+                f"# status sensor node {sensor_device_id}: alive rate={rate_val:.1f} Hz "
+                f"evt_tx={evt_tx} evt_drop={evt_drop} evt_retry={evt_retry}"
+            )
+    return health_seen, health_warned
 
 
 def fetch_trace(
@@ -272,12 +306,12 @@ def fetch_trace(
     valid_samples = 0
     for chunk_idx in range(chunk_count):
         payload = bytes([sensor_idx & 0xFF, chunk_idx & 0xFF])
-        bus.send_frame(FRAME_TYPE_TRACE_REQ, board_id, payload, chunk_idx & 0xFFFF)
+        bus.send_frame(FRAME_TYPE_TRACE_REQ, board_id, payload, chunk_idx & 0xFFFF, ack_timeout_us=0)
         deadline = time.monotonic() + timeout_s
         received = False
         while time.monotonic() < deadline:
-            for frame_type, target_id, resp, seq in bus.read_frames():
-                if frame_type != FRAME_TYPE_TRACE_RESP or target_id != board_id:
+            for frame_type, target_id, source_id, resp, seq in bus.read_frames():
+                if frame_type != FRAME_TYPE_TRACE_RESP or source_id != board_id:
                     continue
                 if len(resp) < 4:
                     continue

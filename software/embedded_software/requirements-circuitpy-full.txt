@@ -1,0 +1,9 @@
+# CircuitPython dependencies for full MIDI controller with display
+# Includes all libraries needed for touchscreen, display, and MIDI functionality
+adafruit_pioasm
+adafruit_midi
+adafruit_midi_parser
+adafruit_st7789
+adafruit_display_text
+adafruit_bitmap_font
+adafruit_framebuf
