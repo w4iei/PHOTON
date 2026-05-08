@@ -37,6 +37,7 @@ fp-info-cache
 **/*-backups/*.zip
 
 # Local project settings
+.claude/
 *.kicad_prl
 
 # Embedded software generated files

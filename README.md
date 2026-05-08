@@ -6,6 +6,13 @@ PHOTON is a modular, open-source optical sensing platform for high-resolution ke
 ## Paper
 [PHOTON: Non-Invasive Optical Tracking of Key-Lever Motion in Historical Keyboard Instruments](https://arxiv.org/abs/2604.21682) (arXiv:2604.21682)
 
+## Demo
+<a href="https://www.youtube.com/playlist?list=PLzCRAfVYuoWGEnWNO6l8IuFvaSUI3v1Gd">
+  <img src="docs/images/photon_harpsichord.jpg" alt="PHOTON demo playlist thumbnail" width="640">
+</a>
+
+[Watch the PHOTON demo playlist on YouTube](https://www.youtube.com/playlist?list=PLzCRAfVYuoWGEnWNO6l8IuFvaSUI3v1Gd)
+
 ## Highlights
 - **Sensors:** [VCNT2025X01](https://www.vishay.com/en/product/84895/) reflective array with per-sensor enable lines
 - **Digitization:** [TLA2518](https://www.ti.com/product/TLA2518) SPI ADCs for high-speed readout
