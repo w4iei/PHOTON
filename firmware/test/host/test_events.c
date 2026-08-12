@@ -132,7 +132,24 @@ static void test_disabled_mask(void) {
     CHECK(g_events.value[0] == 0);     // and reports 0
 }
 
+static void test_drift_below_frozen_min(void) {
+    // Regression: frozen cal + idle drift below the stored min must read as
+    // "released" (press 0), not underflow into a full-scale strike. Seen on
+    // hardware: cal at 1690 Hz, idle at 400 Hz sat ~200 counts below min ->
+    // vel-127 dt-0 note storms.
+    setup();  // seeded 1000..3000, learning off
+    feed(2000, 0);
+    for (int i = 0; i < 200; i++) {
+        // Flap around and below the frozen min, including the exact boundary.
+        uint16_t v = (uint16_t)(i % 3 == 0 ? 900 : (i % 3 == 1 ? 1000 : 1005));
+        feed(v, 1000u + (uint32_t)i * 1000u);
+    }
+    CHECK(ring_count() == 0);
+    CHECK(!g_events.note_on[0]);
+}
+
 int main(void) {
+    test_drift_below_frozen_min();
     test_strike_release_dt();
     test_strike_disarm_hysteresis();
     test_range_gate();

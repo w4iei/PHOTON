@@ -96,11 +96,18 @@ void events_process(const uint16_t *readings, uint32_t now_us) {
                                ? PHOTON_RELEASE_PCT
                                : PHOTON_STRIKE_PCT;                            // 40
 
-        uint32_t press;  // how far into the range the key currently is, 0..rng
+        // How far into the range the key currently is, clamped to 0..rng.
+        // The clamp matters with frozen calibration: thermal/duty drift can
+        // move the idle level BELOW the stored min (or above max, inverted),
+        // and an unsigned underflow here read as a full-scale press.
+        uint32_t press;
         if ((e->polarity_mask >> i) & 1u) {
-            press = mx - v;
+            press = v < mx ? mx - v : 0;
         } else {
-            press = v - mn;
+            press = v > mn ? v - mn : 0;
+        }
+        if (press > rng) {
+            press = rng;
         }
         uint32_t vel_start_thr = rng * vel_start_pct / 100;
         uint32_t strike_thr = rng * PHOTON_STRIKE_PCT / 100;
