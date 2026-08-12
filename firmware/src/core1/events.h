@@ -15,6 +15,10 @@ typedef struct {
     uint16_t value[PHOTON_MAX_SENSORS];
     uint16_t min[PHOTON_MAX_SENSORS];
     uint16_t max[PHOTON_MAX_SENSORS];
+    // Noise statistics: integer EMA of mean (<<6 fixed point) and variance,
+    // ~64-sweep window — the legacy table's per-sensor std column.
+    uint32_t mean_fp6[PHOTON_MAX_SENSORS];
+    uint32_t var_ema[PHOTON_MAX_SENSORS];
     // Calibration mode flag. Learning is ON only during the guided flow
     // ('r' ... play keys one at a time ... 's'): continuous learning
     // during performance lets adjacent-key cross-illumination pollute

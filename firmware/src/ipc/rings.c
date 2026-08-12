@@ -26,6 +26,7 @@ void snapshot_read(photon_snapshot_t *out) {
         memcpy(out->value, (const void *)s->value, sizeof out->value);
         memcpy(out->min, (const void *)s->min, sizeof out->min);
         memcpy(out->max, (const void *)s->max, sizeof out->max);
+        memcpy(out->var, (const void *)s->var, sizeof out->var);
         out->sweep_count = s->sweep_count;
         out->sweep_us = s->sweep_us;
         __dmb();

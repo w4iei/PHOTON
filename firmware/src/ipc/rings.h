@@ -92,22 +92,24 @@ typedef struct {
     uint16_t value[PHOTON_MAX_SENSORS];
     uint16_t min[PHOTON_MAX_SENSORS];
     uint16_t max[PHOTON_MAX_SENSORS];
+    uint32_t var[PHOTON_MAX_SENSORS];   // EMA variance (std = sqrt, done by reader)
     uint32_t sweep_count;
     uint32_t sweep_us;      // duration of the last sweep
 } photon_snapshot_t;
 
 extern photon_snapshot_t g_snapshot;
 
-// Core 1: publish; readings/min/max are the engine's working arrays.
+// Core 1: publish; arrays are the event engine's working state.
 static inline void snapshot_publish(const uint16_t *value, const uint16_t *mn,
-                                    const uint16_t *mx, uint32_t sweep_count,
-                                    uint32_t sweep_us) {
+                                    const uint16_t *mx, const uint32_t *var,
+                                    uint32_t sweep_count, uint32_t sweep_us) {
     photon_snapshot_t *s = &g_snapshot;
     s->seq = s->seq + 1;  // odd: write in progress
     __dmb();
     memcpy(s->value, value, sizeof s->value);
     memcpy(s->min, mn, sizeof s->min);
     memcpy(s->max, mx, sizeof s->max);
+    memcpy(s->var, var, sizeof s->var);
     s->sweep_count = sweep_count;
     s->sweep_us = sweep_us;
     __dmb();

@@ -166,6 +166,17 @@ static void print_nodes(void) {
     }
 }
 
+static unsigned isqrt32(uint32_t x) {
+    unsigned r = 0;
+    for (int s = 15; s >= 0; s--) {
+        unsigned t = r | (1u << s);
+        if ((uint32_t)t * t <= x) {
+            r = t;
+        }
+    }
+    return r;
+}
+
 // Legacy-style live table on a bare Enter.
 static void print_table(void) {
     if (!C.sensor_role) {
@@ -175,19 +186,26 @@ static void print_table(void) {
     }
     photon_snapshot_t snap;
     snapshot_read(&snap);
-    log_printf("idx |   val |   min |   max |   rng | on   [%s]",
-               g_events.learning ? "CALIBRATING — play keys one at a time, 's' saves"
-                                 : "cal frozen — 'r' recalibrates");
-    log_printf("----+-------+-------+-------+-------+---");
+    uint32_t hz10 = snap.sweep_us ? 10000000u / snap.sweep_us : 0;
+    log_printf("== PHOTON node %u | %lu.%lu Hz (%lu us) | cal %s | cfg v%lu | evt %lu/%lu ==",
+               g_config.node_id,
+               (unsigned long)(hz10 / 10), (unsigned long)(hz10 % 10),
+               (unsigned long)snap.sweep_us,
+               g_events.learning ? "LEARNING ('s' saves)" : "frozen ('r' redo)",
+               (unsigned long)g_config.version,
+               (unsigned long)g_events.events_on, (unsigned long)g_events.events_off);
+    log_printf("idx |   val |   min |   max |   rng |  std | on");
+    log_printf("----+-------+-------+-------+-------+------+---");
     for (int i = 0; i < PHOTON_ACTIVE_SENSORS; i++) {
         if ((g_events.disabled_mask >> i) & 1u) {
-            log_printf("%3d |     - |     - |     - |     - | disabled", i);
+            log_printf("%3d |     - |     - |     - |     - |    - | disabled", i);
             continue;
         }
         uint16_t mn = snap.min[i], mx = snap.max[i];
         unsigned rng = mx > mn ? (unsigned)(mx - mn) : 0;
-        log_printf("%3d | %5u | %5u | %5u | %5u | %d", i, snap.value[i],
-                   mn == 0xFFFF ? 0 : mn, mx, rng, g_events.note_on[i] ? 1 : 0);
+        log_printf("%3d | %5u | %5u | %5u | %5u | %4u | %d", i, snap.value[i],
+                   mn == 0xFFFF ? 0 : mn, mx, rng, isqrt32(snap.var[i]),
+                   g_events.note_on[i] ? 1 : 0);
     }
 }
 

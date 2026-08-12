@@ -257,7 +257,8 @@ void scan_core1_entry(void) {
         g_scan_ctl.sweep_count++;
         g_scan_ctl.sweep_us = time_us_32() - t0;
         snapshot_publish(g_events.value, g_events.min, g_events.max,
-                         g_scan_ctl.sweep_count, g_scan_ctl.sweep_us);
+                         g_events.var_ema, g_scan_ctl.sweep_count,
+                         g_scan_ctl.sweep_us);
         drain_mailbox();
 
         if (!boot_checked && (time_us_32() - boot_t0) > 1000000u) {

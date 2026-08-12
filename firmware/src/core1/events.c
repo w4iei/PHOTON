@@ -53,6 +53,14 @@ void events_process(const uint16_t *readings, uint32_t now_us) {
         if (v == 0) {
             continue;  // dead read; never calibrate on it
         }
+        // Rolling noise stats (EMA window ~64 sweeps).
+        if (e->mean_fp6[i] == 0) {
+            e->mean_fp6[i] = (uint32_t)v << 6;
+        }
+        e->mean_fp6[i] += (uint32_t)(((int32_t)((uint32_t)v << 6) -
+                                      (int32_t)e->mean_fp6[i]) >> 6);
+        int32_t dev = (int32_t)v - (int32_t)(e->mean_fp6[i] >> 6);
+        e->var_ema[i] += (uint32_t)(((dev * dev) - (int32_t)e->var_ema[i]) >> 6);
         if (e->learning) {
             if (v < e->min[i]) {
                 e->min[i] = v;
