@@ -249,9 +249,11 @@ static void rx_pump(void) {
             break;
         }
         bus.stats.rx_frames++;
-        if (f.dst == bus.own_addr || f.dst == PHOTON_ADDR_BROADCAST) {
-            bus.on_rx(&f);
-        }
+        // Deliver every valid frame; the protocol layer does the address
+        // filtering. RS-485 is a shared medium, and a USB-connected node
+        // deliberately snoops other nodes' event batches to mirror the
+        // whole instrument over its own MIDI port.
+        bus.on_rx(&f);
     }
 
     // Re-arm the RX DMA long before its huge count runs out (write_addr and

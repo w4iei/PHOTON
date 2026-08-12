@@ -518,11 +518,27 @@ static void bridge_task(void) {
 void protocol_on_frame(const photon_frame_t *f) {
     if (!P.is_bridge) {
         bool addressed = f->dst == P.own_addr;
+        bool for_me = addressed || f->dst == PHOTON_ADDR_BROADCAST;
         if (f->type == PHOTON_FT_EVT_POLL) {
             if (addressed) {
                 node_handle_evt_poll(f);
             }
-        } else {
+            return;
+        }
+        // USB-connected node mirrors the whole bus: snoop other nodes'
+        // batches heading to the bridge through the same validate/dedup/
+        // epoch path the bridge uses, feeding the local MIDI sink. Mute by
+        // construction — snooped frames are never answered.
+        if (f->type == PHOTON_FT_EVT_BATCH && f->dst == PHOTON_ADDR_BRIDGE &&
+            f->src != P.own_addr && f->src >= 1 && f->src <= PHOTON_MAX_NODE_ID) {
+            if (P.local_delivery && P.sink != NULL) {
+                bridge_handle_batch(f);
+            }
+            return;
+        }
+        if (for_me) {
+            // Side-effectful commands run only for our address or broadcast
+            // — never for frames merely overheard en route to another node.
             node_handle_request(f, addressed);
         }
         return;
