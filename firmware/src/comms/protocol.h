@@ -63,6 +63,9 @@ typedef void (*protocol_node_down_cb_t)(uint8_t node_id);
 
 void protocol_init(bool is_bridge, uint8_t own_addr);
 void protocol_set_event_sink(protocol_event_sink_t sink);
+// Node role: true while a USB MIDI host is mounted — this board's events
+// then go to the local sink instead of waiting for bus polls.
+void protocol_set_local_delivery(bool enabled);
 void protocol_set_response_sink(protocol_response_sink_t sink);
 void protocol_set_node_down_cb(protocol_node_down_cb_t cb);
 

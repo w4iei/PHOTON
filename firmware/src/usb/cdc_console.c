@@ -114,6 +114,11 @@ static void print_local_stats(void) {
                    (unsigned long)protocol_poll_cycles(),
                    (unsigned long)midi_map_notes_on_sent(),
                    (unsigned long)midi_map_notes_off_sent());
+    } else {
+        // Sensor node: MIDI counters advance in standalone-over-USB mode.
+        log_printf("[STAT] midi_on=%lu midi_off=%lu (standalone when unpolled)",
+                   (unsigned long)midi_map_notes_on_sent(),
+                   (unsigned long)midi_map_notes_off_sent());
     }
 }
 

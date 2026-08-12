@@ -52,8 +52,12 @@ int main(void) {
                    own_addr, protocol_on_frame);
     protocol_init(is_bridge, own_addr);
     midi_map_init();
+    // Every role gets the MIDI sink: the bridge feeds it from poll batches,
+    // and a sensor node feeds it its OWN events while no bridge is polling
+    // (standalone-over-USB mode). midi_out is silent unless a host mounted
+    // the MIDI interface, so this costs nothing on a headless bus node.
+    protocol_set_event_sink(midi_map_handle_event);
     if (is_bridge) {
-        protocol_set_event_sink(midi_map_handle_event);
         protocol_set_node_down_cb(midi_map_release_node);
     }
     protocol_set_response_sink(console_on_bridge_response);
@@ -79,6 +83,9 @@ int main(void) {
     bool zero_fault_handled = false;
     for (;;) {
         tud_task();
+        if (sensor_role) {
+            protocol_set_local_delivery(tud_midi_mounted());
+        }
         transport_task();
         protocol_task();
         console_task();

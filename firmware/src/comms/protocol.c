@@ -28,6 +28,10 @@ static struct {
     uint16_t pending_poll_seq;
     uint8_t batch_epoch;  // per-boot marker in every batch: lets the bridge
                           // detect a fast node reboot (event seq restart)
+    // Local delivery (user rule): USB MIDI host mounted => this node's
+    // events go to the local sink; otherwise they wait for bus polls.
+    // main.c refreshes this each loop from tud_midi_mounted().
+    bool local_delivery;
 
     // Bridge role.
     photon_node_slot_t nodes[PHOTON_MAX_NODE_ID + 1];
@@ -61,6 +65,7 @@ void protocol_init(bool is_bridge, uint8_t own_addr) {
 }
 
 void protocol_set_event_sink(protocol_event_sink_t sink) { P.sink = sink; }
+void protocol_set_local_delivery(bool enabled) { P.local_delivery = enabled; }
 void protocol_set_response_sink(protocol_response_sink_t sink) { P.resp_sink = sink; }
 void protocol_set_node_down_cb(protocol_node_down_cb_t cb) { P.node_down_cb = cb; }
 
@@ -565,5 +570,19 @@ void protocol_on_frame(const photon_frame_t *f) {
 void protocol_task(void) {
     if (P.is_bridge) {
         bridge_task();
+        return;
+    }
+    // Node local delivery: a mounted USB MIDI host owns this board's
+    // events; without one they wait for bus polls. A bridge polling a
+    // USB-attached node just sees empty batches — deterministic, USB wins.
+    if (P.sink != NULL && P.local_delivery) {
+        // Reclaim any batch a bridge never acked; local delivery beats
+        // holding events hostage for a poll that may not come.
+        P.pending_sent = 0;
+        photon_event_t ev;
+        while (event_ring_peek(&ev, 1) == 1) {
+            P.sink(P.own_addr, &ev);
+            event_ring_release(1);
+        }
     }
 }
