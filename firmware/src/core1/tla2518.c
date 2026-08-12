@@ -133,21 +133,25 @@ int tla2518_init_and_probe(void) {
     // CS pins are hazardous on the main controller board: GPIO1 is its
     // RS-485 DE (driving it high would enable the transmitter) and GPIO5
     // is its UART RX (push-pull against the transceiver's driven R output).
-    // So: probe only the banks whose CS pins are benign on either board
-    // first, and touch GPIO1/GPIO5 only after a safe bank has answered —
-    // proof this is a sensor board. (The SPI pins themselves are safe on
-    // the main board: GPIO0/8 are inputs; GPIO2/3/10/11 drive nothing that
-    // drives back.)
-    static const uint8_t safe_banks[] = { 0, 1, 2, 3, 5, 7 };   // CS 21,20,19,15,7,6
-    static const uint8_t unsafe_banks[] = { 4, 6 };             // CS 1,5 (host DE/RX)
+    //
+    // Additional subtlety (found on hardware): GPIO1/GPIO5 are the chip
+    // selects of banks 4 and 6 on bus B, and the RP2350's power-on pull-
+    // downs hold those chips SELECTED while the pins are untouched — so
+    // probing any other bus-B bank first gets a garbled readback from
+    // MISO contention. Therefore: stage 1 probes bus A only (banks 0-3,
+    // CS 21/20/19/15 — no shared bus with the hazardous pins, benign on
+    // the main board). Any response proves sensor-board identity; only
+    // then are GPIO1/GPIO5 raised and all of bus B probed cleanly.
+    static const uint8_t bus_a_banks[] = { 0, 1, 2, 3 };  // CS 21,20,19,15
+    static const uint8_t bus_b_banks[] = { 4, 5, 6, 7 };  // CS 1,7,5,6
 
     memset(g_banks, 0, sizeof g_banks);
     for (int i = 0; i < PHOTON_BANK_COUNT; i++) {
         g_banks[i].spi = PHOTON_BANK_ON_BUS_B(i) ? PHOTON_SPI_B : PHOTON_SPI_A;
         g_banks[i].cs_pin = bank_cs_pins[i];
     }
-    for (size_t k = 0; k < sizeof safe_banks; k++) {
-        bank_cs_init(safe_banks[k]);
+    for (size_t k = 0; k < sizeof bus_a_banks; k++) {
+        bank_cs_init(bus_a_banks[k]);
     }
     bus_setup(PHOTON_SPI_A, PHOTON_SPI_A_SCLK, PHOTON_SPI_A_MOSI, PHOTON_SPI_A_MISO);
     bus_setup(PHOTON_SPI_B, PHOTON_SPI_B_SCLK, PHOTON_SPI_B_MOSI, PHOTON_SPI_B_MISO);
@@ -156,23 +160,29 @@ int tla2518_init_and_probe(void) {
     bus_flush(PHOTON_SPI_B);
 
     int found = 0;
-    for (size_t k = 0; k < sizeof safe_banks; k++) {
-        if (bank_probe(safe_banks[k])) {
+    for (size_t k = 0; k < sizeof bus_a_banks; k++) {
+        if (bank_probe(bus_a_banks[k])) {
             found++;
         }
     }
     if (found > 0) {
-        // Confirmed sensor board: the remaining CS pins are real chip
-        // selects, safe to drive and probe.
-        for (size_t k = 0; k < sizeof unsafe_banks; k++) {
-            bank_cs_init(unsafe_banks[k]);
+        // Confirmed sensor board: raise every bus-B CS (deselecting all
+        // four chips), settle, flush, then probe them one at a time.
+        for (size_t k = 0; k < sizeof bus_b_banks; k++) {
+            bank_cs_init(bus_b_banks[k]);
         }
-        for (size_t k = 0; k < sizeof unsafe_banks; k++) {
-            if (bank_probe(unsafe_banks[k])) {
+        sleep_ms(1);
+        bus_flush(PHOTON_SPI_B);
+        for (size_t k = 0; k < sizeof bus_b_banks; k++) {
+            if (bank_probe(bus_b_banks[k])) {
                 found++;
             }
         }
     }
+    // A board whose entire bus A is dead but bus B is alive would misprobe
+    // as a bridge here; that residual ambiguity needs a board-ID strap on
+    // the next hardware revision (bus B cannot be probed without first
+    // driving pins that are unsafe on the main controller board).
     return found;
 }
 
