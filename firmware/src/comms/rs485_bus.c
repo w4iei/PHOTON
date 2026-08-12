@@ -79,7 +79,8 @@ static tx_slot_t *queue_peek(tx_queue_t *q) {
     return q->head == q->tail ? NULL : &q->slots[q->head % TX_QUEUE_SLOTS];
 }
 
-void transport_init(bool is_bridge, uint8_t own_addr, transport_rx_cb_t on_rx) {
+void transport_init(bool use_host_pinout, bool terminate, uint8_t own_addr,
+                    transport_rx_cb_t on_rx) {
     memset(&bus.stats, 0, sizeof bus.stats);
     memset(&bus.parse_stats, 0, sizeof bus.parse_stats);
     bus.own_addr = own_addr;
@@ -92,11 +93,7 @@ void transport_init(bool is_bridge, uint8_t own_addr, transport_rx_cb_t on_rx) {
     bus.bulk_q.head = bus.bulk_q.tail = 0;
 
     uint tx_pin, rx_pin, term_pin;
-    if (is_bridge && PHOTON_HOST_UART_IDX == PHOTON_RS485_UART_IDX) {
-        // Same UART peripheral either way; pin sets differ per board.
-        // The role probe decides which physical board we are on: a board
-        // with zero TLA2518 banks is the main controller board (or a future
-        // endpoint) and uses the host pinout.
+    if (use_host_pinout) {
         bus.uart = PHOTON_HOST_UART;
         tx_pin = PHOTON_HOST_TX;
         rx_pin = PHOTON_HOST_RX;
@@ -124,7 +121,7 @@ void transport_init(bool is_bridge, uint8_t own_addr, transport_rx_cb_t on_rx) {
     // Bus endpoints terminate; matches the deployed configuration (host
     // terminates, sensor boards use their DIP switches instead).
     gpio_init(term_pin);
-    gpio_put(term_pin, is_bridge ? 1 : 0);
+    gpio_put(term_pin, terminate ? 1 : 0);
     gpio_set_dir(term_pin, GPIO_OUT);
 
     // RX ring DMA: UART DR -> ring, paced by the RX DREQ, huge count,
@@ -147,10 +144,6 @@ bool transport_send(const photon_frame_t *f, bool prio) {
     photon_frame_t frame = *f;
     frame.src = bus.own_addr;
     return queue_push(prio ? &bus.prio_q : &bus.bulk_q, &frame);
-}
-
-bool transport_tx_busy(void) {
-    return bus.tx_state != TX_IDLE;
 }
 
 // ---------------------------------------------------------------------------
@@ -228,8 +221,15 @@ static void rx_pump(void) {
             memmove(bus.assembly, bus.assembly + ASSEMBLY_SIZE / 2, ASSEMBLY_SIZE / 2);
             bus.assembly_len = ASSEMBLY_SIZE / 2;
         }
-        bus.assembly[bus.assembly_len++] = bus.rx_ring[bus.rx_roff];
-        bus.rx_roff = (bus.rx_roff + 1) & (RX_RING_SIZE - 1);
+        // Copy in contiguous spans (up to ring wrap / write offset / room).
+        uint32_t span = (bus.rx_roff < woff ? woff : RX_RING_SIZE) - bus.rx_roff;
+        size_t room = ASSEMBLY_SIZE - bus.assembly_len;
+        if (span > room) {
+            span = (uint32_t)room;
+        }
+        memcpy(bus.assembly + bus.assembly_len, bus.rx_ring + bus.rx_roff, span);
+        bus.assembly_len += span;
+        bus.rx_roff = (bus.rx_roff + span) & (RX_RING_SIZE - 1);
     }
 
     for (;;) {

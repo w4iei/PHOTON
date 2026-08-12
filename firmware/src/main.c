@@ -9,6 +9,7 @@
 // touches flash/XIP at runtime — the scan loop cannot be stalled by core-0
 // flash writes, by construction.
 #include "hardware/clocks.h"
+#include "hardware/watchdog.h"
 #include "pico/multicore.h"
 #include "pico/stdlib.h"
 #include "tusb.h"
@@ -34,16 +35,28 @@ int main(void) {
     config_store_init();
 
     int banks_found = tla2518_init_and_probe();
+    if (banks_found == 0) {
+        // Guard against the field-observed first-transaction SPI glitch
+        // hitting the probe itself: a sensor board misprobing as "no banks"
+        // would come up as a second bus master. One settled retry.
+        sleep_ms(100);
+        banks_found = tla2518_init_and_probe();
+    }
     bool sensor_role = banks_found > 0;
+    // Today board identity follows capability: no banks => main controller
+    // board pinout, bus-master role, terminated endpoint.
     bool is_bridge = !sensor_role;
     uint8_t own_addr = is_bridge ? PHOTON_ADDR_BRIDGE : g_config.node_id;
 
-    transport_init(is_bridge, own_addr, protocol_on_frame);
+    transport_init(/*use_host_pinout=*/is_bridge, /*terminate=*/is_bridge,
+                   own_addr, protocol_on_frame);
     protocol_init(is_bridge, own_addr);
     midi_map_init();
     if (is_bridge) {
         protocol_set_event_sink(midi_map_handle_event);
+        protocol_set_node_down_cb(midi_map_release_node);
     }
+    protocol_set_response_sink(console_on_bridge_response);
     console_init(is_bridge, sensor_role);
 
     if (sensor_role) {
@@ -63,11 +76,27 @@ int main(void) {
     tud_init(0);
 
     bool announced = false;
+    bool zero_fault_handled = false;
     for (;;) {
         tud_task();
         transport_task();
         protocol_task();
         console_task();
+
+        // Startup zero-fault escalation (legacy microcontroller.reset()
+        // behavior): if the array still reads all-zero ~1 s in, reboot —
+        // unless a console is attached, where a reboot loop would make
+        // USB-only debugging (no SWD populated) impossible.
+        if (sensor_role && g_scan_ctl.zero_fault && !zero_fault_handled) {
+            zero_fault_handled = true;
+            if (log_console_connected()) {
+                log_note("sensor array reads all-zero after reinit — check SPI/power "
+                         "(auto-reboot suppressed while console attached)");
+            } else {
+                sleep_ms(100);
+                watchdog_reboot(0, 0, 100);
+            }
+        }
 
         if (!announced && log_console_connected()) {
             announced = true;

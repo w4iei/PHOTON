@@ -27,7 +27,6 @@ typedef struct __attribute__((packed)) {
     uint32_t ring_overflows;
     uint32_t crc_errors;
     uint32_t hdr_errors;
-    uint32_t rx_overruns;
     uint8_t scan_mode;
     uint8_t reinit_count;
     uint16_t trace_dropped;
@@ -51,9 +50,17 @@ typedef struct {
 // Delivered (deduplicated) node events land here — the bridge wires this to
 // the MIDI mapper; tests wire it to an accounting sink.
 typedef void (*protocol_event_sink_t)(uint8_t node_id, const photon_event_t *ev);
+// Bulk responses (DATA/MINMAX/STATS/TRACE/acks) — the bridge wires this to
+// the console; protocol has no compile-time dependency on the USB front end.
+typedef void (*protocol_response_sink_t)(const photon_frame_t *f);
+// A node just left the poll cycle (went silent) — the bridge wires this to
+// the MIDI mapper so held notes from that node are released.
+typedef void (*protocol_node_down_cb_t)(uint8_t node_id);
 
 void protocol_init(bool is_bridge, uint8_t own_addr);
 void protocol_set_event_sink(protocol_event_sink_t sink);
+void protocol_set_response_sink(protocol_response_sink_t sink);
+void protocol_set_node_down_cb(protocol_node_down_cb_t cb);
 
 // Transport RX callback (register with transport_init).
 void protocol_on_frame(const photon_frame_t *f);
@@ -61,8 +68,9 @@ void protocol_on_frame(const photon_frame_t *f);
 // Pump: bridge poll scheduler / node trace bookkeeping. Call every loop.
 void protocol_task(void);
 
-// Bridge-side console entry points: queue a bulk request toward a node.
-// Responses are printed by the console as they arrive.
+// Bridge-side console entry points: queue a bulk request toward a node
+// (small FIFO; one dispatched per poll cycle). Responses arrive at the
+// response sink. Returns false only when the request queue is full.
 bool protocol_bridge_request(uint8_t type, uint8_t dst,
                              const uint8_t *payload, uint8_t len);
 

@@ -21,8 +21,9 @@ static inline uint8_t emitter_mask(int slot) {
 }
 
 static inline void wait_until_us(uint32_t target) {
-    while ((int32_t)(target - time_us_32()) > 0) {
-        tight_loop_contents();
+    int32_t remain = (int32_t)(target - time_us_32());
+    if (remain > 0) {
+        busy_wait_us_32((uint32_t)remain);
     }
 }
 
@@ -221,6 +222,11 @@ static void drain_mailbox(void) {
 }
 
 void scan_core1_entry(void) {
+    // Field-proven bring-up ritual (CircuitPython main.py had the same two
+    // layers for a first-transaction SPI glitch): up to 3 reset attempts
+    // with settle gaps, then a ~1 s in-service check; if the array still
+    // reads all-zero, raise zero_fault so core 0 can escalate (reboot when
+    // no console is attached — the legacy microcontroller.reset() behavior).
     tla2518_reset_all();
     for (int attempt = 0; attempt < 3; attempt++) {
         sweep();
@@ -228,8 +234,12 @@ void scan_core1_entry(void) {
             break;
         }
         g_scan_ctl.reinit_count++;
+        busy_wait_us_32(50000);
         tla2518_reset_all();
     }
+
+    uint32_t boot_t0 = time_us_32();
+    bool boot_checked = false;
 
     for (;;) {
         uint32_t t0 = time_us_32();
@@ -246,5 +256,12 @@ void scan_core1_entry(void) {
         snapshot_publish(g_events.value, g_events.min, g_events.max,
                          g_scan_ctl.sweep_count, g_scan_ctl.sweep_us);
         drain_mailbox();
+
+        if (!boot_checked && (time_us_32() - boot_t0) > 1000000u) {
+            boot_checked = true;
+            if (sweep_all_zero()) {
+                g_scan_ctl.zero_fault = true;
+            }
+        }
     }
 }

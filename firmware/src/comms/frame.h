@@ -43,6 +43,10 @@
 #define PHOTON_ADDR_BRIDGE     0x00
 #define PHOTON_ADDR_BROADCAST  0xFF
 
+// CAL_SET payload[0] carrying this index means "reset all sensors" —
+// shared by the console sender and the node handler.
+#define PHOTON_CAL_IDX_ALL     0xFF
+
 typedef struct {
     uint8_t type;
     uint8_t flags;

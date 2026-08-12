@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "hardware/watchdog.h"
+#include "pico/bootrom.h"
 #include "pico/time.h"
 #include "tusb.h"
 
@@ -30,12 +32,16 @@ static struct {
     uint8_t trace_sensor;
     uint32_t trace_t0_us;
     absolute_time_t next_trace_pull;
+    // duration-bound capture (host tool contract: "capture <seconds>")
+    bool capture_timed;
+    absolute_time_t capture_deadline;
 } C;
 
 void console_init(bool is_bridge, bool sensor_role) {
     memset(&C, 0, sizeof C);
     C.is_bridge = is_bridge;
     C.sensor_role = sensor_role;
+    C.trace_sensor = PHOTON_TRACE_DEFAULT_SENSOR;
 }
 
 // ---------------------------------------------------------------------------
@@ -50,11 +56,14 @@ static void print_help(void) {
     log_printf("  minmax [id]      calibration min/max");
     log_printf("  ping <id>        probe a node id");
     log_printf("  trace <sensor> [node] / trace stop");
+    log_printf("  capture [sec]    timed local trace of last/default sensor");
     log_printf("  burst <n> [id]   inject synthetic events (torture test)");
     log_printf("  cal save|reset   persist / clear calibration");
     log_printf("  mode <0|1|2>     scan: 0=seq 1=parallel 2=two-phase");
+    log_printf("  disable|enable <idx>  mask a local sensor (persist: cal save)");
     log_printf("  setid <n>        set this node's bus id (1-%d)", PHOTON_MAX_NODE_ID);
     log_printf("  flashtest        hammer flash while core 1 scans (M1 proof)");
+    log_printf("  reboot / bootsel restart firmware / enter UF2 bootloader");
     log_printf("  id               role/version summary");
 }
 
@@ -88,10 +97,9 @@ static void print_local_stats(void) {
                    (unsigned long)g_events.events_off,
                    (unsigned long)g_event_ring.overflows);
     }
-    log_printf("[STAT] bus tx=%lu rx=%lu crc_err=%lu hdr_err=%lu overrun=%lu",
+    log_printf("[STAT] bus tx=%lu rx=%lu crc_err=%lu hdr_err=%lu",
                (unsigned long)ts->tx_frames, (unsigned long)ts->rx_frames,
-               (unsigned long)ps->crc_errors, (unsigned long)ps->hdr_errors,
-               (unsigned long)ts->rx_overruns);
+               (unsigned long)ps->crc_errors, (unsigned long)ps->hdr_errors);
     if (C.is_bridge) {
         log_printf("[STAT] poll_cycles=%lu midi_on=%lu midi_off=%lu",
                    (unsigned long)protocol_poll_cycles(),
@@ -123,6 +131,8 @@ static void trace_begin_header(void) {
     C.trace_t0_us = 0;
 }
 
+// Sample lines are written unflushed (callers flush once per batch) so a
+// 1-2 kHz trace doesn't force one USB packet per 15-byte line.
 static void trace_emit_sample(uint32_t t_us, uint16_t value) {
     if (!C.trace_started) {
         trace_begin_header();
@@ -131,15 +141,23 @@ static void trace_emit_sample(uint32_t t_us, uint16_t value) {
         C.trace_t0_us = t_us ? t_us : 1;
     }
     uint32_t rel = t_us - C.trace_t0_us;
-    log_printf("%lu.%06lu,%u", (unsigned long)(rel / 1000000u),
-               (unsigned long)(rel % 1000000u), value);
+    if (!tud_cdc_connected()) {
+        return;
+    }
+    char buf[32];
+    int n = snprintf(buf, sizeof buf, "%lu.%06lu,%u\r\n",
+                     (unsigned long)(rel / 1000000u),
+                     (unsigned long)(rel % 1000000u), value);
+    tud_cdc_write(buf, (uint32_t)n);
 }
 
 static void trace_stop(void) {
     if (C.trace_active) {
         if (C.trace_remote) {
             uint8_t p[2] = { C.trace_sensor, 0 };
-            protocol_bridge_request(PHOTON_FT_TRACE_START, C.trace_node, p, 2);
+            if (!protocol_bridge_request(PHOTON_FT_TRACE_START, C.trace_node, p, 2)) {
+                log_note("trace stop: request queue full, node keeps tapping");
+            }
         } else if (C.sensor_role) {
             photon_cmd_t cmd = { .op = PHOTON_CMD_TRACE_TAP, .arg8 = C.trace_sensor, .a = 0 };
             cmd_mailbox_push(&cmd);
@@ -150,6 +168,28 @@ static void trace_stop(void) {
     }
     C.trace_active = false;
     C.trace_started = false;
+    C.capture_timed = false;
+}
+
+// Duration-bound local trace: the wire contract of the legacy trace mode
+// that software/host_code/listen_for_single_sensor_high_res.py triggers
+// with "capture <seconds>".
+static void capture_start(float seconds) {
+    if (!C.sensor_role) {
+        log_note("capture: no sensors on this board (use trace <s> <node> on the bridge)");
+        return;
+    }
+    trace_stop();
+    C.trace_active = true;
+    C.trace_remote = false;
+    C.trace_started = false;
+    C.capture_timed = true;
+    if (seconds <= 0.0f || seconds > 600.0f) {
+        seconds = (float)PHOTON_CAPTURE_DEFAULT_S;
+    }
+    C.capture_deadline = make_timeout_time_us((uint64_t)(seconds * 1e6f));
+    photon_cmd_t cmd = { .op = PHOTON_CMD_TRACE_TAP, .arg8 = C.trace_sensor, .a = 1 };
+    cmd_mailbox_push(&cmd);
 }
 
 // ---------------------------------------------------------------------------
@@ -202,6 +242,8 @@ static void handle_line(char *line) {
         if (C.is_bridge) {
             protocol_bridge_request(PHOTON_FT_PING, (uint8_t)atoi(a1), NULL, 0);
         }
+    } else if (strcmp(cmd, "capture") == 0) {
+        capture_start(a1 ? (float)atof(a1) : (float)PHOTON_CAPTURE_DEFAULT_S);
     } else if (strcmp(cmd, "trace") == 0) {
         if (a1 != NULL && strcmp(a1, "stop") == 0) {
             trace_stop();
@@ -239,24 +281,45 @@ static void handle_line(char *line) {
         if (strcmp(a1, "save") == 0) {
             if (C.is_bridge) {
                 const photon_node_slot_t *t = protocol_node_table();
+                int queued = 0, dropped = 0;
                 for (int id = 1; id <= PHOTON_MAX_NODE_ID; id++) {
                     if (t[id].alive) {
-                        protocol_bridge_request(PHOTON_FT_CAL_COMMIT, (uint8_t)id, NULL, 0);
+                        if (protocol_bridge_request(PHOTON_FT_CAL_COMMIT, (uint8_t)id, NULL, 0)) {
+                            queued++;
+                        } else {
+                            dropped++;
+                        }
                     }
                 }
-                log_info("CAL_COMMIT queued to alive nodes");
+                log_info("CAL_COMMIT queued to %d node(s)%s", queued,
+                         dropped ? " — QUEUE FULL, retry cal save" : "");
             } else {
                 config_store_save();
             }
         } else if (strcmp(a1, "reset") == 0) {
             if (C.is_bridge) {
-                uint8_t p[5] = { 0xFF, 0, 0, 0, 0 };  // idx 0xFF = reset-all
+                uint8_t p[5] = { PHOTON_CAL_IDX_ALL, 0, 0, 0, 0 };
                 protocol_bridge_request(PHOTON_FT_CAL_SET, PHOTON_ADDR_BROADCAST, p, 5);
             } else if (C.sensor_role) {
                 photon_cmd_t cmdm = { .op = PHOTON_CMD_RESET_CAL };
                 cmd_mailbox_push(&cmdm);
             }
             log_info("calibration reset");
+        }
+    } else if ((strcmp(cmd, "disable") == 0 || strcmp(cmd, "enable") == 0) && a1 != NULL) {
+        int idx = atoi(a1);
+        if (!C.sensor_role) {
+            log_note("%s: no sensors on this board", cmd);
+        } else if (idx >= 0 && idx < PHOTON_MAX_SENSORS) {
+            if (cmd[0] == 'd') {
+                g_config.local_disabled_mask |= 1u << idx;
+            } else {
+                g_config.local_disabled_mask &= ~(1u << idx);
+            }
+            photon_cmd_t cmdm = { .op = PHOTON_CMD_SET_DISABLED,
+                                  .a = g_config.local_disabled_mask };
+            cmd_mailbox_push(&cmdm);
+            log_info("sensor %d %sd (persist with 'cal save')", idx, cmd);
         }
     } else if (strcmp(cmd, "mode") == 0 && a1 != NULL) {
         uint8_t m = (uint8_t)atoi(a1);
@@ -273,6 +336,18 @@ static void handle_line(char *line) {
             config_store_save();
             log_info("node id -> %d (takes effect on reboot)", id);
         }
+    } else if (strcmp(cmd, "reboot") == 0) {
+        // SWD-free maintenance: restart the firmware over USB alone.
+        log_printf("rebooting...");
+        tud_cdc_write_flush();
+        sleep_ms(50);
+        watchdog_reboot(0, 0, 100);
+    } else if (strcmp(cmd, "bootsel") == 0) {
+        // Enter the UF2 bootloader without touching the USB-BOOT button.
+        log_printf("entering BOOTSEL — copy photon.uf2 or use picotool load");
+        tud_cdc_write_flush();
+        sleep_ms(50);
+        reset_usb_boot(0, 0);
     } else if (strcmp(cmd, "flashtest") == 0) {
         uint32_t before_us = g_scan_ctl.sweep_us;
         uint32_t before_count = g_scan_ctl.sweep_count;
@@ -293,9 +368,14 @@ static void handle_line(char *line) {
 void console_on_bridge_response(const photon_frame_t *f) {
     switch (f->type) {
         case PHOTON_FT_DATA_RESP: {
+            // Never trust wire-supplied counts past local buffers: clamp to
+            // both the frame length and the destination array size.
             uint8_t n = f->len >= 1 ? f->payload[0] : 0;
             if (n > (f->len - 1) / 2) {
                 n = (uint8_t)((f->len - 1) / 2);
+            }
+            if (n > PHOTON_MAX_SENSORS) {
+                n = PHOTON_MAX_SENSORS;
             }
             uint16_t vals[PHOTON_MAX_SENSORS];
             memcpy(vals, &f->payload[1], (size_t)n * 2);
@@ -306,6 +386,12 @@ void console_on_bridge_response(const photon_frame_t *f) {
         }
         case PHOTON_FT_MINMAX_RESP: {
             uint8_t count = f->len >= 2 ? f->payload[1] : 0;
+            if (count > (f->len >= 2 ? (uint8_t)((f->len - 2) / 4) : 0)) {
+                count = f->len >= 2 ? (uint8_t)((f->len - 2) / 4) : 0;
+            }
+            if (count > PHOTON_MAX_SENSORS) {
+                count = PHOTON_MAX_SENSORS;
+            }
             uint16_t mn[PHOTON_MAX_SENSORS], mx[PHOTON_MAX_SENSORS];
             for (uint8_t i = 0; i < count; i++) {
                 memcpy(&mn[i], &f->payload[2 + i * 4], 2);
@@ -324,13 +410,15 @@ void console_on_bridge_response(const photon_frame_t *f) {
                 memcpy(&st, f->payload, sizeof st);
                 uint32_t hz10 = st.sweep_us ? 10000000u / st.sweep_us : 0;
                 log_printf("[STAT node %u] sweep_us=%u (%lu.%lu Hz) sweeps=%lu mode=%u "
-                           "evt_on=%lu evt_off=%lu ovf=%lu crc=%lu hdr=%lu reinit=%u",
+                           "evt_on=%lu evt_off=%lu ovf=%lu crc=%lu hdr=%lu reinit=%u "
+                           "trace_drop=%u",
                            f->src, st.sweep_us,
                            (unsigned long)(hz10 / 10), (unsigned long)(hz10 % 10),
                            (unsigned long)st.sweep_count, st.scan_mode,
                            (unsigned long)st.events_on, (unsigned long)st.events_off,
                            (unsigned long)st.ring_overflows, (unsigned long)st.crc_errors,
-                           (unsigned long)st.hdr_errors, st.reinit_count);
+                           (unsigned long)st.hdr_errors, st.reinit_count,
+                           st.trace_dropped);
             }
             break;
         }
@@ -339,6 +427,10 @@ void console_on_bridge_response(const photon_frame_t *f) {
                 break;
             }
             uint8_t n = f->len >= 2 ? f->payload[1] : 0;
+            uint8_t max_n = f->len >= 2 ? (uint8_t)((f->len - 2) / 6) : 0;
+            if (n > max_n) {
+                n = max_n;  // wire count must fit the actual frame
+            }
             for (uint8_t i = 0; i < n; i++) {
                 uint32_t t_us;
                 uint16_t v;
@@ -346,6 +438,7 @@ void console_on_bridge_response(const photon_frame_t *f) {
                 memcpy(&v, &f->payload[6 + i * 6], 2);
                 trace_emit_sample(t_us, v);
             }
+            tud_cdc_write_flush();
             break;
         }
         case PHOTON_FT_CAL_ACK:
@@ -382,12 +475,20 @@ void console_task(void) {
         }
     }
 
-    // Local trace streaming (sensor role).
+    // Local trace streaming (sensor role); one flush per batch.
     if (C.trace_active && !C.trace_remote && C.sensor_role) {
         photon_trace_sample_t s;
         int budget = 32;  // bound CDC time per loop
+        bool wrote = false;
         while (budget-- > 0 && trace_ring_pop(&s)) {
             trace_emit_sample(s.t_us, s.value);
+            wrote = true;
+        }
+        if (wrote) {
+            tud_cdc_write_flush();
+        }
+        if (C.capture_timed && time_reached(C.capture_deadline)) {
+            trace_stop();  // emits END_TRACE for the host capture tool
         }
     }
 

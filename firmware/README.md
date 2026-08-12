@@ -33,15 +33,29 @@ flash writes (calibration saves) can never stall the core-1 scan loop.
 
 ## Flash
 
-Hold **USB-BOOT** while connecting USB-C (or short the USB-BOOT jumper), then:
+First time (blank board): hold **USB-BOOT** while connecting USB-C (or short
+the USB-BOOT jumper), then:
 
 ```bash
 picotool load -f build/photon.uf2 && picotool reboot
 ```
 
-or copy `photon.uf2` onto the `RP2350` drive. SWD debugging: standard
-OpenOCD + Debug Probe on the SWD pads (`openocd -f interface/cmsis-dap.cfg -f
-target/rp2350.cfg`).
+or copy `photon.uf2` onto the `RP2350` drive. Once this firmware is running,
+the button is never needed again: the console command `bootsel` re-enters the
+UF2 bootloader and `reboot` restarts the firmware — reflash cycles are fully
+USB-driven.
+
+## Debugging (USB-only)
+
+The current boards have no SWD connector populated, so **the USB console is
+the debugging interface**: `stats` (rates, counters, error tallies), `data`/
+`minmax` (live sensor state), `trace`/`capture` (waveforms), `flashtest`
+(core-1 independence proof), plus the `# LOG`/`# NOTE` diagnostic stream. A
+sensor node whose array reads all-zero at boot deliberately *suppresses* its
+auto-reboot recovery while a console is attached, so the fault can be
+inspected instead of loop-rebooting. (If SWD headers are ever soldered on,
+standard OpenOCD + Debug Probe works: `openocd -f interface/cmsis-dap.cfg -f
+target/rp2350.cfg`.)
 
 ## First-time setup per sensor node
 
@@ -59,7 +73,8 @@ The id persists in flash. The main controller board needs nothing.
 
 Any node's USB-C gives a console (`screen /dev/tty.usbmodem* 115200`).
 `help` lists commands: `stats`, `nodes`, `data`, `minmax`, `ping`, `trace`,
-`burst`, `cal save|reset`, `mode`, `setid`, `flashtest`, `id`.
+`capture`, `burst`, `cal save|reset`, `mode`, `disable`/`enable`, `setid`,
+`flashtest`, `reboot`, `bootsel`, `id`.
 USB-MIDI appears as "PHOTON Node" and emits notes when connected to the
 bridge (main controller) board.
 
@@ -74,7 +89,8 @@ bank CS line: its cadence must not flinch during `flashtest`.
 **M2 — scan parity + rate.** On a sensor board, run the unmodified capture
 tool against a key press:
 `python software/host_code/listen_for_single_sensor_high_res.py`
-(console: `trace <sensor>`; `trace stop` ends the capture). Compare the
+— its `capture <seconds>` trigger is handled natively (select the sensor
+first with `trace <sensor>` once, or use the default). Compare the
 curve and ON/OFF crossings against a CircuitPython-build capture of the same
 key. Check `stats`: `sweep_us` ≤ 1000 (≥1 kHz) in mode 1. Then run the
 **crosstalk experiment**: with the array over a static surface, capture

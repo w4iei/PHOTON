@@ -13,29 +13,11 @@ tla2518_t g_banks[PHOTON_BANK_COUNT];
 static const uint8_t bank_cs_pins[PHOTON_BANK_COUNT] = PHOTON_BANK_CS_PINS;
 
 // --------------------------------------------------------------------------
-// Raw SPI: byte-lockstep polled FIFO. All frames here are 2-3 bytes, far
-// below any sensible DMA threshold; the SSP FIFOs are 8 deep so a whole
-// frame fits without back-pressure.
+// SPI access: single-bank ops use the SDK's interleaved blocking transfers
+// (all frames are 2-3 bytes, far below any sensible DMA threshold). Only the
+// dual-bus paired transfer is hand-rolled — the SDK has no two-peripheral
+// concurrent primitive.
 // --------------------------------------------------------------------------
-
-static inline void spi_pump(spi_inst_t *spi, const uint8_t *tx, uint8_t *rx, uint32_t n) {
-    spi_hw_t *hw = spi_get_hw(spi);
-    for (uint32_t i = 0; i < n; i++) {
-        while (!(hw->sr & SPI_SSPSR_TNF_BITS)) {
-            tight_loop_contents();
-        }
-        hw->dr = tx ? tx[i] : 0;
-    }
-    for (uint32_t i = 0; i < n; i++) {
-        while (!(hw->sr & SPI_SSPSR_RNE_BITS)) {
-            tight_loop_contents();
-        }
-        uint8_t v = (uint8_t)hw->dr;
-        if (rx) {
-            rx[i] = v;
-        }
-    }
-}
 
 static inline void cs_low(const tla2518_t *b) { gpio_put(b->cs_pin, 0); }
 static inline void cs_high(const tla2518_t *b) { gpio_put(b->cs_pin, 1); }
@@ -43,14 +25,14 @@ static inline void cs_high(const tla2518_t *b) { gpio_put(b->cs_pin, 1); }
 void tla2518_write3(const tla2518_t *b, uint8_t op, uint8_t reg, uint8_t val) {
     uint8_t frame[3] = { op, reg, val };
     cs_low(b);
-    spi_pump(b->spi, frame, NULL, 3);
+    spi_write_blocking(b->spi, frame, 3);
     cs_high(b);
 }
 
 uint16_t tla2518_xfer2(const tla2518_t *b) {
     uint8_t rx[2];
     cs_low(b);
-    spi_pump(b->spi, NULL, rx, 2);
+    spi_read_blocking(b->spi, 0x00, rx, 2);
     cs_high(b);
     return (uint16_t)((rx[0] << 8) | rx[1]);
 }

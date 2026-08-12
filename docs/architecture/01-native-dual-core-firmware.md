@@ -49,8 +49,10 @@ pinned to 150 MHz for stable UART/SPI dividers.
   role** (core 1 never launched). The current main controller board therefore runs the same image
   and becomes the bus master/bridge — it is, functionally, the "endpoint node" of the next
   hardware revision one board-rev early.
-- **Bridge activation** is gated on `tud_mount_cb` (USB host enumeration completed), not raw
-  VBUS, so a charger does not create a bridge.
+- **Bus-master role is probe-derived and permanent for the session** (the board with no sensors
+  masters the shared bus whether or not USB is attached, keeping the bus alive). USB attachment
+  gates only the host-facing surfaces: MIDI emission checks `tud_midi_mounted()` and the console
+  streams only while a CDC terminal is connected — so a charger enables nothing.
 - **Identity**: each sensor node stores a `node_id` (1–6) in its flash config block, set once via
   the USB console (`setid N`). (The RS-422 revision replaces this with automatic hop-count
   enumeration; on a shared bus there is no topology to derive it from.)
@@ -172,11 +174,12 @@ Overhead 14 B; single-event frame 24 B; max payload 128 B (DATA_RESP needs 124 B
 
 Sensor nodes **never transmit unsolicited**. The bridge runs a continuous cycle:
 
-- `EVT_POLL{dst=n}` (14 B) → node `n` replies one `EVT_BATCH` frame with 0–12 event records
-  drained from its `event_ring` (empty reply = 14 B).
+- `EVT_POLL{dst=n}` (16 B: header + 2-byte ack, see below) → node `n` replies one `EVT_BATCH`
+  frame with 0–10 event records (12 B each incl. per-event seq; 128-byte payload cap) drained
+  from its `event_ring` (empty reply = 16 B).
 - At 2 Mbaud with 25 µs DE guard bands: one empty poll+reply ≈ 200 µs → a 2-node cycle ≈
-  400 µs → **typical event latency < 1 ms**. Worst case, 32 events queued on one node: 3 polls
-  ≈ 1.7 ms. A saturated 61-note "doomsday" chord across 2 nodes clears in < 3 ms.
+  400 µs → **typical event latency < 1 ms**. Worst case, 32 events queued on one node: 4 polls
+  ≈ 2.3 ms. A saturated 61-note "doomsday" chord across 2 nodes clears in < 4 ms.
 - Zero collisions by construction (exactly one transmitter at any time). Line noise is handled by
   per-poll retry (2×, then skip-and-log); CRC-fail/timeout/retry counters are visible via STATS.
   EVENT_ACK from v1 is deleted; instead each EVT_POLL carries the poll-seq of the last batch the

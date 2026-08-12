@@ -48,7 +48,6 @@ static void setup(void) {
     memset(&g_event_ring, 0, sizeof g_event_ring);
     memset(readings, 0, sizeof readings);
     events_init(0xFFFFFFFEu);  // only sensor 0 enabled
-    g_events.boot_check_done = true;
     events_seed_cal(0, 1000, 3000);
 }
 
@@ -105,15 +104,16 @@ static void test_zero_reading_ignored(void) {
     CHECK(ring_count() == 1);  // still fires normally afterwards
 }
 
-static void test_boot_disable(void) {
+static void test_disabled_mask(void) {
     memset(&g_event_ring, 0, sizeof g_event_ring);
     memset(readings, 0, sizeof readings);
-    events_init(0);
-    // First sweep: sensor 5 pinned implausibly high with no calibration.
-    readings[5] = 0xFFFF;
-    events_process(readings, 0);
-    CHECK((g_events.disabled_mask >> 5) & 1u);
-    CHECK(!((g_events.disabled_mask >> 4) & 1u));
+    events_init(1u << 0);  // sensor 0 disabled
+    events_seed_cal(0, 1000, 3000);
+    feed(1000, 0);
+    feed(2300, 1000);
+    feed(2300, 2000);
+    CHECK(ring_count() == 0);          // disabled sensor never fires
+    CHECK(g_events.value[0] == 0);     // and reports 0
 }
 
 int main(void) {
@@ -121,7 +121,7 @@ int main(void) {
     test_strike_disarm_hysteresis();
     test_range_gate();
     test_zero_reading_ignored();
-    test_boot_disable();
+    test_disabled_mask();
     printf("test_events OK (%d checks)\n", checks);
     return 0;
 }

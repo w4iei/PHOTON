@@ -51,12 +51,9 @@
 // ---------------------------------------------------------------------------
 #define PHOTON_STRIKE_PCT            60
 #define PHOTON_RELEASE_PCT           40
-#define PHOTON_ACTIVATION_PCT        3
 #define PHOTON_VELOCITY_WINDOW_PCT   20
 #define PHOTON_STRIKE_WINDOW_PCT     30
 #define PHOTON_MIN_EVENT_RANGE       170  // scaled by << osr_mode at runtime (1360 @ OSR 3)
-#define PHOTON_BOOT_DISABLE_ABOVE    3000 // raw floor; sensors reading higher at boot
-                                          // with no calibration are suspect (12-bit scale)
 
 // ---------------------------------------------------------------------------
 // RS-485 transport (current hardware, Plan 1)
@@ -97,7 +94,6 @@
 // ---------------------------------------------------------------------------
 #define PHOTON_EVENT_RING_SLOTS  256  // 8x the worst 32-event chord burst
 #define PHOTON_CMD_MAILBOX_SLOTS 16
-#define PHOTON_DOORBELL_EVENTS   0    // RP2350 doorbell number, core1 -> core0
 
 // ---------------------------------------------------------------------------
 // MIDI mapping (bridge role)
@@ -105,6 +101,10 @@
 #define PHOTON_MIDI_LOW          29   // F1
 #define PHOTON_MIDI_HIGH         89   // F6
 #define PHOTON_MIDI_CHANNEL      1    // 0-based wire channel (user-facing "2")
+#define PHOTON_SENSORS_PER_MANUAL 64  // BOARD_PAIR_SIZE(2) boards x 32 slots;
+                                      // note range + MIDI channel restart per manual
+#define PHOTON_TRACE_DEFAULT_SENSOR 24  // legacy bench default (SENSOR_IDX)
+#define PHOTON_CAPTURE_DEFAULT_S    3   // legacy CAPTURE_SECONDS
 #define PHOTON_VEL_MIN_MS        8.0f   // dt <= 8 ms  -> velocity 127
 #define PHOTON_VEL_MAX_MS        100.0f // dt >= 100 ms -> velocity 1
 #define PHOTON_VEL_CURVE         2.54f

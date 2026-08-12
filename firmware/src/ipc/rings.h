@@ -1,7 +1,8 @@
 // Inter-core plumbing. All cross-core state lives in uncached SRAM; the SIO
 // FIFO (4 entries on RP2350) is deliberately not used. Three channels:
 //
-//   event_ring   core1 -> core0   note events, SPSC, doorbell-nudged
+//   event_ring   core1 -> core0   note events, SPSC, polled by core 0's
+//                                 always-hot main loop
 //   snapshot     core1 -> core0   latest sweep values/min/max, seqlock
 //   cmd_mailbox  core0 -> core1   config/cal/mode commands, SPSC,
 //                                 polled by core 1 once per sweep
@@ -42,11 +43,7 @@ typedef struct {
 
 extern photon_event_ring_t g_event_ring;
 
-static inline uint32_t event_ring_count(void) {
-    return g_event_ring.tail - g_event_ring.head;
-}
-
-// Core 1 only. Returns the seq stamped onto the record.
+// Core 1 only.
 static inline bool event_ring_push(uint8_t local_idx, uint8_t state,
                                    uint32_t dt_us, uint32_t t_us) {
     photon_event_ring_t *r = &g_event_ring;

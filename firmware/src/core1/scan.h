@@ -28,6 +28,9 @@ typedef struct {
     volatile uint8_t  mode;           // photon_scan_mode_t
     volatile uint8_t  trace_idx;
     volatile bool     trace_enabled;
+    volatile bool     zero_fault;     // set when the array still reads all-zero
+                                      // ~1 s after the reinit attempts; core 0
+                                      // escalates (reboot when unattended)
 } photon_scan_ctl_t;
 
 extern photon_scan_ctl_t g_scan_ctl;

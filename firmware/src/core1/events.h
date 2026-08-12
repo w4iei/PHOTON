@@ -23,11 +23,9 @@ typedef struct {
     uint32_t strike_t_us[PHOTON_MAX_SENSORS];
     bool     release_pending[PHOTON_MAX_SENSORS];
     uint32_t release_t_us[PHOTON_MAX_SENSORS];
-    bool     active[PHOTON_MAX_SENSORS];  // beyond activation_pct (trace arming)
     // counters
     uint32_t events_on;
     uint32_t events_off;
-    bool     boot_check_done;
 } photon_events_t;
 
 extern photon_events_t g_events;

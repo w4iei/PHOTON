@@ -16,13 +16,14 @@ typedef void (*transport_rx_cb_t)(const photon_frame_t *frame);
 typedef struct {
     uint32_t tx_frames;
     uint32_t rx_frames;
-    uint32_t crc_errors;
-    uint32_t hdr_errors;
-    uint32_t rx_overruns;
 } transport_stats_t;
 
-// pins/uart chosen by role probe (sensor board vs main controller board).
-void transport_init(bool is_bridge, uint8_t own_addr, transport_rx_cb_t on_rx);
+// use_host_pinout selects the physical wiring (main controller board 001 vs
+// sensor board 002) — board identity, today derived from the capability
+// probe. terminate drives the bus termination (endpoints only). own_addr is
+// the protocol address (0 = bridge).
+void transport_init(bool use_host_pinout, bool terminate, uint8_t own_addr,
+                    transport_rx_cb_t on_rx);
 
 // Queue a frame. prio=true uses the event-priority queue (poll replies,
 // polls); false is bulk (data/trace/cal). Returns false if the queue is full.
@@ -30,9 +31,6 @@ bool transport_send(const photon_frame_t *f, bool prio);
 
 // Pump TX state machine + drain RX; call every main-loop iteration.
 void transport_task(void);
-
-// True while the transmitter is mid-frame (used to sequence turn-taking).
-bool transport_tx_busy(void);
 
 const transport_stats_t *transport_stats(void);
 const frame_parse_stats_t *transport_parse_stats(void);
