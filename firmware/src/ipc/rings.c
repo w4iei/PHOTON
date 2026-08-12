@@ -37,6 +37,7 @@ void snapshot_read(photon_snapshot_t *out) {
 bool cmd_mailbox_push(const photon_cmd_t *cmd) {
     photon_cmd_mailbox_t *m = &g_cmd_mailbox;
     if (m->tail - m->head >= PHOTON_CMD_MAILBOX_SLOTS) {
+        m->drops++;
         return false;
     }
     m->slots[m->tail % PHOTON_CMD_MAILBOX_SLOTS] = *cmd;
@@ -50,7 +51,10 @@ bool cmd_mailbox_park_request(uint32_t timeout_us) {
     photon_cmd_t park = { .op = PHOTON_CMD_PARK };
     m->park_requested = true;
     __dmb();
-    cmd_mailbox_push(&park);
+    if (!cmd_mailbox_push(&park)) {
+        m->park_requested = false;
+        return false;  // mailbox full: caller logs and proceeds unparked
+    }
     absolute_time_t deadline = make_timeout_time_us(timeout_us);
     while (!m->parked) {
         if (absolute_time_diff_us(get_absolute_time(), deadline) < 0) {

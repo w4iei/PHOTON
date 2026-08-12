@@ -26,6 +26,8 @@ static struct {
     // batch so the ack can never cover events the bridge did not receive.
     uint32_t pending_sent;
     uint16_t pending_poll_seq;
+    uint8_t batch_epoch;  // per-boot marker in every batch: lets the bridge
+                          // detect a fast node reboot (event seq restart)
 
     // Bridge role.
     photon_node_slot_t nodes[PHOTON_MAX_NODE_ID + 1];
@@ -52,6 +54,10 @@ void protocol_init(bool is_bridge, uint8_t own_addr) {
     P.next_poll_id = 1;
     P.next_ping_id = 1;
     P.next_ping_at = get_absolute_time();
+    // Boot epoch: low byte of the boot-time microsecond counter. Crystal
+    // and regulator ramp jitter make consecutive boots differ; a collision
+    // (1/256) only delays reboot detection until the next seq mismatch.
+    P.batch_epoch = (uint8_t)time_us_32();
 }
 
 void protocol_set_event_sink(protocol_event_sink_t sink) { P.sink = sink; }
@@ -123,7 +129,7 @@ static void node_handle_evt_poll(const photon_frame_t *f) {
 
     uint8_t payload[2 + PHOTON_BATCH_MAX_EVENTS * sizeof(photon_event_t)];
     payload[0] = (uint8_t)n;
-    payload[1] = 0;  // reserved
+    payload[1] = P.batch_epoch;
     memcpy(&payload[2], records, n * sizeof(photon_event_t));
     send_reply(PHOTON_FT_EVT_BATCH, f->src, f->seq, payload,
                (uint8_t)(2 + n * sizeof(photon_event_t)), true);
@@ -276,25 +282,43 @@ static void node_handle_request(const photon_frame_t *f, bool addressed) {
 
 static void bridge_handle_batch(const photon_frame_t *f) {
     photon_node_slot_t *slot = &P.nodes[f->src];
+    // Validate structure BEFORE acknowledging anything: a CRC-valid but
+    // malformed batch must never trigger an ack that releases node events
+    // the bridge did not process.
+    uint8_t count = f->len >= 2 ? f->payload[0] : 0;
+    if (f->len < 2 || count > PHOTON_BATCH_MAX_EVENTS ||
+        (size_t)f->len < 2 + (size_t)count * sizeof(photon_event_t)) {
+        slot->malformed++;
+        return;
+    }
     slot->last_seen_us = time_us_32();
     slot->consecutive_timeouts = 0;
-    // This batch (carried by poll seq f->seq) is now processed: acknowledge
-    // it in the next poll so the node can release the events.
+
+    // A changed boot epoch means the node rebooted (its event seq restarted
+    // at 0) — reset sequence tracking so its real events are not discarded
+    // as stale duplicates.
+    uint8_t epoch = f->payload[1];
+    if (!slot->have_epoch || epoch != slot->epoch) {
+        slot->epoch = epoch;
+        slot->have_epoch = true;
+        slot->have_seq = false;
+    }
+
+    // Batch fully validated: acknowledge it in the next poll so the node
+    // can release the events.
     slot->acked_poll_seq = f->seq;
     slot->have_ack = true;
-    uint8_t count = f->len >= 2 ? f->payload[0] : 0;
-    if (count > PHOTON_BATCH_MAX_EVENTS) {
-        count = PHOTON_BATCH_MAX_EVENTS;
-    }
-    if ((size_t)f->len < 2 + (size_t)count * sizeof(photon_event_t)) {
-        return;  // count inconsistent with frame length
-    }
+
     for (uint8_t i = 0; i < count; i++) {
         photon_event_t ev;
         memcpy(&ev, &f->payload[2 + i * sizeof ev], sizeof ev);
         if (slot->have_seq && (int16_t)(ev.seq - slot->next_evt_seq) < 0) {
             slot->dup_events++;
             continue;  // retransmitted duplicate
+        }
+        if (slot->have_seq && ev.seq != slot->next_evt_seq) {
+            slot->seq_gaps++;  // should be impossible under ack discipline;
+                               // counted for the M5 loss accounting
         }
         slot->have_seq = true;
         slot->next_evt_seq = (uint16_t)(ev.seq + 1);
@@ -342,6 +366,9 @@ static uint8_t bridge_next_alive(uint8_t from) {
 
 bool protocol_bridge_request(uint8_t type, uint8_t dst,
                              const uint8_t *payload, uint8_t len) {
+    if (len > PHOTON_FRAME_MAX_PAYLOAD) {
+        return false;
+    }
     if (P.bulk_tail - P.bulk_head >= BULK_QUEUE_SLOTS) {
         return false;
     }
@@ -500,6 +527,13 @@ void protocol_on_frame(const photon_frame_t *f) {
             if (P.state == B_POLL_WAIT && f->src == P.wait_target) {
                 P.state = B_IDLE;
             }
+            // Deliberately processed even outside a poll-wait window: a
+            // batch that arrives after the timeout is a late reply carrying
+            // real events, and consuming it now beats waiting for its
+            // retransmission next cycle. Safety does not depend on the
+            // window — bridge_handle_batch validates structure before
+            // acking, dedups by per-event seq, and detects reboots by
+            // epoch, so stale or replayed batches cannot corrupt state.
             bridge_handle_batch(f);
             break;
         case PHOTON_FT_PONG:

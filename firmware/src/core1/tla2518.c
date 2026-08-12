@@ -112,14 +112,42 @@ void tla2518_reset_all(void) {
     }
 }
 
+static void bank_cs_init(int i) {
+    gpio_init(g_banks[i].cs_pin);
+    gpio_put(g_banks[i].cs_pin, 1);
+    gpio_set_dir(g_banks[i].cs_pin, GPIO_OUT);
+}
+
+static bool bank_probe(int i) {
+    // Probe: program OSR_CONFIG and read it back. A floating/absent MISO
+    // yields 0x00 or 0xFF, never the written value.
+    tla2518_t *b = &g_banks[i];
+    tla2518_write3(b, TLA_OP_REGISTER_WRITE, TLA_REG_OSR_CONFIG, PHOTON_OSR_MODE & 0x07);
+    uint8_t readback = tla2518_read_reg(b, TLA_REG_OSR_CONFIG);
+    b->present = (readback == (PHOTON_OSR_MODE & 0x07));
+    return b->present;
+}
+
 int tla2518_init_and_probe(void) {
+    // The probe runs BEFORE the board's identity is known, and two sensor
+    // CS pins are hazardous on the main controller board: GPIO1 is its
+    // RS-485 DE (driving it high would enable the transmitter) and GPIO5
+    // is its UART RX (push-pull against the transceiver's driven R output).
+    // So: probe only the banks whose CS pins are benign on either board
+    // first, and touch GPIO1/GPIO5 only after a safe bank has answered —
+    // proof this is a sensor board. (The SPI pins themselves are safe on
+    // the main board: GPIO0/8 are inputs; GPIO2/3/10/11 drive nothing that
+    // drives back.)
+    static const uint8_t safe_banks[] = { 0, 1, 2, 3, 5, 7 };   // CS 21,20,19,15,7,6
+    static const uint8_t unsafe_banks[] = { 4, 6 };             // CS 1,5 (host DE/RX)
+
     memset(g_banks, 0, sizeof g_banks);
     for (int i = 0; i < PHOTON_BANK_COUNT; i++) {
         g_banks[i].spi = PHOTON_BANK_ON_BUS_B(i) ? PHOTON_SPI_B : PHOTON_SPI_A;
         g_banks[i].cs_pin = bank_cs_pins[i];
-        gpio_init(g_banks[i].cs_pin);
-        gpio_put(g_banks[i].cs_pin, 1);
-        gpio_set_dir(g_banks[i].cs_pin, GPIO_OUT);
+    }
+    for (size_t k = 0; k < sizeof safe_banks; k++) {
+        bank_cs_init(safe_banks[k]);
     }
     bus_setup(PHOTON_SPI_A, PHOTON_SPI_A_SCLK, PHOTON_SPI_A_MOSI, PHOTON_SPI_A_MISO);
     bus_setup(PHOTON_SPI_B, PHOTON_SPI_B_SCLK, PHOTON_SPI_B_MOSI, PHOTON_SPI_B_MISO);
@@ -128,15 +156,21 @@ int tla2518_init_and_probe(void) {
     bus_flush(PHOTON_SPI_B);
 
     int found = 0;
-    for (int i = 0; i < PHOTON_BANK_COUNT; i++) {
-        tla2518_t *b = &g_banks[i];
-        // Probe: program OSR_CONFIG and read it back. A floating/absent MISO
-        // yields 0x00 or 0xFF, never the written value.
-        tla2518_write3(b, TLA_OP_REGISTER_WRITE, TLA_REG_OSR_CONFIG, PHOTON_OSR_MODE & 0x07);
-        uint8_t readback = tla2518_read_reg(b, TLA_REG_OSR_CONFIG);
-        b->present = (readback == (PHOTON_OSR_MODE & 0x07));
-        if (b->present) {
+    for (size_t k = 0; k < sizeof safe_banks; k++) {
+        if (bank_probe(safe_banks[k])) {
             found++;
+        }
+    }
+    if (found > 0) {
+        // Confirmed sensor board: the remaining CS pins are real chip
+        // selects, safe to drive and probe.
+        for (size_t k = 0; k < sizeof unsafe_banks; k++) {
+            bank_cs_init(unsafe_banks[k]);
+        }
+        for (size_t k = 0; k < sizeof unsafe_banks; k++) {
+            if (bank_probe(unsafe_banks[k])) {
+                found++;
+            }
         }
     }
     return found;

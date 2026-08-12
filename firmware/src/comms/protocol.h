@@ -44,6 +44,10 @@ typedef struct {
     bool have_seq;
     uint16_t acked_poll_seq;  // poll seq of the last batch processed
     bool have_ack;
+    uint8_t epoch;            // node boot epoch carried in each batch: a
+    bool have_epoch;          //   changed epoch = node rebooted, reset seq state
+    uint32_t seq_gaps;        // accepted events that skipped sequence numbers
+    uint32_t malformed;       // CRC-valid but structurally invalid batches
     uint8_t consecutive_timeouts;
 } photon_node_slot_t;
 

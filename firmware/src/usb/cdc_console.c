@@ -44,6 +44,14 @@ void console_init(bool is_bridge, bool sensor_role) {
     C.trace_sensor = PHOTON_TRACE_DEFAULT_SENSOR;
 }
 
+// Core-1 commands must not fail silently: a dropped mode/cal/trace command
+// would leave runtime state diverged from what the operator believes.
+static void push_core1_cmd(const photon_cmd_t *cmd) {
+    if (!cmd_mailbox_push(cmd)) {
+        log_note("core-1 mailbox full — command dropped, retry");
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Output helpers
 // ---------------------------------------------------------------------------
@@ -97,9 +105,10 @@ static void print_local_stats(void) {
                    (unsigned long)g_events.events_off,
                    (unsigned long)g_event_ring.overflows);
     }
-    log_printf("[STAT] bus tx=%lu rx=%lu crc_err=%lu hdr_err=%lu",
+    log_printf("[STAT] bus tx=%lu rx=%lu crc_err=%lu hdr_err=%lu cmd_drops=%lu",
                (unsigned long)ts->tx_frames, (unsigned long)ts->rx_frames,
-               (unsigned long)ps->crc_errors, (unsigned long)ps->hdr_errors);
+               (unsigned long)ps->crc_errors, (unsigned long)ps->hdr_errors,
+               (unsigned long)g_cmd_mailbox.drops);
     if (C.is_bridge) {
         log_printf("[STAT] poll_cycles=%lu midi_on=%lu midi_off=%lu",
                    (unsigned long)protocol_poll_cycles(),
@@ -115,10 +124,12 @@ static void print_nodes(void) {
         if (!s->alive && s->polls == 0) {
             continue;
         }
-        log_printf("node %d: %s polls=%lu events=%lu dup=%lu retries=%lu timeouts=%lu",
+        log_printf("node %d: %s polls=%lu events=%lu dup=%lu gaps=%lu malformed=%lu "
+                   "retries=%lu timeouts=%lu",
                    id, s->alive ? "alive" : "SILENT",
                    (unsigned long)s->polls, (unsigned long)s->events_rx,
-                   (unsigned long)s->dup_events, (unsigned long)s->retries,
+                   (unsigned long)s->dup_events, (unsigned long)s->seq_gaps,
+                   (unsigned long)s->malformed, (unsigned long)s->retries,
                    (unsigned long)s->timeouts);
     }
 }
@@ -160,7 +171,7 @@ static void trace_stop(void) {
             }
         } else if (C.sensor_role) {
             photon_cmd_t cmd = { .op = PHOTON_CMD_TRACE_TAP, .arg8 = C.trace_sensor, .a = 0 };
-            cmd_mailbox_push(&cmd);
+            push_core1_cmd(&cmd);
         }
         if (C.trace_started) {
             log_printf("END_TRACE");
@@ -189,7 +200,7 @@ static void capture_start(float seconds) {
     }
     C.capture_deadline = make_timeout_time_us((uint64_t)(seconds * 1e6f));
     photon_cmd_t cmd = { .op = PHOTON_CMD_TRACE_TAP, .arg8 = C.trace_sensor, .a = 1 };
-    cmd_mailbox_push(&cmd);
+    push_core1_cmd(&cmd);
 }
 
 // ---------------------------------------------------------------------------
@@ -262,7 +273,7 @@ static void handle_line(char *line) {
                 C.trace_remote = false;
                 photon_cmd_t cmdm = { .op = PHOTON_CMD_TRACE_TAP,
                                       .arg8 = C.trace_sensor, .a = 1 };
-                cmd_mailbox_push(&cmdm);
+                push_core1_cmd(&cmdm);
             }
         }
     } else if (strcmp(cmd, "burst") == 0 && a1 != NULL) {
@@ -275,7 +286,7 @@ static void handle_line(char *line) {
             log_info("burst %u -> %u queued", n, dst);
         } else if (C.sensor_role) {
             photon_cmd_t cmdm = { .op = PHOTON_CMD_TEST_BURST, .a = n };
-            cmd_mailbox_push(&cmdm);
+            push_core1_cmd(&cmdm);
         }
     } else if (strcmp(cmd, "cal") == 0 && a1 != NULL) {
         if (strcmp(a1, "save") == 0) {
@@ -302,7 +313,7 @@ static void handle_line(char *line) {
                 protocol_bridge_request(PHOTON_FT_CAL_SET, PHOTON_ADDR_BROADCAST, p, 5);
             } else if (C.sensor_role) {
                 photon_cmd_t cmdm = { .op = PHOTON_CMD_RESET_CAL };
-                cmd_mailbox_push(&cmdm);
+                push_core1_cmd(&cmdm);
             }
             log_info("calibration reset");
         }
@@ -318,14 +329,14 @@ static void handle_line(char *line) {
             }
             photon_cmd_t cmdm = { .op = PHOTON_CMD_SET_DISABLED,
                                   .a = g_config.local_disabled_mask };
-            cmd_mailbox_push(&cmdm);
+            push_core1_cmd(&cmdm);
             log_info("sensor %d %sd (persist with 'cal save')", idx, cmd);
         }
     } else if (strcmp(cmd, "mode") == 0 && a1 != NULL) {
         uint8_t m = (uint8_t)atoi(a1);
         if (C.sensor_role && m <= PHOTON_SCAN_TWO_PHASE) {
             photon_cmd_t cmdm = { .op = PHOTON_CMD_SCAN_MODE, .arg8 = m };
-            cmd_mailbox_push(&cmdm);
+            push_core1_cmd(&cmdm);
             g_config.scan_mode = m;
             log_info("scan mode -> %u", m);
         }

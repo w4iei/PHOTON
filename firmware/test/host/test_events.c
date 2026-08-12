@@ -1,5 +1,7 @@
 // Event-engine tests: seeded-calibration strike/release with exact dt
-// assertions, hysteresis disarm, range gate, and boot-disable heuristic.
+// assertions, hysteresis disarm, range gate, and the disabled-sensor mask.
+// (The legacy activation flag and boot auto-disable heuristic are
+// intentionally retired — see docs/architecture/01 §7.)
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>

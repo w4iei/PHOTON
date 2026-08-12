@@ -71,6 +71,9 @@ static bool queue_push(tx_queue_t *q, const photon_frame_t *f) {
     }
     tx_slot_t *s = &q->slots[q->tail % TX_QUEUE_SLOTS];
     s->len = (uint16_t)frame_encode(f, s->data);
+    if (s->len == 0) {
+        return false;  // over-length payload rejected by the encoder
+    }
     q->tail++;
     return true;
 }

@@ -144,6 +144,7 @@ typedef struct {
     photon_cmd_t slots[PHOTON_CMD_MAILBOX_SLOTS];
     volatile uint32_t head;         // consumer (core 1)
     volatile uint32_t tail;         // producer (core 0)
+    volatile uint32_t drops;        // failed pushes (mailbox full)
     volatile bool park_requested;   // core 0 sets, core 1 honors
     volatile bool parked;           // core 1 acknowledges
 } photon_cmd_mailbox_t;

@@ -134,16 +134,22 @@ mode meets the target, so crosstalk cannot sink the schedule.
 
 ## 7. Event engine (core 1)
 
-Verbatim port of the C `process_scan_events` logic: per-sensor running min/max auto-calibration;
+Port of the C `process_scan_events` logic: per-sensor running min/max auto-calibration;
 sensor participates only when `range ≥ min_event_range`; two-stage strike state machine (arm at
 `strike_pct − strike_window_pct`, fire ON at `strike_pct = 60 %` of range, `dt` = time between
 the two crossings) and the symmetric release machine (OFF at `release_pct = 40 %`); per-sensor
 polarity support. Deployed constants carry over: `strike_pct 60`, `release_pct 40`,
-`activation_pct 3`, `velocity_window_pct 20`, `strike_window_pct 30`, `min_event_range 170`
+`velocity_window_pct 20`, `strike_window_pct 30`, `min_event_range 170`
 (×8 at OSR 3 → 1360), `settle_us 60`, `osr_mode 3`.
 
 **Timebase upgrade:** `supervisor_ticks_ms32()` (1 ms) → `time_us_64()` (1 µs). `dt` widens to
 u32 µs in the event record; clamping moves to the mapping stage.
+
+**Intentionally retired legacy features** (not bugs, not verbatim-port omissions): the
+`activation_pct` "active" flag (it fed only the legacy trace-slot auto-arming; tracing is now
+explicitly commanded via `trace`/`capture`), and the boot auto-disable heuristic
+(`boot_disable_above` — shipped *disabled* in the deployed CircuitPython config; the runtime
+`disable <idx>` console command replaces the per-node override table for masking bad sensors).
 
 ## 8. Config store (flash)
 

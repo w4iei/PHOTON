@@ -5,6 +5,9 @@
 #include "util/crc32.h"
 
 size_t frame_encode(const photon_frame_t *f, uint8_t *out) {
+    if (f->len > PHOTON_FRAME_MAX_PAYLOAD) {
+        return 0;  // callers treat 0 as "not encodable"
+    }
     out[0] = 0xA5;
     out[1] = 0x5A;
     out[2] = f->type;
