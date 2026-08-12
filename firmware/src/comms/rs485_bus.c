@@ -113,8 +113,12 @@ void transport_init(bool use_host_pinout, bool terminate, uint8_t own_addr,
     uart_init(bus.uart, PHOTON_RS485_BAUD);
     uart_set_format(bus.uart, 8, 1, UART_PARITY_NONE);
     uart_set_fifo_enabled(bus.uart, true);
-    gpio_set_function(tx_pin, GPIO_FUNC_UART);
-    gpio_set_function(rx_pin, GPIO_FUNC_UART);
+    // RP2350 pin mux: UART TX/RX live on F2 only for pins 4k+0/4k+1; on
+    // 4k+2/4k+3 (the sensor board's GPIO22/23) F2 is CTS/RTS and TX/RX are
+    // on the F11 UART_AUX function. CircuitPython did this internally,
+    // which is why the legacy stack worked on the same pins.
+    gpio_set_function(tx_pin, (tx_pin & 2) ? GPIO_FUNC_UART_AUX : GPIO_FUNC_UART);
+    gpio_set_function(rx_pin, (rx_pin & 2) ? GPIO_FUNC_UART_AUX : GPIO_FUNC_UART);
 
     gpio_init(bus.de_pin);
     gpio_disable_pulls(bus.de_pin);
