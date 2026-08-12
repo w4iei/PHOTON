@@ -96,7 +96,10 @@ int main(void) {
     for (;;) {
         tud_task();
         if (sensor_role) {
-            protocol_set_local_delivery(tud_midi_mounted());
+            // A pulled cable is a *suspend*, not an unmount — mounted state
+            // survives cable removal, so gate on both or events keep
+            // draining into a dead USB instead of the bus.
+            protocol_set_local_delivery(tud_midi_mounted() && !tud_suspended());
         }
         transport_task();
         protocol_task();
