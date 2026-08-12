@@ -64,8 +64,10 @@
 #define PHOTON_RS485_RX          23
 #define PHOTON_RS485_DE          24
 #define PHOTON_RS485_TERM        25
-#define PHOTON_RS485_BAUD        2000000
-#define PHOTON_DE_GUARD_US       25   // proven guard band before/after each frame
+#define PHOTON_RS485_BAUD        4000000  // exact divisor at clk_peri 150 MHz (2.34375)
+#define PHOTON_DE_GUARD_US       8    // guard band before/after each frame; THVD1424
+                                      // enable time is <100 ns, 8 us is still ample
+                                      // (25 us proven first, tightened in bench tuning)
 
 // Main controller board 001 uses different RS-485 pins; probed at runtime:
 // if the sensor capability probe finds zero banks, the transport uses these.
@@ -77,7 +79,7 @@
 #define PHOTON_HOST_TERM         18
 
 #define PHOTON_MAX_NODE_ID       6
-#define PHOTON_POLL_TIMEOUT_US   1500 // > worst-case 158 B reply @ 2 Mbaud (790 us) + guards
+#define PHOTON_POLL_TIMEOUT_US   700  // > worst-case 158 B reply @ 4 Mbaud (395 us) + guards
 #define PHOTON_POLL_RETRIES      2
 #define PHOTON_PING_INTERVAL_MS  250  // re-discovery cadence for silent ids
 
