@@ -430,7 +430,16 @@ static bool bridge_dispatch_bulk(void) {
     uint8_t type = f->type;
     P.bulk_head++;
     if (dst == PHOTON_ADDR_BROADCAST) {
-        return false;  // no reply expected; continue polling immediately
+        // No reply will come, but the wire must still be owned while the
+        // broadcast transmits: resuming polls immediately put a node's
+        // reply on the half-duplex bus mid-broadcast (and the replying
+        // node's receiver is off while it drives, so it could never hear
+        // the command). Short quiet window, cleared by the deadline.
+        P.state = B_BULK_WAIT;
+        P.wait_target = 0;
+        P.wait_type = 0;  // nothing clears it early; deadline does
+        P.wait_deadline = make_timeout_time_us(PHOTON_POLL_TIMEOUT_US);
+        return true;
     }
     P.state = B_BULK_WAIT;
     P.wait_target = dst;
