@@ -188,6 +188,9 @@ static void drain_mailbox(void) {
             case PHOTON_CMD_RESET_CAL:
                 events_reset_cal();
                 break;
+            case PHOTON_CMD_CAL_LEARN:
+                g_events.learning = cmd.a != 0;
+                break;
             case PHOTON_CMD_SET_DISABLED:
                 g_events.disabled_mask = cmd.a;
                 break;

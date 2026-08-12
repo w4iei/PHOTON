@@ -8,10 +8,16 @@
 #include <stdarg.h>
 #include <stdbool.h>
 
+#include <stddef.h>
+#include <stdint.h>
+
 // printf to CDC if a terminal is connected; silently dropped otherwise.
 void log_printf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 void log_info(const char *fmt, ...) __attribute__((format(printf, 1, 2)));  // "# LOG " prefix
 void log_note(const char *fmt, ...) __attribute__((format(printf, 1, 2)));  // "# NOTE " prefix
+
+// Complete write with USB-task pumping (50 ms bound); used by all log paths.
+void log_cdc_write_all(const uint8_t *data, size_t len);
 
 bool log_console_connected(void);
 

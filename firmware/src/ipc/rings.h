@@ -130,6 +130,7 @@ typedef enum {
     PHOTON_CMD_TRACE_TAP,      // arg8 = sensor idx, a = enable(1)/disable(0)
     PHOTON_CMD_PARK,           // spin in SRAM until park flag cleared
     PHOTON_CMD_TEST_BURST,     // a = number of synthetic events to inject
+    PHOTON_CMD_CAL_LEARN,      // a = 1 enter calibration (learning), 0 freeze
 } photon_cmd_op_t;
 
 typedef struct {

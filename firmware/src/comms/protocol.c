@@ -236,8 +236,12 @@ static void node_handle_request(const photon_frame_t *f, bool addressed) {
         case PHOTON_FT_CAL_SET: {
             if (f->len >= 5) {
                 if (f->payload[0] == PHOTON_CAL_IDX_ALL) {
+                    // Remote "enter calibration": reset + learning on,
+                    // mirroring the local 'r' flow.
                     photon_cmd_t cmd = { .op = PHOTON_CMD_RESET_CAL };
                     cmd_mailbox_push(&cmd);
+                    photon_cmd_t learn = { .op = PHOTON_CMD_CAL_LEARN, .a = 1 };
+                    cmd_mailbox_push(&learn);
                 } else {
                     photon_cmd_t cmd = { .op = PHOTON_CMD_SET_CAL, .arg8 = f->payload[0] };
                     uint16_t mn, mx;
@@ -258,6 +262,9 @@ static void node_handle_request(const photon_frame_t *f, bool addressed) {
             if (!addressed) {
                 break;  // never park+flash every node at once off a broadcast
             }
+            // Freeze learning before persisting — remote mirror of 's'.
+            photon_cmd_t learn = { .op = PHOTON_CMD_CAL_LEARN, .a = 0 };
+            cmd_mailbox_push(&learn);
             bool ok = config_store_save();
             uint8_t status = ok ? 1 : 0;
             send_reply(PHOTON_FT_CAL_ACK, f->src, f->seq, &status, 1, false);

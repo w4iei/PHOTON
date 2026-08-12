@@ -65,11 +65,18 @@ int main(void) {
 
     if (sensor_role) {
         events_init(g_config.local_disabled_mask);
+        bool have_cal = false;
         for (int i = 0; i < PHOTON_MAX_SENSORS; i++) {
             if (g_config.cal_min[i] != 0xFFFF || g_config.cal_max[i] != 0) {
                 events_seed_cal((uint8_t)i, g_config.cal_min[i], g_config.cal_max[i]);
+                have_cal = true;
             }
         }
+        // Saved calibration => frozen thresholds for performance (continuous
+        // learning is polluted by adjacent-key cross-illumination). No saved
+        // calibration => boot straight into learning so the board is usable,
+        // with the console banner flagging the uncalibrated state.
+        g_events.learning = !have_cal;
         g_scan_ctl.mode = g_config.scan_mode <= PHOTON_SCAN_TWO_PHASE
                               ? g_config.scan_mode
                               : PHOTON_SCAN_PARALLEL;

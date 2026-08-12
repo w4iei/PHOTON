@@ -53,13 +53,22 @@ void events_process(const uint16_t *readings, uint32_t now_us) {
         if (v == 0) {
             continue;  // dead read; never calibrate on it
         }
-        if (v < e->min[i]) {
-            e->min[i] = v;
-        }
-        if (v > e->max[i]) {
-            e->max[i] = v;
+        if (e->learning) {
+            if (v < e->min[i]) {
+                e->min[i] = v;
+            }
+            if (v > e->max[i]) {
+                e->max[i] = v;
+            }
         }
         uint32_t mn = e->min[i], mx = e->max[i];
+        if (mx <= mn) {
+            // Uncalibrated (min still 0xFFFF) or degenerate: inactive.
+            // Guards the frozen-empty case from an unsigned underflow that
+            // would otherwise fabricate a huge range.
+            clear_sensor_state(e, i);
+            continue;
+        }
         uint32_t rng = mx - mn;
         if (rng < MIN_EVENT_RANGE_SCALED) {
             clear_sensor_state(e, i);

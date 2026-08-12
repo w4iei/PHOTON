@@ -8,10 +8,17 @@
 
 #include "comms/frame.h"
 
+#include "ipc/rings.h"
+
 void console_init(bool is_bridge, bool sensor_role);
 void console_task(void);
 
 // Bridge-side: responses to console-issued bulk requests arrive here.
 void console_on_bridge_response(const photon_frame_t *f);
+
+// Live per-event log line ("[EVT] ON  s=12 F#2(42) vel=97 dt=8.4ms"),
+// suppressed by the 'log off' console toggle or when no terminal attached.
+void console_print_event(uint8_t node_id, const photon_event_t *ev,
+                         int16_t note, uint8_t velocity, uint8_t channel);
 
 #endif

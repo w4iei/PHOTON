@@ -88,12 +88,26 @@ static void test_strike_disarm_hysteresis(void) {
 
 static void test_range_gate(void) {
     setup();
-    events_reset_cal();     // no calibration: min/max learn from signal
+    events_reset_cal();          // no calibration: learn from signal
+    g_events.learning = true;    // calibration mode
     // Wiggle inside a small range (< 1360 scaled gate): must never fire.
     for (int i = 0; i < 100; i++) {
         feed((uint16_t)(1000 + (i % 2) * 500), (uint32_t)i * 1000);
     }
     CHECK(ring_count() == 0);
+}
+
+static void test_frozen_empty_cal_inert(void) {
+    setup();
+    events_reset_cal();          // min=0xFFFF > max=0
+    g_events.learning = false;   // frozen with no calibration
+    // The unsigned min/max underflow must not fabricate a range: no events,
+    // and no learning happens while frozen.
+    for (int i = 0; i < 50; i++) {
+        feed((uint16_t)(1000 + (i % 2) * 3000), (uint32_t)i * 1000);
+    }
+    CHECK(ring_count() == 0);
+    CHECK(g_events.min[0] == 0xFFFF && g_events.max[0] == 0);
 }
 
 static void test_zero_reading_ignored(void) {
@@ -122,6 +136,7 @@ int main(void) {
     test_strike_release_dt();
     test_strike_disarm_hysteresis();
     test_range_gate();
+    test_frozen_empty_cal_inert();
     test_zero_reading_ignored();
     test_disabled_mask();
     printf("test_events OK (%d checks)\n", checks);

@@ -15,6 +15,11 @@ typedef struct {
     uint16_t value[PHOTON_MAX_SENSORS];
     uint16_t min[PHOTON_MAX_SENSORS];
     uint16_t max[PHOTON_MAX_SENSORS];
+    // Calibration mode flag. Learning is ON only during the guided flow
+    // ('r' ... play keys one at a time ... 's'): continuous learning
+    // during performance lets adjacent-key cross-illumination pollute
+    // neighbors' min/max. Frozen (saved) calibration is used otherwise.
+    bool     learning;
     uint32_t disabled_mask;      // bit per local sensor
     uint32_t polarity_mask;      // bit set = inverted (pressed = lower value)
     bool     note_on[PHOTON_MAX_SENSORS];

@@ -35,6 +35,9 @@ static struct {
     // duration-bound capture (host tool contract: "capture <seconds>")
     bool capture_timed;
     absolute_time_t capture_deadline;
+    // legacy-style verbosity: live event lines + 5 s heartbeat ('log on|off')
+    bool log_events;
+    absolute_time_t next_heartbeat_at;
 } C;
 
 void console_init(bool is_bridge, bool sensor_role) {
@@ -42,6 +45,28 @@ void console_init(bool is_bridge, bool sensor_role) {
     C.is_bridge = is_bridge;
     C.sensor_role = sensor_role;
     C.trace_sensor = PHOTON_TRACE_DEFAULT_SENSOR;
+    C.log_events = true;
+    C.next_heartbeat_at = make_timeout_time_ms(5000);
+}
+
+static const char *note_name(int16_t note, char *buf, size_t n) {
+    static const char *names[12] = { "C", "C#", "D", "D#", "E", "F",
+                                     "F#", "G", "G#", "A", "A#", "B" };
+    snprintf(buf, n, "%s%d", names[note % 12], note / 12 - 1);
+    return buf;
+}
+
+void console_print_event(uint8_t node_id, const photon_event_t *ev,
+                         int16_t note, uint8_t velocity, uint8_t channel) {
+    if (!C.log_events) {
+        return;
+    }
+    char nm[8];
+    log_printf("[EVT] %-3s node=%u s=%-2u %s(%d) ch=%u vel=%-3u dt=%lu.%lums",
+               ev->state ? "ON" : "OFF", node_id, ev->local_idx,
+               note_name(note, nm, sizeof nm), note, channel + 1, velocity,
+               (unsigned long)(ev->dt_us / 1000u),
+               (unsigned long)((ev->dt_us % 1000u) / 100u));
 }
 
 // Core-1 commands must not fail silently: a dropped mode/cal/trace command
@@ -63,6 +88,8 @@ static void print_help(void) {
     log_printf("  data [id]        latest sweep values");
     log_printf("  minmax [id]      calibration min/max");
     log_printf("  ping <id>        probe a node id");
+    log_printf("  <Enter>          live sensor table");
+    log_printf("  r / s / x        calibrate: start / freeze+save / abort");
     log_printf("  trace <sensor> [node] / trace stop");
     log_printf("  capture [sec]    timed local trace of last/default sensor");
     log_printf("  burst <n> [id]   inject synthetic events (torture test)");
@@ -136,6 +163,51 @@ static void print_nodes(void) {
                    (unsigned long)s->dup_events, (unsigned long)s->seq_gaps,
                    (unsigned long)s->malformed, (unsigned long)s->retries,
                    (unsigned long)s->timeouts);
+    }
+}
+
+// Legacy-style live table on a bare Enter.
+static void print_table(void) {
+    if (!C.sensor_role) {
+        print_local_stats();
+        print_nodes();
+        return;
+    }
+    photon_snapshot_t snap;
+    snapshot_read(&snap);
+    log_printf("idx |   val |   min |   max |   rng | on   [%s]",
+               g_events.learning ? "CALIBRATING — play keys one at a time, 's' saves"
+                                 : "cal frozen — 'r' recalibrates");
+    log_printf("----+-------+-------+-------+-------+---");
+    for (int i = 0; i < PHOTON_ACTIVE_SENSORS; i++) {
+        if ((g_events.disabled_mask >> i) & 1u) {
+            log_printf("%3d |     - |     - |     - |     - | disabled", i);
+            continue;
+        }
+        uint16_t mn = snap.min[i], mx = snap.max[i];
+        unsigned rng = mx > mn ? (unsigned)(mx - mn) : 0;
+        log_printf("%3d | %5u | %5u | %5u | %5u | %d", i, snap.value[i],
+                   mn == 0xFFFF ? 0 : mn, mx, rng, g_events.note_on[i] ? 1 : 0);
+    }
+}
+
+static void cal_enter(void) {
+    photon_cmd_t c1 = { .op = PHOTON_CMD_RESET_CAL };
+    photon_cmd_t c2 = { .op = PHOTON_CMD_CAL_LEARN, .a = 1 };
+    push_core1_cmd(&c1);
+    push_core1_cmd(&c2);
+    log_info("CALIBRATION: play every key one at a time, full swing.");
+    log_info("Enter shows the table; 's' freezes+saves, 'x' aborts (freeze only).");
+}
+
+static void cal_freeze(bool save) {
+    photon_cmd_t c = { .op = PHOTON_CMD_CAL_LEARN, .a = 0 };
+    push_core1_cmd(&c);
+    if (save) {
+        config_store_save();
+        log_info("calibration frozen and saved");
+    } else {
+        log_info("calibration frozen (not saved)");
     }
 }
 
@@ -223,6 +295,12 @@ static void handle_line(char *line) {
 
     if (strcmp(cmd, "help") == 0 || strcmp(cmd, "?") == 0) {
         print_help();
+    } else if (strcmp(cmd, "r") == 0 && C.sensor_role) {
+        cal_enter();
+    } else if (strcmp(cmd, "s") == 0 && C.sensor_role) {
+        cal_freeze(true);
+    } else if (strcmp(cmd, "x") == 0 && C.sensor_role) {
+        cal_freeze(false);
     } else if (strcmp(cmd, "id") == 0) {
         log_printf("PHOTON native fw | role=%s | addr=%u | banks=%s | cfg v%lu",
                    C.is_bridge ? "bridge" : "sensor-node",
@@ -294,7 +372,9 @@ static void handle_line(char *line) {
             push_core1_cmd(&cmdm);
         }
     } else if (strcmp(cmd, "cal") == 0 && a1 != NULL) {
-        if (strcmp(a1, "save") == 0) {
+        if (strcmp(a1, "start") == 0 && C.sensor_role) {
+            cal_enter();
+        } else if (strcmp(a1, "save") == 0) {
             if (C.is_bridge) {
                 const photon_node_slot_t *t = protocol_node_table();
                 int queued = 0, dropped = 0;
@@ -310,7 +390,7 @@ static void handle_line(char *line) {
                 log_info("CAL_COMMIT queued to %d node(s)%s", queued,
                          dropped ? " — QUEUE FULL, retry cal save" : "");
             } else {
-                config_store_save();
+                cal_freeze(true);
             }
         } else if (strcmp(a1, "reset") == 0) {
             if (C.is_bridge) {
@@ -337,6 +417,9 @@ static void handle_line(char *line) {
             push_core1_cmd(&cmdm);
             log_info("sensor %d %sd (persist with 'cal save')", idx, cmd);
         }
+    } else if (strcmp(cmd, "log") == 0 && a1 != NULL) {
+        C.log_events = strcmp(a1, "off") != 0;
+        log_info("event log + heartbeat %s", C.log_events ? "on" : "off");
     } else if (strcmp(cmd, "mode") == 0 && a1 != NULL) {
         uint8_t m = (uint8_t)atoi(a1);
         if (C.sensor_role && m <= PHOTON_SCAN_TWO_PHASE) {
@@ -469,25 +552,32 @@ void console_on_bridge_response(const photon_frame_t *f) {
 // ---------------------------------------------------------------------------
 
 void console_task(void) {
-    // Input.
+    // Input, with live character echo (terminals don't local-echo raw CDC).
     while (tud_cdc_available()) {
         uint8_t ch;
         if (tud_cdc_read(&ch, 1) != 1) {
             break;
         }
         if (ch == '\r' || ch == '\n') {
+            tud_cdc_write("\r\n", 2);
+            tud_cdc_write_flush();
             if (C.line_len > 0) {
                 C.line[C.line_len] = 0;
                 C.line_len = 0;
-                log_printf("> %s", C.line);
                 handle_line(C.line);
+            } else {
+                print_table();  // bare Enter = live table, like the legacy console
             }
         } else if (ch == 0x7F || ch == '\b') {
             if (C.line_len > 0) {
                 C.line_len--;
+                tud_cdc_write("\b \b", 3);
+                tud_cdc_write_flush();
             }
         } else if (C.line_len < sizeof C.line - 1) {
             C.line[C.line_len++] = (char)ch;
+            tud_cdc_write(&ch, 1);
+            tud_cdc_write_flush();
         }
     }
 
@@ -512,6 +602,37 @@ void console_task(void) {
     if (C.trace_active && C.trace_remote && time_reached(C.next_trace_pull)) {
         if (protocol_bridge_request(PHOTON_FT_TRACE_DATA, C.trace_node, NULL, 0)) {
             C.next_trace_pull = make_timeout_time_us(20000);  // 50 Hz x 21 samples > 1 kHz
+        }
+    }
+
+    // Legacy-style 5 s heartbeat (suppressed during traces and by 'log off').
+    if (C.log_events && !C.trace_active && log_console_connected() &&
+        time_reached(C.next_heartbeat_at)) {
+        C.next_heartbeat_at = make_timeout_time_ms(5000);
+        if (C.sensor_role) {
+            uint32_t hz10 = g_scan_ctl.sweep_us ? 10000000u / g_scan_ctl.sweep_us : 0;
+            log_printf("[STAT] %lu.%lu Hz | evt on/off %lu/%lu | cal %s | midi %lu/%lu",
+                       (unsigned long)(hz10 / 10), (unsigned long)(hz10 % 10),
+                       (unsigned long)g_events.events_on,
+                       (unsigned long)g_events.events_off,
+                       g_events.learning ? "LEARNING" : "frozen",
+                       (unsigned long)midi_map_notes_on_sent(),
+                       (unsigned long)midi_map_notes_off_sent());
+        } else {
+            const photon_node_slot_t *t = protocol_node_table();
+            int alive = 0;
+            uint32_t events = 0;
+            for (int id = 1; id <= PHOTON_MAX_NODE_ID; id++) {
+                if (t[id].alive) {
+                    alive++;
+                }
+                events += t[id].events_rx;
+            }
+            log_printf("[STAT] nodes=%d | events=%lu | midi %lu/%lu | cycles=%lu",
+                       alive, (unsigned long)events,
+                       (unsigned long)midi_map_notes_on_sent(),
+                       (unsigned long)midi_map_notes_off_sent(),
+                       (unsigned long)protocol_poll_cycles());
         }
     }
 }

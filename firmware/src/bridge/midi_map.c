@@ -5,6 +5,7 @@
 
 #include "board_config.h"
 #include "config/config_store.h"
+#include "usb/cdc_console.h"
 #include "usb/midi_out.h"
 
 #define MANUAL_COUNT ((PHOTON_GLOBAL_SENSORS + PHOTON_SENSORS_PER_MANUAL - 1) / \
@@ -92,6 +93,8 @@ void midi_map_handle_event(uint8_t node_id, const photon_event_t *ev) {
     uint32_t manual = g / PHOTON_SENSORS_PER_MANUAL;
     uint8_t channel = channel_for_global[g];
     uint32_t bit = 1u << ev->local_idx;
+
+    console_print_event(node_id, ev, note, midi_map_velocity(ev->dt_us), channel);
 
     if (ev->state) {
         if (node_notes_on[node_id] & bit) {
