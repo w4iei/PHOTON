@@ -272,11 +272,18 @@ static void node_handle_request(const photon_frame_t *f, bool addressed) {
             break;
         }
         case PHOTON_FT_TEST_BURST: {
+            // payload: value u16 + optional kind u8 (0/absent = one-shot
+            // burst of <value> events; 1 = continuous pseudorandom load of
+            // <value> events/sec, 0 stops).
             uint16_t n = 0;
             if (f->len >= 2) {
                 memcpy(&n, f->payload, 2);
             }
-            photon_cmd_t cmd = { .op = PHOTON_CMD_TEST_BURST, .a = n };
+            uint8_t kind = f->len >= 3 ? f->payload[2] : 0;
+            photon_cmd_t cmd = {
+                .op = kind == 1 ? PHOTON_CMD_TEST_RATE : PHOTON_CMD_TEST_BURST,
+                .a = n,
+            };
             cmd_mailbox_push(&cmd);
             if (addressed) {
                 uint8_t ok = 1;

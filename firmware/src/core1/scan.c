@@ -178,6 +178,53 @@ static bool sweep_all_zero(void) {
     return true;
 }
 
+// ---------------------------------------------------------------------------
+// Pseudorandom event generator (bus/loss validation instrument): injects
+// synthetic note events at a configured rate with stateful ON/OFF pairing,
+// so per-event sequence accounting at the bridge proves zero loss under
+// sustained load. xorshift32, deterministic per boot.
+// ---------------------------------------------------------------------------
+
+static struct {
+    uint32_t rate;        // events/sec, 0 = off
+    uint32_t credit_fp16; // fractional events accumulated, <<16
+    uint32_t prng;
+    uint32_t held_mask;   // synthetic keys currently ON
+} test_gen;
+
+static inline uint32_t prng_next(void) {
+    uint32_t x = test_gen.prng;
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    test_gen.prng = x;
+    return x;
+}
+
+static void test_gen_tick(uint32_t period_us, uint32_t now_us) {
+    if (test_gen.rate == 0) {
+        return;
+    }
+    // credit += rate * period (in events, 16.16 fixed point)
+    test_gen.credit_fp16 += (uint32_t)(((uint64_t)test_gen.rate * period_us << 16) / 1000000u);
+    while (test_gen.credit_fp16 >= (1u << 16)) {
+        test_gen.credit_fp16 -= 1u << 16;
+        uint32_t r = prng_next();
+        uint8_t idx = (uint8_t)(r % PHOTON_ACTIVE_SENSORS);
+        uint32_t bit = 1u << idx;
+        uint8_t state;
+        if (test_gen.held_mask & bit) {
+            state = 0;  // release a held key
+            test_gen.held_mask &= ~bit;
+        } else {
+            state = 1;  // press an unheld key
+            test_gen.held_mask |= bit;
+        }
+        uint32_t dt_us = 1000u + ((r >> 8) % 199000u);  // 1..200 ms
+        event_ring_push(idx, state, dt_us, now_us);
+    }
+}
+
 static void drain_mailbox(void) {
     photon_cmd_t cmd;
     while (cmd_mailbox_pop(&cmd)) {
@@ -195,6 +242,24 @@ static void drain_mailbox(void) {
                 g_scan_ctl.rate_hz = cmd.a == 0 ? PHOTON_DEFAULT_SCAN_RATE_HZ
                                    : cmd.a >= 0xFFFF ? 0
                                                      : (uint16_t)cmd.a;
+                break;
+            case PHOTON_CMD_TEST_RATE:
+                test_gen.rate = cmd.a;
+                test_gen.credit_fp16 = 0;
+                if (test_gen.prng == 0) {
+                    test_gen.prng = time_us_32() | 1u;
+                }
+                if (cmd.a == 0) {
+                    // Release everything the generator holds so no synthetic
+                    // note is left stuck ON at the sinks.
+                    uint32_t now = time_us_32();
+                    for (uint8_t i = 0; test_gen.held_mask != 0 && i < PHOTON_ACTIVE_SENSORS; i++) {
+                        if (test_gen.held_mask & (1u << i)) {
+                            event_ring_push(i, 0, 5000, now);
+                            test_gen.held_mask &= ~(1u << i);
+                        }
+                    }
+                }
                 break;
             case PHOTON_CMD_SET_DISABLED:
                 g_events.disabled_mask = cmd.a;
@@ -277,6 +342,7 @@ void scan_core1_entry(void) {
         }
         g_scan_ctl.sweep_count++;
         g_scan_ctl.sweep_us = time_us_32() - t0;
+        test_gen_tick(g_scan_ctl.period_us, t0);
         snapshot_publish(g_events.value, g_events.min, g_events.max,
                          g_events.var_ema, g_scan_ctl.sweep_count,
                          g_scan_ctl.sweep_us);

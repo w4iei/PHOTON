@@ -134,6 +134,7 @@ typedef enum {
     PHOTON_CMD_TEST_BURST,     // a = number of synthetic events to inject
     PHOTON_CMD_CAL_LEARN,      // a = 1 enter calibration (learning), 0 freeze
     PHOTON_CMD_SCAN_RATE,      // a = Hz (0 = default, 0xFFFF = unthrottled)
+    PHOTON_CMD_TEST_RATE,      // a = pseudorandom events/sec (0 = stop)
 } photon_cmd_op_t;
 
 typedef struct {

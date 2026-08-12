@@ -92,7 +92,8 @@ static void print_help(void) {
     log_printf("  r / s / x        calibrate: start / freeze+save / abort");
     log_printf("  trace <sensor> [node] / trace stop");
     log_printf("  capture [sec]    timed local trace of last/default sensor");
-    log_printf("  burst <n> [id]   inject synthetic events (torture test)");
+    log_printf("  burst <n> [id]   inject one-shot synthetic events");
+    log_printf("  test <evps|stop> [id]  pseudorandom load for loss validation");
     log_printf("  cal save|reset   persist / clear calibration");
     log_printf("  mode <0|1|2>     scan: 0=seq 1=parallel 2=two-phase");
     log_printf("  rate <hz>|max    paced sweep rate (default 400; saved)");
@@ -378,6 +379,26 @@ static void handle_line(char *line) {
                                       .arg8 = C.trace_sensor, .a = 1 };
                 push_core1_cmd(&cmdm);
             }
+        }
+    } else if (strcmp(cmd, "test") == 0 && a1 != NULL) {
+        // Pseudorandom load generator for loss validation: events flow the
+        // full path and the bridge's per-node gaps/malformed counters plus
+        // node evt totals prove (or disprove) zero loss.
+        uint16_t rate = strcmp(a1, "stop") == 0 ? 0 : (uint16_t)atoi(a1);
+        if (rate > 5000) {
+            log_note("test: max 5000 ev/s");
+        } else if (C.is_bridge) {
+            uint8_t p[3];
+            memcpy(p, &rate, 2);
+            p[2] = 1;  // kind: continuous rate
+            uint8_t dst = a2 ? (uint8_t)atoi(a2) : PHOTON_ADDR_BROADCAST;
+            protocol_bridge_request(PHOTON_FT_TEST_BURST, dst, p, 3);
+            log_info("test load %u ev/s -> %u (watch 'nodes': gaps/malformed must stay 0)",
+                     rate, dst);
+        } else if (C.sensor_role) {
+            photon_cmd_t cmdm = { .op = PHOTON_CMD_TEST_RATE, .a = rate };
+            push_core1_cmd(&cmdm);
+            log_info("local test load %u ev/s", rate);
         }
     } else if (strcmp(cmd, "burst") == 0 && a1 != NULL) {
         uint16_t n = (uint16_t)atoi(a1);
