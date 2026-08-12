@@ -7,6 +7,7 @@
 #include "hardware/watchdog.h"
 #include "pico/bootrom.h"
 #include "pico/time.h"
+#include "pico/unique_id.h"
 #include "tusb.h"
 
 #include "board_config.h"
@@ -97,6 +98,7 @@ static void print_help(void) {
     log_printf("  cal save|reset   persist / clear calibration");
     log_printf("  mode <0|1|2>     scan: 0=seq 1=parallel 2=two-phase");
     log_printf("  rate <hz>|max    paced sweep rate (default 400; saved)");
+    log_printf("  localmidi on|off node plays its own USB-MIDI (default off; saved)");
     log_printf("  disable|enable <idx>  mask a local sensor (persist: cal save)");
     log_printf("  setid <n>        set this node's bus id (1-%d)", PHOTON_MAX_NODE_ID);
     log_printf("  flashtest        hammer flash while core 1 scans (M1 proof)");
@@ -323,11 +325,13 @@ static void handle_line(char *line) {
     } else if (strcmp(cmd, "x") == 0 && C.sensor_role) {
         cal_freeze(false);
     } else if (strcmp(cmd, "id") == 0) {
-        log_printf("PHOTON native fw | role=%s | addr=%u | banks=%s | cfg v%lu",
+        char serial[2 * PICO_UNIQUE_BOARD_ID_SIZE_BYTES + 1];
+        pico_get_unique_board_id_string(serial, sizeof serial);
+        log_printf("PHOTON native fw | role=%s | addr=%u | banks=%s | cfg v%lu | hw %s",
                    C.is_bridge ? "bridge" : "sensor-node",
                    C.is_bridge ? 0 : g_config.node_id,
                    C.sensor_role ? "present" : "none",
-                   (unsigned long)g_config.version);
+                   (unsigned long)g_config.version, serial);
     } else if (strcmp(cmd, "stats") == 0) {
         print_local_stats();
         if (C.is_bridge && a1 != NULL) {
@@ -478,6 +482,17 @@ static void handle_line(char *line) {
                 config_store_save();
                 log_info("scan rate -> %s (saved)", hz == 0xFFFF ? "max" : a1);
             }
+        }
+    } else if (strcmp(cmd, "localmidi") == 0 && a1 != NULL) {
+        if (!C.sensor_role) {
+            log_note("localmidi: bridge always owns its MIDI");
+        } else {
+            g_config.local_midi = strcmp(a1, "on") == 0 ? 1 : 0;
+            config_store_save();
+            log_info("local USB-MIDI %s (saved) — events %s",
+                     g_config.local_midi ? "on" : "off",
+                     g_config.local_midi ? "play here when a host is attached"
+                                         : "always go to the bus/bridge");
         }
     } else if (strcmp(cmd, "log") == 0 && a1 != NULL) {
         C.log_events = strcmp(a1, "off") != 0;

@@ -22,7 +22,10 @@ typedef struct __attribute__((packed)) {
     // Carved from former padding so pre-existing saved configs stay valid
     // (old sectors read 0 here): 0 = default rate, 0xFFFF = unthrottled.
     uint16_t scan_rate_hz;
-    uint8_t _pad1;
+    // Also former padding: sensor-node USB-MIDI. 0 (old configs) = disabled,
+    // events always go to the bus — MIDI only through the main board.
+    // 'localmidi on' enables standalone/mirror behavior on this node.
+    uint8_t local_midi;
     uint32_t local_disabled_mask;
     uint8_t global_disabled[(PHOTON_GLOBAL_SENSORS + 7) / 8];
     uint16_t cal_min[PHOTON_MAX_SENSORS];

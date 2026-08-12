@@ -96,10 +96,11 @@ int main(void) {
     for (;;) {
         tud_task();
         if (sensor_role) {
-            // A pulled cable is a *suspend*, not an unmount — mounted state
-            // survives cable removal, so gate on both or events keep
-            // draining into a dead USB instead of the bus.
-            protocol_set_local_delivery(tud_midi_mounted() && !tud_suspended());
+            // Local USB-MIDI only when the config flag allows it AND a host
+            // is truly present (a pulled cable is a *suspend*, not an
+            // unmount — mounted state survives cable removal).
+            protocol_set_local_delivery(g_config.local_midi != 0 &&
+                                        tud_midi_mounted() && !tud_suspended());
         }
         transport_task();
         protocol_task();
