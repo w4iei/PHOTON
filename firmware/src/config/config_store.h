@@ -19,7 +19,10 @@ typedef struct __attribute__((packed)) {
     uint8_t midi_low;
     uint8_t midi_high;
     uint8_t midi_channel;
-    uint8_t _pad[3];
+    // Carved from former padding so pre-existing saved configs stay valid
+    // (old sectors read 0 here): 0 = default rate, 0xFFFF = unthrottled.
+    uint16_t scan_rate_hz;
+    uint8_t _pad1;
     uint32_t local_disabled_mask;
     uint8_t global_disabled[(PHOTON_GLOBAL_SENSORS + 7) / 8];
     uint16_t cal_min[PHOTON_MAX_SENSORS];

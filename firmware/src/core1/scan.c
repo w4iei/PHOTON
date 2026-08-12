@@ -191,6 +191,11 @@ static void drain_mailbox(void) {
             case PHOTON_CMD_CAL_LEARN:
                 g_events.learning = cmd.a != 0;
                 break;
+            case PHOTON_CMD_SCAN_RATE:
+                g_scan_ctl.rate_hz = cmd.a == 0 ? PHOTON_DEFAULT_SCAN_RATE_HZ
+                                   : cmd.a >= 0xFFFF ? 0
+                                                     : (uint16_t)cmd.a;
+                break;
             case PHOTON_CMD_SET_DISABLED:
                 g_events.disabled_mask = cmd.a;
                 break;
@@ -243,9 +248,25 @@ void scan_core1_entry(void) {
 
     uint32_t boot_t0 = time_us_32();
     bool boot_checked = false;
+    uint32_t prev_t0 = time_us_32();
+    uint32_t next_sweep_at = time_us_32();
 
     for (;;) {
+        // Pacing: absolute schedule so the period doesn't drift; emitters
+        // stay dark for the whole idle gap. Overruns resync to now.
+        uint16_t rate = g_scan_ctl.rate_hz;
+        if (rate != 0) {
+            uint32_t period = 1000000u / rate;
+            wait_until_us(next_sweep_at);
+            uint32_t now = time_us_32();
+            next_sweep_at += period;
+            if ((int32_t)(next_sweep_at - now) < 0) {
+                next_sweep_at = now + period;
+            }
+        }
         uint32_t t0 = time_us_32();
+        g_scan_ctl.period_us = t0 - prev_t0;
+        prev_t0 = t0;
         sweep();
         events_process(readings, t0);
         if (g_scan_ctl.trace_enabled) {

@@ -23,7 +23,9 @@ typedef enum {
 // Live control/telemetry block; core 0 reads, core 1 owns.
 typedef struct {
     volatile uint32_t sweep_count;
-    volatile uint32_t sweep_us;       // last sweep duration
+    volatile uint32_t sweep_us;       // active scan time of the last sweep
+    volatile uint32_t period_us;      // time between sweep starts (rate = 1/period)
+    volatile uint16_t rate_hz;        // pacing target; 0 = unthrottled
     volatile uint32_t reinit_count;   // startup all-zero recovery attempts
     volatile uint8_t  mode;           // photon_scan_mode_t
     volatile uint8_t  trace_idx;

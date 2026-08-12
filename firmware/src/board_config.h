@@ -105,6 +105,11 @@
                                       // note range + MIDI channel restart per manual
 #define PHOTON_TRACE_DEFAULT_SENSOR 24  // legacy bench default (SENSOR_IDX)
 #define PHOTON_CAPTURE_DEFAULT_S    3   // legacy CAPTURE_SECONDS
+
+// Default paced sweep rate (config scan_rate_hz==0 selects this; 0xFFFF in
+// config = unthrottled). Pacing idles the emitters between sweeps (~24%
+// duty at 400 Hz) and keeps traces manageable; 2.5 ms dt quantization.
+#define PHOTON_DEFAULT_SCAN_RATE_HZ 400
 #define PHOTON_VEL_MIN_MS        8.0f   // dt <= 8 ms  -> velocity 127
 #define PHOTON_VEL_MAX_MS        100.0f // dt >= 100 ms -> velocity 1
 #define PHOTON_VEL_CURVE         2.54f

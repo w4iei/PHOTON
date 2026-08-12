@@ -92,7 +92,8 @@ static void send_reply(uint8_t type, uint8_t dst, uint16_t seq,
 
 static void build_stats_payload(photon_stats_payload_t *st) {
     const frame_parse_stats_t *ps = transport_parse_stats();
-    st->sweep_us = (uint16_t)(g_scan_ctl.sweep_us > 0xFFFF ? 0xFFFF : g_scan_ctl.sweep_us);
+    // Reported as the sweep PERIOD so remote rate math reflects pacing.
+    st->sweep_us = (uint16_t)(g_scan_ctl.period_us > 0xFFFF ? 0xFFFF : g_scan_ctl.period_us);
     st->sweep_count = g_scan_ctl.sweep_count;
     st->events_on = g_events.events_on;
     st->events_off = g_events.events_off;

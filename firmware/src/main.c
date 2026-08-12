@@ -80,6 +80,11 @@ int main(void) {
         g_scan_ctl.mode = g_config.scan_mode <= PHOTON_SCAN_TWO_PHASE
                               ? g_config.scan_mode
                               : PHOTON_SCAN_PARALLEL;
+        g_scan_ctl.rate_hz = g_config.scan_rate_hz == 0
+                                 ? PHOTON_DEFAULT_SCAN_RATE_HZ
+                             : g_config.scan_rate_hz == 0xFFFF
+                                 ? 0
+                                 : g_config.scan_rate_hz;
         multicore_launch_core1(scan_core1_entry);
         config_store_set_core1_running(true);
     }

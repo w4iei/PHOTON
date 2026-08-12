@@ -95,6 +95,7 @@ static void print_help(void) {
     log_printf("  burst <n> [id]   inject synthetic events (torture test)");
     log_printf("  cal save|reset   persist / clear calibration");
     log_printf("  mode <0|1|2>     scan: 0=seq 1=parallel 2=two-phase");
+    log_printf("  rate <hz>|max    paced sweep rate (default 400; saved)");
     log_printf("  disable|enable <idx>  mask a local sensor (persist: cal save)");
     log_printf("  setid <n>        set this node's bus id (1-%d)", PHOTON_MAX_NODE_ID);
     log_printf("  flashtest        hammer flash while core 1 scans (M1 proof)");
@@ -120,7 +121,7 @@ static void print_local_stats(void) {
                (unsigned long)g_config.version,
                g_config_from_flash ? "" : " (defaults, uncalibrated)");
     if (C.sensor_role) {
-        uint32_t hz10 = g_scan_ctl.sweep_us ? 10000000u / g_scan_ctl.sweep_us : 0;
+        uint32_t hz10 = g_scan_ctl.period_us ? 10000000u / g_scan_ctl.period_us : 0;
         log_printf("[STAT] sweeps=%lu sweep_us=%lu (%lu.%lu Hz) mode=%u reinit=%lu "
                    "evt_on=%lu evt_off=%lu ring_ovf=%lu",
                    (unsigned long)g_scan_ctl.sweep_count,
@@ -186,8 +187,9 @@ static void print_table(void) {
     }
     photon_snapshot_t snap;
     snapshot_read(&snap);
-    uint32_t hz10 = snap.sweep_us ? 10000000u / snap.sweep_us : 0;
-    log_printf("== PHOTON node %u | %lu.%lu Hz (%lu us) | cal %s | cfg v%lu | evt %lu/%lu ==",
+    uint32_t period = g_scan_ctl.period_us;
+    uint32_t hz10 = period ? 10000000u / period : 0;
+    log_printf("== PHOTON node %u | %lu.%lu Hz (scan %lu us) | cal %s | cfg v%lu | evt %lu/%lu ==",
                g_config.node_id,
                (unsigned long)(hz10 / 10), (unsigned long)(hz10 % 10),
                (unsigned long)snap.sweep_us,
@@ -435,6 +437,27 @@ static void handle_line(char *line) {
             push_core1_cmd(&cmdm);
             log_info("sensor %d %sd (persist with 'cal save')", idx, cmd);
         }
+    } else if (strcmp(cmd, "rate") == 0 && a1 != NULL) {
+        if (!C.sensor_role) {
+            log_note("rate: no scanner on this board");
+        } else {
+            uint32_t hz;
+            if (strcmp(a1, "max") == 0) {
+                hz = 0xFFFF;  // unthrottled
+            } else {
+                int v = atoi(a1);
+                hz = (v >= 50 && v <= 2000) ? (uint32_t)v : 0;
+            }
+            if (hz == 0) {
+                log_note("rate: 50-2000 or 'max'");
+            } else {
+                photon_cmd_t cmdm = { .op = PHOTON_CMD_SCAN_RATE, .a = hz };
+                push_core1_cmd(&cmdm);
+                g_config.scan_rate_hz = (uint16_t)hz;
+                config_store_save();
+                log_info("scan rate -> %s (saved)", hz == 0xFFFF ? "max" : a1);
+            }
+        }
     } else if (strcmp(cmd, "log") == 0 && a1 != NULL) {
         C.log_events = strcmp(a1, "off") != 0;
         log_info("event log + heartbeat %s", C.log_events ? "on" : "off");
@@ -628,7 +651,7 @@ void console_task(void) {
         time_reached(C.next_heartbeat_at)) {
         C.next_heartbeat_at = make_timeout_time_ms(5000);
         if (C.sensor_role) {
-            uint32_t hz10 = g_scan_ctl.sweep_us ? 10000000u / g_scan_ctl.sweep_us : 0;
+            uint32_t hz10 = g_scan_ctl.period_us ? 10000000u / g_scan_ctl.period_us : 0;
             log_printf("[STAT] %lu.%lu Hz | evt on/off %lu/%lu | cal %s | midi %lu/%lu",
                        (unsigned long)(hz10 / 10), (unsigned long)(hz10 % 10),
                        (unsigned long)g_events.events_on,
