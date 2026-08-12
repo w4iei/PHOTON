@@ -43,6 +43,8 @@ typedef struct {
     uint32_t dup_events;
     uint16_t next_evt_seq;
     bool have_seq;
+    uint16_t acked_poll_seq;  // poll seq of the last batch processed
+    bool have_ack;
     uint8_t consecutive_timeouts;
 } photon_node_slot_t;
 

@@ -17,10 +17,14 @@ static struct {
     uint8_t own_addr;
     protocol_event_sink_t sink;
 
-    // Node role: batch in flight (peeked, not yet released).
+    // Node role: batch in flight (peeked, not yet released). Events are
+    // released from the ring only when a later poll explicitly acknowledges
+    // the poll-seq that carried them — a lost reply therefore re-sends the
+    // same events until the bridge confirms processing (bridge dedups by
+    // per-event seq).
     uint32_t pending_sent;
-    uint16_t last_poll_seq;
-    bool have_last_poll;
+    uint16_t pending_poll_seq;
+    bool have_pending;
 
     // Bridge role.
     photon_node_slot_t nodes[PHOTON_MAX_NODE_ID + 1];
@@ -100,17 +104,24 @@ static void build_stats_payload(photon_stats_payload_t *st) {
 // ---------------------------------------------------------------------------
 
 static void node_handle_evt_poll(const photon_frame_t *f) {
-    // A poll with a new seq implicitly acknowledges the previous batch.
-    if (!P.have_last_poll || f->seq != P.last_poll_seq) {
+    // Poll payload carries the poll-seq of the last batch the bridge has
+    // processed from this node (0xFFFF = none yet). Release only on that
+    // explicit ack; otherwise the pending events stay and are re-sent.
+    uint16_t ack = 0xFFFF;
+    if (f->len >= 2) {
+        memcpy(&ack, f->payload, 2);
+    }
+    if (P.have_pending && ack == P.pending_poll_seq) {
         event_ring_release(P.pending_sent);
         P.pending_sent = 0;
+        P.have_pending = false;
     }
-    P.have_last_poll = true;
-    P.last_poll_seq = f->seq;
 
     photon_event_t records[PHOTON_BATCH_MAX_EVENTS];
     uint32_t n = event_ring_peek(records, PHOTON_BATCH_MAX_EVENTS);
     P.pending_sent = n;
+    P.pending_poll_seq = f->seq;
+    P.have_pending = n > 0;
 
     uint8_t payload[2 + PHOTON_BATCH_MAX_EVENTS * sizeof(photon_event_t)];
     payload[0] = (uint8_t)n;
@@ -248,6 +259,10 @@ static void bridge_handle_batch(const photon_frame_t *f) {
     photon_node_slot_t *slot = &P.nodes[f->src <= PHOTON_MAX_NODE_ID ? f->src : 0];
     slot->last_seen_us = time_us_32();
     slot->consecutive_timeouts = 0;
+    // This batch (carried by poll seq f->seq) is now processed: acknowledge
+    // it in the next poll so the node can release the events.
+    slot->acked_poll_seq = f->seq;
+    slot->have_ack = true;
     uint8_t count = f->len >= 2 ? f->payload[0] : 0;
     if (count > PHOTON_BATCH_MAX_EVENTS) {
         count = PHOTON_BATCH_MAX_EVENTS;
@@ -275,6 +290,10 @@ static void bridge_send_poll(uint8_t node_id) {
     f.dst = node_id;
     f.seq = P.poll_seq;
     f.flags = PHOTON_FLAG_PRIO_EVENT;
+    photon_node_slot_t *slot = &P.nodes[node_id];
+    uint16_t ack = slot->have_ack ? slot->acked_poll_seq : 0xFFFF;
+    memcpy(f.payload, &ack, 2);
+    f.len = 2;
     transport_send(&f, true);
     P.state = B_POLL_WAIT;
     P.wait_target = node_id;
@@ -319,9 +338,40 @@ static uint8_t expected_reply_type(uint8_t req) {
     }
 }
 
+// Round-robin PING to not-yet-alive ids on a fixed cadence, so late-powered
+// nodes join the poll cycle whether or not others are already alive.
+static bool bridge_maybe_ping(void) {
+    if (!time_reached(P.next_ping_at)) {
+        return false;
+    }
+    for (int k = 0; k < PHOTON_MAX_NODE_ID; k++) {
+        uint8_t id = (uint8_t)(((P.next_ping_id - 1 + k) % PHOTON_MAX_NODE_ID) + 1);
+        if (!P.nodes[id].alive) {
+            P.next_ping_at = make_timeout_time_us(PHOTON_PING_INTERVAL_MS * 1000);
+            P.next_ping_id = (uint8_t)((id % PHOTON_MAX_NODE_ID) + 1);
+            photon_frame_t f = { 0 };
+            f.type = PHOTON_FT_PING;
+            f.dst = id;
+            P.poll_seq++;
+            f.seq = P.poll_seq;
+            transport_send(&f, true);
+            P.state = B_BULK_WAIT;
+            P.wait_target = id;
+            P.wait_type = PHOTON_FT_PONG;
+            P.wait_deadline = make_timeout_time_us(PHOTON_POLL_TIMEOUT_US);
+            return true;
+        }
+    }
+    P.next_ping_at = make_timeout_time_us(PHOTON_PING_INTERVAL_MS * 1000);
+    return false;  // everyone alive
+}
+
 static void bridge_task(void) {
     switch (P.state) {
         case B_IDLE: {
+            if (bridge_maybe_ping()) {
+                return;
+            }
             uint8_t target = bridge_next_alive(P.next_poll_id);
             if (target != 0) {
                 // Interleave: one bulk slot after each full poll cycle.
@@ -349,22 +399,7 @@ static void bridge_task(void) {
                 }
                 return;
             }
-            // No alive nodes: run discovery pings on cadence.
-            if (time_reached(P.next_ping_at)) {
-                P.next_ping_at = make_timeout_time_us(PHOTON_PING_INTERVAL_MS * 1000);
-                photon_frame_t f = { 0 };
-                f.type = PHOTON_FT_PING;
-                f.dst = P.next_ping_id;
-                P.poll_seq++;
-                f.seq = P.poll_seq;
-                transport_send(&f, true);
-                P.state = B_BULK_WAIT;
-                P.wait_target = P.next_ping_id;
-                P.wait_type = PHOTON_FT_PONG;
-                P.wait_deadline = make_timeout_time_us(PHOTON_POLL_TIMEOUT_US);
-                P.next_ping_id = (uint8_t)((P.next_ping_id % PHOTON_MAX_NODE_ID) + 1);
-            }
-            break;
+            break;  // no alive nodes: discovery pings above carry the cadence
         }
         case B_POLL_WAIT:
             if (time_reached(P.wait_deadline)) {

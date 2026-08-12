@@ -179,8 +179,10 @@ Sensor nodes **never transmit unsolicited**. The bridge runs a continuous cycle:
   ≈ 1.7 ms. A saturated 61-note "doomsday" chord across 2 nodes clears in < 3 ms.
 - Zero collisions by construction (exactly one transmitter at any time). Line noise is handled by
   per-poll retry (2×, then skip-and-log); CRC-fail/timeout/retry counters are visible via STATS.
-  EVENT_ACK from v1 is deleted — an event leaves the node's ring only when its batch is built,
-  and a lost reply is re-polled next cycle (events are re-sent until the poll advances `seq`).
+  EVENT_ACK from v1 is deleted; instead each EVT_POLL carries the poll-seq of the last batch the
+  bridge actually **processed** from that node, and the node releases events from its ring only on
+  that explicit ack — a lost reply (even past all retries) just means the same events ride the
+  next batch, with the bridge deduplicating by per-event sequence number. No loss window exists.
 - Bulk flows (DATA/MINMAX/TRACE/CAL/PING) interleave between poll cycles at lower priority; poll
   replies carry PRIO_EVENT and always win the scheduler.
 - Baud stays at the proven 2 Mbaud initially; 4 Mbaud (exact divisor at clk_peri = 150 MHz) is a
