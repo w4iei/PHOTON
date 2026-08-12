@@ -99,8 +99,10 @@ static void print_help(void) {
     log_printf("  mode <0|1|2>     scan: 0=seq 1=parallel 2=two-phase");
     log_printf("  rate <hz>|max    paced sweep rate (default 400; saved)");
     log_printf("  localmidi on|off node plays its own USB-MIDI (default off; saved)");
-    log_printf("  disable|enable <idx>  mask a local sensor (persist: cal save)");
+    log_printf("  disable|enable <idx>  mask a sensor (node: local idx; bridge: global idx)");
     log_printf("  setid <n>        set this node's bus id (1-%d)", PHOTON_MAX_NODE_ID);
+    log_printf("  chmap [m] [ch|auto]  per-manual MIDI channel map (bridge; manual 1-%d,"
+               " user channel 1-16)", PHOTON_MAX_MANUALS);
     log_printf("  flashtest        hammer flash while core 1 scans (M1 proof)");
     log_printf("  reboot / bootsel restart firmware / enter UF2 bootloader");
     log_printf("  id               role/version summary");
@@ -449,7 +451,22 @@ static void handle_line(char *line) {
         }
     } else if ((strcmp(cmd, "disable") == 0 || strcmp(cmd, "enable") == 0) && a1 != NULL) {
         int idx = atoi(a1);
-        if (!C.sensor_role) {
+        if (C.is_bridge) {
+            // Bridge form: mask a GLOBAL sensor index out of the note map
+            // (unpopulated slots on remote boards). Saved immediately.
+            if (idx >= 0 && idx < (int)PHOTON_GLOBAL_SENSORS) {
+                if (cmd[0] == 'd') {
+                    g_config.global_disabled[idx / 8] |= 1u << (idx % 8);
+                } else {
+                    g_config.global_disabled[idx / 8] &= ~(1u << (idx % 8));
+                }
+                midi_map_init();
+                config_store_save();
+                log_info("global sensor %d %sd (saved)", idx, cmd);
+            } else {
+                log_note("%s: global index 0-%d", cmd, PHOTON_GLOBAL_SENSORS - 1);
+            }
+        } else if (!C.sensor_role) {
             log_note("%s: no sensors on this board", cmd);
         } else if (idx >= 0 && idx < PHOTON_MAX_SENSORS) {
             if (cmd[0] == 'd') {
@@ -511,6 +528,35 @@ static void handle_line(char *line) {
             g_config.node_id = (uint8_t)id;
             config_store_save();
             log_info("node id -> %d (takes effect on reboot)", id);
+        }
+    } else if (strcmp(cmd, "chmap") == 0) {
+        // Deployment shape (single vs double manual) is pure runtime config:
+        // whichever nodes answer discovery play, and this maps each manual
+        // (pair of node ids) to a user-facing MIDI channel. 0/auto = legacy
+        // formula (base + manual index).
+        if (!C.is_bridge) {
+            log_note("chmap: bridge-only command");
+        } else if (a1 == NULL) {
+            for (uint32_t m = 0; m < PHOTON_MAX_MANUALS; m++) {
+                uint8_t uc = g_config.manual_channel[m];
+                uint8_t wire = uc ? (uint8_t)((uc - 1) & 0x0F)
+                                  : (uint8_t)((g_config.midi_channel + m) & 0x0F);
+                log_printf("manual %lu (nodes %lu-%lu): channel %u%s",
+                           (unsigned long)(m + 1),
+                           (unsigned long)(m * 2 + 1), (unsigned long)(m * 2 + 2),
+                           wire + 1, uc ? "" : " (auto)");
+            }
+        } else if (a2 != NULL) {
+            int m = atoi(a1);
+            int ch = strcmp(a2, "auto") == 0 ? 0 : atoi(a2);
+            if (m >= 1 && m <= (int)PHOTON_MAX_MANUALS && ch >= 0 && ch <= 16) {
+                g_config.manual_channel[m - 1] = (uint8_t)ch;
+                midi_map_init();
+                config_store_save();
+                log_info("manual %d -> channel %s (saved)", m, ch ? a2 : "auto");
+            } else {
+                log_note("chmap: manual 1-%d, channel 1-16 or auto", PHOTON_MAX_MANUALS);
+            }
         }
     } else if (strcmp(cmd, "reboot") == 0) {
         // SWD-free maintenance: restart the firmware over USB alone.

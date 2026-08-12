@@ -33,6 +33,10 @@ typedef struct __attribute__((packed)) {
     float vel_min_ms;
     float vel_max_ms;
     float vel_curve;
+    // Per-manual user-facing MIDI channel (1-16), 0 = auto (midi_channel +
+    // manual index). Appended after the original layout; sector_valid()
+    // migrates pre-existing shorter sectors so calibration survives.
+    uint8_t manual_channel[PHOTON_MAX_MANUALS];
     uint32_t crc;             // CRC32 over all preceding bytes
 } photon_config_t;
 

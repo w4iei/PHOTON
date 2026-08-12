@@ -28,10 +28,22 @@ static bool sector_valid(int idx, photon_config_t *out) {
         return false;
     }
     uint32_t crc = photon_crc32((const uint8_t *)&c, sizeof c - sizeof c.crc);
-    if (crc != c.crc) {
+    if (crc == c.crc) {
+        *out = c;
+        return true;
+    }
+    // Layout migration: sectors written before manual_channel[] existed are
+    // shorter, with the CRC directly after vel_curve. Accept them and default
+    // the new field so node id and calibration survive the upgrade.
+    const uint8_t *raw = sector_ptr(idx);
+    size_t old_size = sizeof c - sizeof c.manual_channel;
+    uint32_t old_crc;
+    memcpy(&old_crc, raw + old_size - sizeof old_crc, sizeof old_crc);
+    if (photon_crc32(raw, old_size - sizeof old_crc) != old_crc) {
         return false;
     }
-    *out = c;
+    memset(out, 0, sizeof *out);
+    memcpy(out, raw, old_size - sizeof old_crc);
     return true;
 }
 
@@ -45,10 +57,18 @@ static void load_defaults(void) {
     g_config.midi_high = PHOTON_MIDI_HIGH;
     g_config.midi_channel = PHOTON_MIDI_CHANNEL;
     g_config.local_disabled_mask = 1u << 31;  // slot 31 unpopulated by default
-    // Historical base config: global sensors 31, 62, 63 disabled.
-    g_config.global_disabled[31 / 8] |= 1u << (31 % 8);
-    g_config.global_disabled[62 / 8] |= 1u << (62 % 8);
-    g_config.global_disabled[63 / 8] |= 1u << (63 % 8);
+    // Every manual is the same 61-key board pair (31 + 30 populated slots),
+    // so the historical base config {31, 62, 63} repeats per manual.
+    for (uint32_t m = 0; m < PHOTON_MAX_MANUALS; m++) {
+        uint32_t base = m * PHOTON_SENSORS_PER_MANUAL;
+        static const uint32_t unpop[] = { 31, 62, 63 };
+        for (unsigned i = 0; i < 3; i++) {
+            uint32_t g = base + unpop[i];
+            if (g < PHOTON_GLOBAL_SENSORS) {
+                g_config.global_disabled[g / 8] |= 1u << (g % 8);
+            }
+        }
+    }
     for (int i = 0; i < PHOTON_MAX_SENSORS; i++) {
         g_config.cal_min[i] = 0xFFFF;
         g_config.cal_max[i] = 0;

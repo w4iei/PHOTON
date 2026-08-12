@@ -32,7 +32,10 @@ void midi_map_init(void) {
     for (uint32_t g = 0; g < PHOTON_GLOBAL_SENSORS; g++) {
         uint32_t manual = g / PHOTON_SENSORS_PER_MANUAL;
         note_for_global[g] = -1;
-        channel_for_global[g] = (uint8_t)((g_config.midi_channel + manual) & 0x0F);
+        uint8_t user_ch = manual < PHOTON_MAX_MANUALS ? g_config.manual_channel[manual] : 0;
+        channel_for_global[g] = user_ch
+            ? (uint8_t)((user_ch - 1) & 0x0F)
+            : (uint8_t)((g_config.midi_channel + manual) & 0x0F);
     }
     for (uint32_t manual = 0; manual < MANUAL_COUNT; manual++) {
         int note = g_config.midi_low;
