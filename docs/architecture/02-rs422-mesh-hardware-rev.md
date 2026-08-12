@@ -34,6 +34,13 @@ bus scheduling.
 - **Termination**: fixed 120 Ω across each *receiver* pair (RS-422 point-to-point: exactly one
   termination at each receiving end). The per-connector termination DIP switches and the
   firmware-controlled TERM line are deleted.
+- **Failsafe bias**: the current RS-485 rev has no pull-up/pull-down bias network on the bus;
+  it works only because the THVD1424's internal receiver failsafe reads an idle/open bus as a
+  defined high (bench-proven: zero hdr/crc errors across millions of idle-gap turnarounds at
+  4 Mbaud). Full-duplex RS-422 pairs are driven continuously (no idle windows), so bias
+  matters less here — but if any pair can be undriven (unplugged link, endpoint off), add the
+  standard bias as cheap insurance: ~560 Ω pull-up on A to 3.3 V and pull-down on B to GND at
+  one point per pair, or explicitly note reliance on the internal failsafe.
 - Slew-limited mode is unnecessary at these lengths; run the THVD1424 in its fast (20 Mbps) mode.
 
 ### 2.2 UART assignment (RP2350, both are hardware UARTs — verified free)
