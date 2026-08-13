@@ -13,6 +13,10 @@
 void console_init(bool is_bridge, bool sensor_role);
 void console_task(void);
 
+// Full attach banner: identity, project link, config summary, command help.
+// Printed by main on every console (DTR) connect edge.
+void console_print_banner(int banks_found);
+
 // Bridge-side: responses to console-issued bulk requests arrive here.
 void console_on_bridge_response(const photon_frame_t *f);
 

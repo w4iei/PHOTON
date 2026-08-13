@@ -123,10 +123,7 @@ int main(void) {
 
         if (!announced && log_console_connected()) {
             announced = true;
-            log_info("PHOTON native fw | %s role | banks=%d | addr=%u | cfg v%lu%s",
-                     is_bridge ? "bridge" : "sensor-node", banks_found, own_addr,
-                     (unsigned long)g_config.version,
-                     g_config_from_flash ? "" : " (defaults, uncalibrated)");
+            console_print_banner(banks_found);
         } else if (announced && !log_console_connected()) {
             announced = false;
         }

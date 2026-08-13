@@ -108,6 +108,34 @@ static void print_help(void) {
     log_printf("  id               role/version summary");
 }
 
+void console_print_banner(int banks_found) {
+    // Printed on every console attach (legacy sensor-node boot banner, native
+    // edition): who we are, where the project lives, and what you can type.
+    pico_unique_board_id_t uid;
+    pico_get_unique_board_id(&uid);
+    log_printf(".*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*");
+    log_printf(".*.*.*  PHOTON  --  native firmware  *.*.*");
+    log_printf(".*.   https://github.com/w4iei/photon   .*");
+    log_printf(".*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*");
+    log_printf("Creator: Noah Jaffe");
+    log_printf(" ");
+    log_printf("[BOOT] role: %s%s | banks=%d | bus addr=%u",
+               C.is_bridge ? "bridge/MIDI host" : "sensor node",
+               C.sensor_role ? "" : " (no sensor array)", banks_found,
+               C.is_bridge ? 0 : g_config.node_id);
+    log_printf("[BOOT] hw id: %02X%02X%02X%02X%02X%02X%02X%02X | cfg v%lu%s",
+               uid.id[0], uid.id[1], uid.id[2], uid.id[3],
+               uid.id[4], uid.id[5], uid.id[6], uid.id[7],
+               (unsigned long)g_config.version,
+               g_config_from_flash ? "" : " (defaults, uncalibrated)");
+    log_printf("[CFG] RS-485: %.2f Mbaud | scan: %u Hz paced",
+               (double)PHOTON_RS485_BAUD / 1e6,
+               g_config.scan_rate_hz ? g_config.scan_rate_hz
+                                     : PHOTON_DEFAULT_SCAN_RATE_HZ);
+    log_printf(" ");
+    print_help();
+}
+
 static void print_values_row(const char *label, const uint16_t *v, int n) {
     char buf[220];
     int off = snprintf(buf, sizeof buf, "%s", label);
