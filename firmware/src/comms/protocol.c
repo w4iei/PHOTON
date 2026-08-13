@@ -311,7 +311,6 @@ static void bridge_handle_batch(const photon_frame_t *f) {
         slot->malformed++;
         return;
     }
-    slot->last_seen_us = time_us_32();
     slot->consecutive_timeouts = 0;
 
     // A changed boot epoch means the node rebooted (its event seq restarted
@@ -349,9 +348,19 @@ static void bridge_handle_batch(const photon_frame_t *f) {
     }
 }
 
+// Bump the bridge's shared transaction seq, skipping 0xFFFF: that value is
+// the "no ack" sentinel in EVT_POLL payloads, and a poll legitimately issued
+// with seq 0xFFFF would let a node mistake "no ack" for an ack of its
+// pending batch and discard events the bridge never received.
+static inline void bridge_bump_seq(void) {
+    if (++P.poll_seq == 0xFFFF) {
+        P.poll_seq = 0;
+    }
+}
+
 static bool bridge_send_poll(uint8_t node_id, bool retry) {
     if (!retry) {
-        P.poll_seq++;
+        bridge_bump_seq();
     }
     photon_node_slot_t *slot = &P.nodes[node_id];
     photon_frame_t f = { 0 };
@@ -421,7 +430,7 @@ static bool bridge_dispatch_bulk(void) {
         return false;
     }
     photon_frame_t *f = &P.bulk_q[P.bulk_head % BULK_QUEUE_SLOTS];
-    P.poll_seq++;
+    bridge_bump_seq();
     f->seq = P.poll_seq;
     if (!transport_send(f, false)) {
         return false;  // TX queue full; retry next iteration
@@ -462,7 +471,7 @@ static bool bridge_maybe_ping(void) {
             photon_frame_t f = { 0 };
             f.type = PHOTON_FT_PING;
             f.dst = id;
-            P.poll_seq++;
+            bridge_bump_seq();
             f.seq = P.poll_seq;
             if (!transport_send(&f, true)) {
                 return false;
@@ -565,7 +574,6 @@ void protocol_on_frame(const photon_frame_t *f) {
         return;
     }
     photon_node_slot_t *slot = &P.nodes[f->src];
-    slot->last_seen_us = time_us_32();
 
     switch (f->type) {
         case PHOTON_FT_EVT_BATCH:

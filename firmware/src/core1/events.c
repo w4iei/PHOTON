@@ -24,28 +24,34 @@ void events_seed_cal(uint8_t idx, uint16_t mn, uint16_t mx) {
     g_events.max[idx] = mx;
 }
 
-void events_reset_cal(void) {
-    for (int i = 0; i < PHOTON_MAX_SENSORS; i++) {
-        g_events.min[i] = 0xFFFF;
-        g_events.max[i] = 0;
-        g_events.note_on[i] = false;
-        g_events.strike_pending[i] = false;
-        g_events.release_pending[i] = false;
-    }
-}
-
+// Clearing a sensor's state while its note is ON must emit the OFF first —
+// otherwise a disable/cal-reset during a held key leaves the MIDI note stuck
+// at the bridge forever. dt = 100 ms maps to the minimum release velocity.
 static inline void clear_sensor_state(photon_events_t *e, int i) {
+    if (e->note_on[i]) {
+        event_ring_push((uint8_t)i, 0, 100000u, e->last_now_us);
+    }
     e->note_on[i] = false;
     e->strike_pending[i] = false;
     e->release_pending[i] = false;
 }
 
+void events_reset_cal(void) {
+    for (int i = 0; i < PHOTON_MAX_SENSORS; i++) {
+        g_events.min[i] = 0xFFFF;
+        g_events.max[i] = 0;
+        clear_sensor_state(&g_events, i);
+    }
+}
+
 void events_process(const uint16_t *readings, uint32_t now_us) {
     photon_events_t *e = &g_events;
+    e->last_now_us = now_us;
 
     for (int i = 0; i < PHOTON_ACTIVE_SENSORS; i++) {
         if ((e->disabled_mask >> i) & 1u) {
             e->value[i] = 0;
+            clear_sensor_state(e, i);
             continue;
         }
         uint16_t v = readings[i];

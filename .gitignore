@@ -40,9 +40,10 @@ fp-info-cache
 .claude/
 *.kicad_prl
 
+# macOS Finder droppings (repo-wide)
+.DS_Store
+
 # Embedded software generated files
-software/embedded_software/.DS_Store
-software/embedded_software/**/*.DS_Store
 software/embedded_software/**/__pycache__/
 software/embedded_software/**/*.py[cod]
 software/embedded_software/.ruff_cache/

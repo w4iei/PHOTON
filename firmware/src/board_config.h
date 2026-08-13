@@ -59,7 +59,6 @@
 // RS-485 transport (current hardware, Plan 1)
 // ---------------------------------------------------------------------------
 #define PHOTON_RS485_UART        uart1
-#define PHOTON_RS485_UART_IDX    1
 #define PHOTON_RS485_TX          22   // F11 alternate UART1 mapping
 #define PHOTON_RS485_RX          23
 #define PHOTON_RS485_DE          24
@@ -72,7 +71,6 @@
 // Main controller board 001 uses different RS-485 pins; probed at runtime:
 // if the sensor capability probe finds zero banks, the transport uses these.
 #define PHOTON_HOST_UART         uart1
-#define PHOTON_HOST_UART_IDX     1
 #define PHOTON_HOST_TX           4    // F2 UART1 mapping
 #define PHOTON_HOST_RX           5
 #define PHOTON_HOST_DE           1

@@ -81,7 +81,6 @@ frame_parse_result_t frame_parse(const uint8_t *buf, size_t len,
         out->seq = (uint16_t)(h[7] | (h[8] << 8));
         memcpy(out->payload, &h[10], plen);
         if (stats) {
-            stats->frames_ok++;
         }
         *consumed = i + total;
         return FRAME_PARSE_OK;

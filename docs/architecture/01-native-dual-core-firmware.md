@@ -1,11 +1,8 @@
-# PHOTON Native Dual-Core Firmware (Plan 1 — current hardware)
+# PHOTON Native Dual-Core Firmware
 
-Status: **approved, in implementation** on branch `arch/sensor-node-mesh-native`.
-Scope: replace the CircuitPython stack with bare-metal C (Pico SDK) on the **existing** boards —
+Status: **shipped** — this is the production firmware.
+Scope: replaces the CircuitPython stack with bare-metal C (Pico SDK) on the existing boards —
 sensor board 002 (RS-485 half duplex) and main controller board 001. No hardware changes.
-The next-revision RS-422 mesh is specified separately in
-[02-rs422-mesh-hardware-rev.md](02-rs422-mesh-hardware-rev.md); this firmware is written so that
-revision only replaces the transport layer.
 
 ## 1. Why
 
@@ -54,15 +51,15 @@ pinned to 150 MHz for stable UART/SPI dividers.
   gates only the host-facing surfaces: MIDI emission checks `tud_midi_mounted()` and the console
   streams only while a CDC terminal is connected — so a charger enables nothing.
 - **Identity**: each sensor node stores a `node_id` (1–6) in its flash config block, set once via
-  the USB console (`setid N`). (The RS-422 revision replaces this with automatic hop-count
-  enumeration; on a shared bus there is no topology to derive it from.)
+  the USB console (`setid N`); on a shared bus there is no topology to derive it from.
 
 ## 4. Core split and memory rules
 
 ### Core 1 — scan core (sensor role only)
 - Runs the TLA2518 scan pipeline (§6) and the event engine (§7), then services the command
   mailbox once per sweep. Nothing else.
-- **100 % SRAM-resident**: every function in its call graph is `__not_in_flash_func`; its stack
+- **100 % SRAM-resident**: the whole image is built `copy_to_ram`, so nothing core 1 calls
+  ever touches flash/XIP; its stack
   and all data live in SRAM. It never touches flash/XIP, never allocates, and takes no SDK locks.
   Consequence: core-0 flash activity (config commit, USB MSC absent anyway) can never stall a
   sweep, and `multicore_lockout` is satisfied by construction during flash writes (core 1 is
@@ -72,15 +69,16 @@ pinned to 150 MHz for stable UART/SPI dividers.
 - TinyUSB composite device (CDC console + USB-MIDI), RS-485 transport (§9), protocol handlers
   (§10), config store (§8), and — when in bridge role — velocity mapping + MIDI emission (§11).
 
-### Inter-core plumbing (SPSC rings + doorbells; never the 4-deep SIO FIFO)
+### Inter-core plumbing (SPSC rings; never the 4-deep SIO FIFO)
 
 | Channel | Direction | Shape | Purpose |
 |---|---|---|---|
-| `event_ring` | 1 → 0 | 256 × 12 B records | Note events. Core 1 rings **doorbell 0** on enqueue. 256 = 8× the worst 32-event burst. Overflow is counted and alarmed (should be structurally impossible), never silent. |
+| `event_ring` | 1 → 0 | 256 × 12 B records | Note events. Core 0 drains it each loop pass (polled; no doorbell IRQs). 256 = 8× the worst 32-event burst. Overflow is counted and alarmed (should be structurally impossible), never silent. |
 | `snapshot` | 1 → 0 | double buffer + seqlock, 31 × {value, min, max} u16 | Latest sweep for DATA/MINMAX responses; core 0 reads without ever blocking core 1. |
 | `cmd_mailbox` | 0 → 1 | SPSC, 16 × 16 B | Calibration set, disable mask, scan-mode select (parallel / 2-phase / sequential), trace tap, PARK. Polled once per sweep → ≤1 sweep-period command latency, no IRQs into the scan loop. |
 
-Event record (12 B): `local_idx u8 | state u8 (1=ON,0=OFF) | dt_us u32 | t_us u32 | rsvd u16`.
+Event record (12 B): `local_idx u8 | state u8 (1=ON,0=OFF) | dt_us u32 | t_us u32 | seq u16` (per-event
+sequence for bridge-side loss accounting).
 SRAM is uncached on RP2350 → no coherency traps; rings use acquire/release ordering on indices.
 
 ## 5. Hardware ground truth (sensor board 002 Rev D)
@@ -134,7 +132,9 @@ mode meets the target, so crosstalk cannot sink the schedule.
 
 ## 7. Event engine (core 1)
 
-Port of the C `process_scan_events` logic: per-sensor running min/max auto-calibration;
+Port of the C `process_scan_events` logic, with one deliberate change: min/max learning
+runs only during explicit calibration (`r` … `s`), never in performance — continuous
+auto-widening let simultaneous adjacent presses pollute a key's range;
 sensor participates only when `range ≥ min_event_range`; two-stage strike state machine (arm at
 `strike_pct − strike_window_pct`, fire ON at `strike_pct = 60 %` of range, `dt` = time between
 the two crossings) and the symmetric release machine (OFF at `release_pct = 40 %`); per-sensor
@@ -163,14 +163,14 @@ JSON-on-CIRCUITPY and `nvm_flags`.
 
 ## 9. Transport: frame v2 + master-polled RS-485
 
-### 9.1 Frame format v2 (wire format shared with the RS-422 revision)
+### 9.1 Frame format v2
 
 ```
 A5 5A | type u8 | flags u8 | src u8 | dst u8 | len u8 (≤128) | seq u16 | hdr_crc8
       | payload[len] | crc32 (LE, reflected IEEE — covers type..payload)
 ```
 
-`flags`: bit0 DIR (reserved for RS-422 routing), bit1 PRIO_EVENT, bits 4–7 protocol version = 2.
+`flags`: bit0 DIR (reserved), bit1 PRIO_EVENT, bits 4–7 protocol version = 2.
 Fixes two v1 defects: **CRC32 now covers the header** (v1 covered payload only, so a corrupted
 `len`/`type` could pass), and **`hdr_crc8`** (poly 0x07, over `type..seq`) gives O(n)
 byte-at-a-time resynchronization (v1 rescanned the buffer per frame — O(n²) on garbage).
@@ -183,9 +183,10 @@ Sensor nodes **never transmit unsolicited**. The bridge runs a continuous cycle:
 - `EVT_POLL{dst=n}` (16 B: header + 2-byte ack, see below) → node `n` replies one `EVT_BATCH`
   frame with 0–10 event records (12 B each incl. per-event seq; 128-byte payload cap) drained
   from its `event_ring` (empty reply = 16 B).
-- At 2 Mbaud with 25 µs DE guard bands: one empty poll+reply ≈ 200 µs → a 2-node cycle ≈
-  400 µs → **typical event latency < 1 ms**. Worst case, 32 events queued on one node: 4 polls
-  ≈ 2.3 ms. A saturated 61-note "doomsday" chord across 2 nodes clears in < 4 ms.
+- Bench-tuned to 4 Mbaud (exact divisor at clk_peri = 150 MHz) with 8 µs DE guard bands: one
+  empty poll+reply ≈ 135 µs → measured **3,694 polls/s per node** with 2 nodes, ~1,540/s with 4
+  → **typical event latency < 1 ms** in every configuration. Worst case, 32 events queued on one
+  node clears in 3 polls; a saturated 61-note "doomsday" chord across 2 nodes clears in < 3 ms.
 - Zero collisions by construction (exactly one transmitter at any time). Line noise is handled by
   per-poll retry (2×, then skip-and-log); CRC-fail/timeout/retry counters are visible via STATS.
   EVENT_ACK from v1 is deleted; instead each EVT_POLL carries the poll-seq of the last batch the
@@ -194,22 +195,22 @@ Sensor nodes **never transmit unsolicited**. The bridge runs a continuous cycle:
   next batch, with the bridge deduplicating by per-event sequence number. No loss window exists.
 - Bulk flows (DATA/MINMAX/TRACE/CAL/PING) interleave between poll cycles at lower priority; poll
   replies carry PRIO_EVENT and always win the scheduler.
-- Baud stays at the proven 2 Mbaud initially; 4 Mbaud (exact divisor at clk_peri = 150 MHz) is a
-  config constant away if the physical bus proves clean.
+- The physical bus proved clean at speed: zero CRC/header errors across 7.2 M+ frames at
+  4 Mbaud on the bench, including a 21-minute 246k-event soak and 500 ev/s/node load tests.
 
 ### 9.3 Driver
 
-`rs485_bus.c` behind the `transport.h` interface (the RS-422 revision swaps in a different
-implementation; nothing above the interface changes). UART1 GPIO22/23, 8N1; DE on GPIO24 with
-25 µs guards (timer-scheduled, not busy-spun); TERM GPIO25 driven as today. TX = one DMA channel
-per frame, TX-done IRQ chains the next queued frame (v1 blocked the CPU for the whole frame).
-RX = DMA ring buffer per UART; core 0 polls the write pointer (no per-byte IRQs at 2 Mbaud).
+`rs485_bus.c` behind the `transport.h` interface. UART1 GPIO22/23, 8N1; DE on GPIO24 with
+`PHOTON_DE_GUARD_US` (8 µs) guards driven by a polled DE state machine (timer-scheduled, not
+busy-spun); TERM GPIO25 driven as today. TX = DMA per frame, the state machine chains the next
+queued frame (v1 blocked the CPU for the whole frame). RX = DMA ring buffer per UART; core 0
+polls the write pointer (no per-byte IRQs at 4 Mbaud).
 
 ## 10. Protocol flows
 
 | Flow | v2 behaviour |
 |---|---|
-| `EVT_POLL` / `EVT_BATCH` | §9.2. Batch payload = `count u8` + count × 12 B records + `node_seq u16` for loss accounting. |
+| `EVT_POLL` / `EVT_BATCH` | §9.2. Batch payload = `epoch u8` (boot epoch, detects node reboots) + `count u8` + count × 12 B records; each record carries its own `seq u16` for loss accounting. |
 | `PING`/`PONG` | Bridge discovery: PING ids 1–6 at boot and when a poll target goes silent; PONG carries role+version. |
 | `DATA_REQ`/`DATA_RESP` | Addressed; node returns latest sweep snapshot (31 × {value u16, std/min-max}) from the seqlock buffer. |
 | `MINMAX_REQ`/`RESP` | Addressed, chunked; feeds calibration display. (v1's host/node `max_payload` mismatch that silently truncated sensors 30–31 is gone — one shared constant.) |
@@ -245,7 +246,7 @@ firmware/
 │   ├── bridge/ midi_map.{c,h}
 │   ├── config/ config_store.{c,h}
 │   └── util/   crc32.{c,h}  log.h
-└── test/host/            # host-built: deframer fuzz, rings, events replay, poll-cycle sim
+└── test/host/            # host-built: deframer fuzz + event-engine tests
 ```
 
 | Existing source | → Native module | Notes |

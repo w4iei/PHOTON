@@ -1,6 +1,6 @@
 #!/bin/bash
 # Flash all three PHOTON boards with build/photon.uf2, then run a measurement.
-# Usage: flash_and_measure.sh <label> [--bridge-only]
+# Usage: flash_all.sh <label> [--bridge-only]
 # Run from firmware/. Board 2's console port is held by the broker, so its
 # bootsel command goes through the broker's TCP side (localhost:7777).
 set -u

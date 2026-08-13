@@ -111,8 +111,8 @@ static void print_help(void) {
 void console_print_banner(int banks_found) {
     // Printed on every console attach (legacy sensor-node boot banner, native
     // edition): who we are, where the project lives, and what you can type.
-    pico_unique_board_id_t uid;
-    pico_get_unique_board_id(&uid);
+    char uid[2 * PICO_UNIQUE_BOARD_ID_SIZE_BYTES + 1];
+    pico_get_unique_board_id_string(uid, sizeof uid);
     log_printf(".*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*");
     log_printf(".*.*.*  PHOTON  --  native firmware  *.*.*");
     log_printf(".*.   https://github.com/w4iei/photon   .*");
@@ -123,9 +123,7 @@ void console_print_banner(int banks_found) {
                C.is_bridge ? "bridge/MIDI host" : "sensor node",
                C.sensor_role ? "" : " (no sensor array)", banks_found,
                C.is_bridge ? 0 : g_config.node_id);
-    log_printf("[BOOT] hw id: %02X%02X%02X%02X%02X%02X%02X%02X | cfg v%lu%s",
-               uid.id[0], uid.id[1], uid.id[2], uid.id[3],
-               uid.id[4], uid.id[5], uid.id[6], uid.id[7],
+    log_printf("[BOOT] hw id: %s | cfg v%lu%s", uid,
                (unsigned long)g_config.version,
                g_config_from_flash ? "" : " (defaults, uncalibrated)");
     log_printf("[CFG] RS-485: %.2f Mbaud | scan: %u Hz paced",
@@ -166,10 +164,11 @@ static void print_local_stats(void) {
                    (unsigned long)g_events.events_off,
                    (unsigned long)g_event_ring.overflows);
     }
-    log_printf("[STAT] bus tx=%lu rx=%lu crc_err=%lu hdr_err=%lu cmd_drops=%lu",
+    log_printf("[STAT] bus tx=%lu rx=%lu crc_err=%lu hdr_err=%lu cmd_drops=%lu log_drop=%lu",
                (unsigned long)ts->tx_frames, (unsigned long)ts->rx_frames,
                (unsigned long)ps->crc_errors, (unsigned long)ps->hdr_errors,
-               (unsigned long)g_cmd_mailbox.drops);
+               (unsigned long)g_cmd_mailbox.drops,
+               (unsigned long)log_dropped_bytes);
     if (C.is_bridge) {
         log_printf("[STAT] poll_cycles=%lu midi_on=%lu midi_off=%lu",
                    (unsigned long)protocol_poll_cycles(),
@@ -321,6 +320,11 @@ static void capture_start(float seconds) {
         return;
     }
     trace_stop();
+    {   // Drain leftovers from any earlier session: a stale first sample
+        // would anchor t0 seconds in the past and corrupt the time axis.
+        photon_trace_sample_t stale;
+        while (trace_ring_pop(&stale)) { }
+    }
     C.trace_active = true;
     C.trace_remote = false;
     C.trace_started = false;
@@ -567,8 +571,7 @@ static void handle_line(char *line) {
         } else if (a1 == NULL) {
             for (uint32_t m = 0; m < PHOTON_MAX_MANUALS; m++) {
                 uint8_t uc = g_config.manual_channel[m];
-                uint8_t wire = uc ? (uint8_t)((uc - 1) & 0x0F)
-                                  : (uint8_t)((g_config.midi_channel + m) & 0x0F);
+                uint8_t wire = midi_map_channel_for_manual(m);
                 log_printf("manual %lu (nodes %lu-%lu): channel %u%s",
                            (unsigned long)(m + 1),
                            (unsigned long)(m * 2 + 1), (unsigned long)(m * 2 + 2),

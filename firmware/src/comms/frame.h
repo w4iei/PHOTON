@@ -68,7 +68,6 @@ typedef enum {
 typedef struct {
     uint32_t crc_errors;
     uint32_t hdr_errors;
-    uint32_t frames_ok;
 } frame_parse_stats_t;
 
 // Scan buf[0..len) for the first complete valid frame. O(len) worst case.

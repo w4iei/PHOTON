@@ -186,11 +186,3 @@ int tla2518_init_and_probe(void) {
     return found;
 }
 
-uint8_t tla2518_refresh_status(int bank) {
-    tla2518_t *b = &g_banks[bank];
-    if (!b->present) {
-        return 0;
-    }
-    b->status = tla2518_read_reg(b, TLA_REG_SYSTEM_STATUS);
-    return b->status;
-}

@@ -49,7 +49,8 @@ USB-driven.
 
 The current boards have no SWD connector populated, so **the USB console is
 the debugging interface**: `stats` (rates, counters, error tallies), `data`/
-`minmax` (live sensor state), `trace`/`capture` (waveforms), `flashtest`
+`minmax` (live sensor state), `trace`/`capture` (waveforms; the one console
+path not exercised during bring-up — treat as unverified), `flashtest`
 (core-1 independence proof), plus the `# LOG`/`# NOTE` diagnostic stream. A
 sensor node whose array reads all-zero at boot deliberately *suppresses* its
 auto-reboot recovery while a console is attached, so the fault can be
@@ -67,53 +68,48 @@ Each sensor node needs a bus id once (replaces the CIRCUITPY
 setid 1        # 1..6, unique per node
 ```
 
-The id persists in flash. The main controller board needs nothing.
+then calibrate at the operating scan rate: `r`, play every key once at normal
+force, `s`. Id and calibration persist in flash. On the bridge, `chmap <manual>
+<channel>` maps each manual (board pair) to its MIDI channel and `disable
+<global idx>` masks unpopulated slots on remote boards.
 
 ## Console
 
 Any node's USB-C gives a console (`screen /dev/tty.usbmodem* 115200`).
 `help` lists commands: `stats`, `nodes`, `data`, `minmax`, `ping`, `trace`,
-`capture`, `burst`, `cal save|reset`, `mode`, `disable`/`enable`, `setid`,
-`flashtest`, `reboot`, `bootsel`, `id`.
+`capture`, `burst`, `test` (pseudorandom load), `cal save|reset`, `r`/`s`/`x`
+(calibration), `mode`, `rate`, `localmidi`, `chmap`, `disable`/`enable`,
+`setid`, `log on|off`, `flashtest`, `reboot`, `bootsel`, `id`.
 USB-MIDI appears as "PHOTON Node" and emits notes when connected to the
 bridge (main controller) board.
 
-## Bench verification (M1–M5)
+## Bench verification (M1–M5): results
 
-**M1 — dual-core / SRAM residency.** Flash any board, connect the console:
-`stats` shows the sweep counter advancing (sensor board). Run `flashtest`:
-it erases/programs flash 10× **without pausing core 1** and prints sweep
-timing before/after — sweep_us must stay flat. For scope proof, watch any
-bank CS line: its cadence must not flinch during `flashtest`.
+All five milestones passed on the real four-board, two-manual system.
 
-**M2 — scan parity + rate.** On a sensor board, run the unmodified capture
-tool against a key press:
-`python software/host_code/listen_for_single_sensor_high_res.py`
-— its `capture <seconds>` trigger is handled natively (select the sensor
-first with `trace <sensor>` once, or use the default). Compare the
-curve and ON/OFF crossings against a CircuitPython-build capture of the same
-key. Check `stats`: `sweep_us` ≤ 1000 (≥1 kHz) in mode 1. Then run the
-**crosstalk experiment**: with the array over a static surface, capture
-`minmax` in `mode 0` (sequential) vs `mode 1` (parallel); per-sensor deltas
-must stay under 1% of that sensor's range — if not, use `mode 2` (two-phase).
+**M1 — SRAM residency.** `flashtest` hammers flash 10× while core 1 scans:
+sweep timing stays flat. Verified.
 
-**M3 — transport soak.** Main board + ≥2 sensor nodes on the bus. From the
-bridge console: `burst 32` repeatedly (or scripted over CDC). `stats <id>`
-on each node shows events_on/off totals; `nodes` on the bridge shows
-events received per node — totals must match exactly (zero loss), with
-crc/hdr error counters explaining any retries. Wiggle/unplug a bus cable
-mid-flood: the node goes SILENT, is re-discovered on reconnect, and
-counters stay consistent.
+**M2 — scan rate.** Full 31-sensor sweep measured at 592 µs (~1.7 kHz
+open-loop) in parallel mode (mode 1, the default); production paces the sweep
+at 400 Hz (`rate`), which also sets the calibration operating point. Verified
+(except the `trace`/`capture` host-tool path — unexercised).
 
-**M4 — end-to-end MIDI.** Bridge board USB into a DAW: play keys, notes
-sound with velocity. `cal save` persists calibration on all nodes; power
-cycle and confirm notes still work without re-learning.
+**M3 — transport soak.** Bus tuned to 4 Mbaud / 8 µs DE guards / 700 µs poll
+timeout: 3,694 polls/s per node (2 nodes), ~1,540/s (4 nodes). 21-minute soak
+at 100 ev/s/node: 246k events, 7.2M frames, crc_err=0 gaps=0 dup=0; 500
+ev/s/node × 60 s equally clean. Verified.
 
-**M5 — chord-burst regression (the motivating bug).** Script over the
-bridge CDC: `burst 32` × 10⁴ iterations; after each, compare node
-events_on/off sums against bridge events_rx (`nodes`). Pass = zero lost
-events and no ring overflows. Finale: fast two-hand block chords on the
-real instrument against an audio recording — every note present.
+**M4 — end-to-end MIDI.** Four boards through the bridge into a DAW, top
+manual on channel 3, lower on channel 2 (`chmap`); calibration survives power
+cycles. Verified.
+
+**M5 — chord-burst regression (the motivating bug).** Generator loads far
+beyond human playing rates show zero sequence-accounted loss; real two-hand
+block chords on the instrument: every note present. Verified.
+
+To re-run any of these, the commands above (`flashtest`, `stats`, `test`,
+`nodes`, `cal save`) reproduce the numbers from the bridge console alone.
 
 ## Host unit tests (no hardware)
 

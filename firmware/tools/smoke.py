@@ -24,12 +24,16 @@ def find_port() -> str:
     return ports[0]
 
 
-def run_command(ser: serial.Serial, cmd: str, settle_s: float = 0.6) -> str:
+def run_command(ser: serial.Serial, cmd: str, settle_s: float = 0.6,
+                cap_s: float = 3.0) -> str:
+    # cap_s bounds the whole read: with the bridge's [EVT] logging on, the
+    # stream never goes quiet under load and a pure quiet-detect loop hangs.
     ser.reset_input_buffer()
     ser.write((cmd + "\r").encode())
+    hard = time.time() + cap_s
     deadline = time.time() + settle_s
     out = bytearray()
-    while time.time() < deadline:
+    while time.time() < min(deadline, hard):
         chunk = ser.read(4096)
         if chunk:
             out += chunk

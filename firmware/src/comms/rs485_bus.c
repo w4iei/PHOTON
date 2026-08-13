@@ -1,7 +1,7 @@
 // Plan-1 transport: shared half-duplex RS-485, bridge-mastered.
 //
-// TX: per-frame DMA into the UART FIFO; DE is raised 25 us before the first
-//     bit and dropped 25 us after the shifter drains — sequenced by a polled
+// TX: per-frame DMA into the UART FIFO; DE leads the first bit and trails the
+//     drained shifter by PHOTON_DE_GUARD_US each side — sequenced by a polled
 //     state machine, never by busy-waiting the whole frame (v1 blocked the
 //     CPU for up to 1.3 ms per frame).
 // RX: a free-running DMA channel copies UART DR into a power-of-two ring;

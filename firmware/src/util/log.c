@@ -11,11 +11,15 @@ bool log_console_connected(void) {
     return tud_cdc_connected();
 }
 
+uint32_t log_dropped_bytes = 0;
+
 // Write everything, pumping the USB task while the CDC FIFO drains, so
 // multi-line output (sensor tables) arrives complete instead of truncating
-// at the FIFO size. Bounded: gives up after 50 ms if the host stalls.
+// at the FIFO size. Tightly bounded: a healthy host drains the 2 KB FIFO in
+// ~2 ms, and a stalled host (paused terminal, DTR held but not reading) must
+// not freeze the poll loop — the bus is the product, log lines are not.
 void log_cdc_write_all(const uint8_t *data, size_t len) {
-    absolute_time_t deadline = make_timeout_time_ms(50);
+    absolute_time_t deadline = make_timeout_time_ms(2);
     while (len > 0 && tud_cdc_connected()) {
         uint32_t wrote = tud_cdc_write(data, (uint32_t)len);
         tud_cdc_write_flush();
@@ -23,6 +27,7 @@ void log_cdc_write_all(const uint8_t *data, size_t len) {
         len -= wrote;
         if (wrote == 0) {
             if (time_reached(deadline)) {
+                log_dropped_bytes += (uint32_t)len;
                 break;
             }
             tud_task();  // main-loop context only; drains the FIFO

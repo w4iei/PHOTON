@@ -21,4 +21,7 @@ void log_cdc_write_all(const uint8_t *data, size_t len);
 
 bool log_console_connected(void);
 
+// Bytes discarded because the CDC host stalled (see log_cdc_write_all).
+extern uint32_t log_dropped_bytes;
+
 #endif

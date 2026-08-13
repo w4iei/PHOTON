@@ -6,6 +6,7 @@
 #include "hardware/sync.h"
 #include "pico/time.h"
 
+#include "core1/events.h"
 #include "ipc/rings.h"
 #include "util/crc32.h"
 #include "util/log.h"
@@ -119,8 +120,21 @@ static bool write_sector(int idx, const photon_config_t *cfg) {
 }
 
 bool config_store_save(void) {
-    // Sensor role: capture the live learned calibration before persisting.
+    bool parked = false;
     if (core1_running) {
+        parked = cmd_mailbox_park_request(500000);
+        if (!parked) {
+            log_note("config save: core1 park timed out; writing anyway (SRAM-resident scan)");
+        }
+    }
+    // Sensor role: capture the live calibration before persisting — but only
+    // when it has been explicitly frozen ('s'/'x' or remote commit). While
+    // learning is active the live min/max is ambient noise; snapshotting it
+    // on an unrelated save (setid, rate, localmidi) would persist a
+    // degenerate calibration and silently freeze the board dead on reboot.
+    // Checked after the park: the park drains the mailbox, so a freeze
+    // command pushed just before this save ('s' flow) has taken effect.
+    if (core1_running && !g_events.learning) {
         photon_snapshot_t snap;
         snapshot_read(&snap);
         memcpy(g_config.cal_min, snap.min, sizeof g_config.cal_min);
@@ -130,13 +144,6 @@ bool config_store_save(void) {
     g_config.crc = photon_crc32((const uint8_t *)&g_config,
                                 sizeof g_config - sizeof g_config.crc);
 
-    bool parked = false;
-    if (core1_running) {
-        parked = cmd_mailbox_park_request(500000);
-        if (!parked) {
-            log_note("config save: core1 park timed out; writing anyway (SRAM-resident scan)");
-        }
-    }
     int target = active_sector == 0 ? 1 : 0;
     bool ok = write_sector(target, &g_config);
     if (parked) {

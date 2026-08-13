@@ -24,7 +24,8 @@ typedef struct {
     // during performance lets adjacent-key cross-illumination pollute
     // neighbors' min/max. Frozen (saved) calibration is used otherwise.
     bool     learning;
-    uint32_t disabled_mask;      // bit per local sensor
+    uint32_t disabled_mask;
+    uint32_t last_now_us;   // timestamp of the current sweep (for synthesized OFFs)      // bit per local sensor
     uint32_t polarity_mask;      // bit set = inverted (pressed = lower value)
     bool     note_on[PHOTON_MAX_SENSORS];
     // strike/release arming state

@@ -16,6 +16,7 @@
 // Build the note/channel tables from g_config (call after config_store_init
 // and again after any config change).
 void midi_map_init(void);
+uint8_t midi_map_channel_for_manual(uint32_t manual);
 
 // -1 if the sensor is unmapped/disabled.
 int16_t midi_map_note(uint8_t node_id, uint8_t local_idx);

@@ -34,7 +34,6 @@ typedef struct __attribute__((packed)) {
 
 typedef struct {
     bool alive;
-    uint32_t last_seen_us;
     uint32_t polls;
     uint32_t timeouts;
     uint32_t retries;

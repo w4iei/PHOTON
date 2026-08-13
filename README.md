@@ -17,13 +17,22 @@ PHOTON is a modular, open-source optical sensing platform for high-resolution ke
 - **Sensors:** [VCNT2025X01](https://www.vishay.com/en/product/84895/) reflective array with per-sensor enable lines
 - **Digitization:** [TLA2518](https://www.ti.com/product/TLA2518) SPI ADCs for high-speed readout
 - **MCU:** [RP2350](https://www.raspberrypi.com/products/rp2350/) (dual-core Cortex-M33)
-- **Comms:** [THVD1424](https://www.ti.com/product/THVD1424) RS-485 transceivers; main board includes RS-485 bias resistors and controllable termination
+- **Comms:** [THVD1424](https://www.ti.com/product/THVD1424) RS-485 transceivers; firmware-controlled termination on the main board (idle-bus failsafe via the transceiver's internal receiver thresholds on this hardware rev)
 - **I/O:** USB-C (power + USB-MIDI/CDC), QWIIC/I2C expansion
-- **Open:** KiCad 9 hardware, [CircuitPython](https://circuitpython.org) or C SDK firmware
+- **Open:** KiCad 9 hardware, native C firmware (Pico SDK)
 
 ## Performance
-- Single-sensor distance measurement in excess of 1 kHz
-- Full 30-sensor scan (per board) around ~250 Hz
+- Full 31-sensor board sweep in ~590 µs — over 1.7 kHz open-loop; production runs pace-throttled at 400 Hz (lower emitter duty, cleaner optics) with µs-resolution velocity timing either way
+- RS-485 bus at 4 Mbaud, bridge-polled: zero collisions by construction, zero event loss across ~500k sequence-accounted bench events, sub-ms worst-case event latency with four boards on the bus
+
+## Firmware (native C, dual-core)
+CircuitPython support is gone: it capped the system at a ~250 Hz single-core scan loop and could not prevent bus collisions, so it was retired for performance. The native Pico-SDK firmware ships as **one UF2 for every board** — each board probes its own hardware at boot and becomes a sensor node or the main bridge automatically:
+- **Core 1** owns the sensor array: pipelined TLA2518 scanning, running entirely from SRAM so flash and USB activity can never stall a sweep.
+- **Core 0** owns everything else: USB (CDC console + USB-MIDI), the RS-485 protocol, calibration and configuration storage.
+- **RS-485:** the main board is the sole bus master and polls each sensor board in turn; nodes never transmit unsolicited, and every event batch is acknowledged before a node releases it — collision-free and lossless by design.
+- **Scanning:** free-runs open-loop above 1.7 kHz; throttled to a paced 400 Hz for production use.
+
+Legacy CircuitPython sources remain under `software/embedded_software/` as a reference implementation. Build and flash instructions: `firmware/README.md`.
 
 ## Architecture (Short)
 - Sensor boards: VCNT2025X01 array -> TLA2518 SPI ADCs -> RP2350
@@ -40,22 +49,17 @@ See `hardware/README.md` for board-specific notes and layout sources.
 - JST-SH 4-pin cables (1.0 mm pitch, reverse/opposite direction; QWIIC-compatible)
 
 **Software**
-- CircuitPython UF2 for RP2350 (custom build recommended)
+- PHOTON firmware UF2 (build from `firmware/`, see `firmware/README.md`)
 - KiCad 9 (download: https://www.kicad.org/download/)
 - DAW or MIDI viewer (Pianoteq, Ableton Live, Reaper, Max/MSP, etc.)
-- Embedded software notes: see `software/embedded_software/README.md`
 
 ## Build & Flash
-1. Hold **USB-BOOT** (or short USB-BOOT jumper) and connect via USB-C.
-2. Copy the RP2350 CircuitPython `.uf2` to the mounted drive.
-3. Copy `code.py` and libraries to the `CIRCUITPY` drive.
+1. Hold **USB-BOOT** (or short the USB-BOOT jumper) and connect via USB-C; copy `photon.uf2` to the mounted `RP2350` drive. The same image runs every board.
+2. On each sensor board, set its bus id once via the USB console (`setid N`), then calibrate (`r`, play every key, `s`). Calibration and configuration persist in flash.
+3. Boards already running PHOTON reflash over USB alone: the `bootsel` console command enters the bootloader without touching the button.
 
 ## Notes
-- Firmware is primarily in CircuitPython; the RS-485 data path uses a C native module for low latency.
-- Related repo: https://github.com/w4iei/klavecimbelcircuitpython
-- **Double-manual harpsichords:** PHOTON was designed to support double-manual harpsichords (i.e. one set of sensor boards per manual), but in practice we have found limited benefit in instrumenting both manuals. Using sensors on a single manual is generally sufficient and can improve stability: on a shared RS-485 bus, coupled configurations duplicate note-on and note-off events and increase both bus contention and power consumption.
-
-  If double-manual sensing is required, we recommend assigning each manual its own RS-485 bus. This can be achieved either by using **two main controller boards** (one per manual), or by modifying a single main board to expose a **second independent RS-485 bus** using the RP2350’s second UART peripheral. In the latter case, a second RS-485 transceiver can be connected to **UART1 TX/RX pins (e.g. GPIO 4 = TX, GPIO 5 = RX; other pin mappings are also possible via the RP2350’s flexible pin mux)**, while the original bus remains on UART0. This configuration isolates traffic per manual, eliminates inter-manual collisions, and allows simultaneous events to be buffered independently by the two UART receivers.
+- **Double-manual harpsichords** run on a single bus: each manual is a pair of sensor boards mapped to its own MIDI channel (`chmap` console command). The polled protocol eliminates inter-board collisions, so simultaneous playing on both manuals loses nothing.
 
 ## Citation
 ```bibtex
