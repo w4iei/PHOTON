@@ -240,3 +240,58 @@ calibration check: every node ≥ its populated count above the 1360 gate
 | Calibration after B7 | 31/30/31/30 sensors above gate; 0 resting events |
 | Playability | both manuals, correct channels (3 upper / 2 lower), no stuck notes |
 | Fallback intact | `git checkout full_performance` still builds |
+
+---
+
+## Findings from execution (2026-08-13)
+
+Phase A and Phase B are implemented, flashed to all five boards, and verified.
+What the bench work turned up along the way:
+
+### The binding constraint is the regulator, not the firmware
+
+Both board types regulate with **NCP1117LPST33T3G**: 1.0 A, SOT-223, ~1.2 V
+dropout (needs ~4.5 V in for 3.3 V out under load), with thermal shutdown. In
+the deployed wiring the cables carry the **bridge's 3.3 V rail**, so one
+NCP1117 sources the whole four-board chain while each sensor board's own
+regulator sits unused.
+
+| Configuration | System power | 3.3 V rail current | vs 1.0 A rating |
+|---|---|---|---|
+| 400 Hz, parallel (8 emitters, ~216 mA pk/board) | 5 W | ~1.0–1.5 A | **at or over limit** |
+| 200 Hz, sequential (1 emitter, ~27 mA pk/board) | 1.75 W | ~0.35–0.53 A | comfortable |
+
+At the original settings the part dissipated 1.7–2.5 W in a package that sheds
+about 1 W. The old CircuitPython stack never exposed this because it lit one
+emitter at a time — the same profile `mode 0` now restores.
+
+**Failure signature:** sensor ADCs read **saturated (~65,200–65,520 on every
+channel)** because the analog rail droops. This is not optical and not
+firmware. It migrates between boards as wiring changes, so "board N is broken"
+is misleading — suspect the rail first. Diagnose with `data <id>` from the
+bridge: saturation across all 31 channels means power, not sensors.
+
+**Recommended hardware fix (not yet done):** carry **5 V** on the cables so
+each board's own NCP1117 regulates locally; the parts are already fitted, so
+this may be a harness change rather than a respin. Bulk capacitance (~1 mF per
+board, sized for the 590 µs emitter pulse at 100 mV droop) helps the pulsed
+component but does nothing for DC droop.
+
+### Measured scan cost per mode (board 4, at the ADC)
+
+| Mode | Sweep | Peak emitter current | Max usable rate |
+|---|---|---|---|
+| 0 sequential | 2,536 µs | ~27 mA | ~390 Hz |
+| 2 two-phase | 826 µs | ~108 mA | ~1.2 kHz |
+| 1 parallel | 585 µs | ~216 mA | ~1.7 kHz |
+
+Sequential is lowest on *both* peak and average: in parallel mode every emitter
+stays lit through the other sensors' ADC reads, so most of that emitter-on time
+is wasted. It also eliminates optical crosstalk by construction.
+
+### Remaining gap
+
+Disabling a sensor on a node (the local mask that also stops its emitter) is
+still USB-only — the bridge's `disable` targets the global note map instead.
+Add NODECTL op 5 (set local disabled mask) if a board ever needs masking after
+the instrument is closed up.
