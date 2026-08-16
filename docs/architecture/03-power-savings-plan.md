@@ -347,6 +347,13 @@ identically again on switching back. Settle value does not fix it (tested
 30/45/50/60 us). Mechanism not yet isolated (suspect an intra-bank timing or
 adjacent-emitter interaction unique to the one-bank-at-a-time schedule);
 until it is diagnosed and bench-verified, mode 0 must not be deployed.
+**Candidate fix implemented (commit after c6f784c), PENDING HARDWARE
+VALIDATION:** sweep_sequential reordered to write CHANNEL_SEL under the
+settle window (matching the proven step_banks ordering) instead of after
+it, so the ADC mux gets the settle time connected to the new channel.
+Validation recipe: flash one node, A/B `mode 0` vs `mode 2` readings via
+`data <id>` — all 31 sensors including idx 28 must converge between modes
+at rest and under a held key.
 
 **Production configuration: mode 2 (two-phase), 300 Hz, 50 us settle.**
 Two-phase delivers the peak-current goal that motivated sequential (~108 mA

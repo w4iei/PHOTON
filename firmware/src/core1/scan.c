@@ -89,9 +89,20 @@ static void sweep_sequential(void) {
             if (mask) {
                 tla2518_write3(b, TLA_OP_BIT_SET, TLA_REG_GPO_VALUE, mask);
             }
-            busy_wait_us_32(g_scan_ctl.settle_us);
+            // CHANNEL_SEL under the settle window, matching step_banks(): the
+            // ADC mux must sit connected to the new channel while the source
+            // settles. The original ordering (settle first, chsel, read
+            // immediately) gave the mux zero on-channel time and produced
+            // wrong readings on real hardware — worst on bank 7 slot 0,
+            // whose mux parks on the floating unpopulated AIN1 (idx 31)
+            // through the inter-sweep gap and drifts to mid-rail (~32k).
+            // Reordered 2026-08-13; PENDING HARDWARE VALIDATION (mode 0 is
+            // quarantined from production until this is bench-verified —
+            // see docs/architecture/03-power-savings-plan.md).
+            uint32_t settle_done = time_us_32() + g_scan_ctl.settle_us;
             tla2518_write3(b, TLA_OP_REGISTER_WRITE, TLA_REG_CHANNEL_SEL,
                            slot_adc_channel[slot] & 0x0F);
+            wait_until_us(settle_done);
             readings[bank * PHOTON_SLOTS_PER_BANK + slot] = read_slot_single(b);
             if (mask) {
                 tla2518_write3(b, TLA_OP_BIT_CLEAR, TLA_REG_GPO_VALUE, mask);
