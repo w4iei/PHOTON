@@ -332,3 +332,26 @@ Disabling a sensor on a node (the local mask that also stops its emitter) is
 still USB-only — the bridge's `disable` targets the global note map instead.
 Add NODECTL op 5 (set local disabled mask) if a board ever needs masking after
 the instrument is closed up.
+
+### DEFECT: sequential mode (mode 0) produces wrong readings — do not use
+
+Found 2026-08-13 during the power-savings rollout. Native sequential mode had
+never run on the assembled instrument before (all prior validation was
+parallel). On real hardware it reads slots 1-3 elevated (~14-26k where
+two-phase/parallel read ~4k at rest) and collapses sensor idx 28 (bank 7
+slot 0) to a pinned, noisy ~31k with no key response on ALL boards — which
+calibrates into a sliver of range and produces machine-gun retriggering on
+that note (A3/E6). The effect is mode-specific: the same board, same firmware,
+same settle reads correctly the moment it switches to mode 1 or 2, and
+identically again on switching back. Settle value does not fix it (tested
+30/45/50/60 us). Mechanism not yet isolated (suspect an intra-bank timing or
+adjacent-emitter interaction unique to the one-bank-at-a-time schedule);
+until it is diagnosed and bench-verified, mode 0 must not be deployed.
+
+**Production configuration: mode 2 (two-phase), 300 Hz, 50 us settle.**
+Two-phase delivers the peak-current goal that motivated sequential (~108 mA
+vs parallel's ~216 mA), with 8-key-pitch spacing between simultaneously lit
+emitters (better than parallel's 4). Verified: uniform ~3.6-8.4k rest across
+all 31 sensors including idx 28 (noise 30 counts vs 750-1300 in mode 0).
+System power ~3.9-4.0 W regardless of mode/rate (emitters are ~5%; the
+meaningful mode difference is peak current, not energy).
