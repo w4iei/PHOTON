@@ -41,17 +41,15 @@
 #define PHOTON_BANK_ON_BUS_B(b)  ((b) >= 4)
 
 #define PHOTON_SPI_BAUD_HZ       (20 * 1000 * 1000)
-// Emitter settle before sampling. Bench-measured 2026-08-13 on board 4 with
-// a drift-controlled 60->10->60 us sweep: the VCNT2025X01 response is fully
-// developed well before 10 us and then DECAYS during a long pulse (LED thermal
-// droop), so shorter settle yields MORE signal, not less: +1.3% at 30 us,
-// +6.5% at 10 us, with noise essentially unchanged at 30 us. 30 us keeps the
-// sample on the flat part of the curve (~96 counts/us slope vs ~315 below
-// 15 us, where timing jitter would start converting into noise) and shortens
-// the sequential sweep from 2533 to ~1574 us (scan ceiling ~394 -> ~630 Hz).
-// Changing this shifts every reading (up to 23% on some sensors) and REQUIRES
-// recalibration.
-#define PHOTON_SETTLE_US         30
+// Emitter settle before sampling. Bench-measured 2026-08-13: the reading
+// depends strongly on this value with keys installed (45 us reads 81-91% of
+// 60 us), so the VCNT2025X01 response is still developing well past 30 us.
+// An earlier 30 us figure came from a board measured while DISASSEMBLED with
+// keys missing - the sensors were staring at nothing, which is not a
+// representative optical condition. 50 us keeps close to the long-proven
+// 60 us while shortening the sequential sweep (~2533 -> ~2213 us).
+// Changing this shifts every reading and REQUIRES recalibration.
+#define PHOTON_SETTLE_US         50
 #define PHOTON_OSR_MODE          3       // TLA2518 8x oversample, 16-bit results
 #define PHOTON_TLA_RESET_WAIT_US 10000   // datasheet requires 5 ms; keep proven 10 ms
 #define PHOTON_TLA_BUS_FLUSH_US  10
