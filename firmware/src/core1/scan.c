@@ -89,7 +89,7 @@ static void sweep_sequential(void) {
             if (mask) {
                 tla2518_write3(b, TLA_OP_BIT_SET, TLA_REG_GPO_VALUE, mask);
             }
-            busy_wait_us_32(PHOTON_SETTLE_US);
+            busy_wait_us_32(g_scan_ctl.settle_us);
             tla2518_write3(b, TLA_OP_REGISTER_WRITE, TLA_REG_CHANNEL_SEL,
                            slot_adc_channel[slot] & 0x0F);
             readings[bank * PHOTON_SLOTS_PER_BANK + slot] = read_slot_single(b);
@@ -116,7 +116,7 @@ static void step_banks(const uint8_t *bank_list, int nbanks, int slot) {
             tla2518_write3(b, TLA_OP_BIT_SET, TLA_REG_GPO_VALUE, mask);
         }
     }
-    uint32_t settle_done = time_us_32() + PHOTON_SETTLE_US;
+    uint32_t settle_done = time_us_32() + g_scan_ctl.settle_us;
     // 2. Channel selects, hidden under the settle window.
     for (int i = 0; i < nbanks; i++) {
         tla2518_t *b = &g_banks[bank_list[i]];
@@ -266,6 +266,11 @@ static void drain_mailbox(void) {
             case PHOTON_CMD_CAL_LEARN:
                 g_events.learning = cmd.a != 0;
                 break;
+            case PHOTON_CMD_SETTLE:
+                if (cmd.a >= 5 && cmd.a <= 500) {
+                    g_scan_ctl.settle_us = (uint16_t)cmd.a;
+                }
+                break;
             case PHOTON_CMD_SCAN_RATE:
                 g_scan_ctl.rate_hz = cmd.a == 0 ? PHOTON_DEFAULT_SCAN_RATE_HZ
                                    : cmd.a >= 0xFFFF ? 0
@@ -323,6 +328,9 @@ static void drain_mailbox(void) {
 }
 
 void scan_core1_entry(void) {
+    if (g_scan_ctl.settle_us == 0) {
+        g_scan_ctl.settle_us = PHOTON_SETTLE_US;  // compile-time default
+    }
     // Field-proven bring-up ritual (CircuitPython main.py had the same two
     // layers for a first-transaction SPI glitch): up to 3 reset attempts
     // with settle gaps, then a ~1 s in-service check; if the array still

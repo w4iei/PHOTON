@@ -106,6 +106,7 @@ static void print_help(void) {
     log_printf("  cal save|reset [id]  persist / clear calibration (one node or all)");
     log_printf("  mode <0|1|2> [id]    scan: 0=seq 1=parallel 2=two-phase (bridge: remote)");
     log_printf("  rate <hz>|max [id]   paced sweep rate (saved; bridge: remote)");
+    log_printf("  settle <us> [id]     emitter settle for A/B (5-500; NOT saved)");
     log_printf("  localmidi on|off node plays its own USB-MIDI (default off; saved)");
     log_printf("  disable|enable <idx>  mask a sensor (node: local idx; bridge: global idx)");
     log_printf("  setid <n> | setid <node> <newid>   bus id, local or remote");
@@ -552,6 +553,23 @@ static void handle_line(char *line) {
             g_config.scan_rate_hz = (uint16_t)hz;
             config_store_save();
             log_info("scan rate -> %s (saved)", hz == 0xFFFF ? "max" : a1);
+        }
+    } else if (strcmp(cmd, "settle") == 0 && a1 != NULL) {
+        // Bench A/B knob: emitter settle dominates emitter on-time and caps
+        // the max scan rate. Deliberately NOT persisted — a bad value would
+        // survive a reboot and quietly degrade every reading.
+        int us = atoi(a1);
+        if (us < 5 || us > 500) {
+            log_note("settle: 5-500 us");
+        } else if (C.is_bridge) {
+            uint8_t dst = a2 ? (uint8_t)atoi(a2) : PHOTON_ADDR_BROADCAST;
+            send_nodectl(5, (uint16_t)us, dst);
+            log_info("settle %d us -> node %u (not persisted; reboot restores %d)",
+                     us, dst, PHOTON_SETTLE_US);
+        } else if (C.sensor_role) {
+            photon_cmd_t cmdm = { .op = PHOTON_CMD_SETTLE, .a = (uint32_t)us };
+            push_core1_cmd(&cmdm);
+            log_info("settle -> %d us (not persisted)", us);
         }
     } else if (strcmp(cmd, "localmidi") == 0 && a1 != NULL) {
         if (!C.sensor_role) {

@@ -345,6 +345,18 @@ static void node_handle_request(const photon_frame_t *f, bool addressed) {
                     }
                     break;
                 }
+                case 5: {    // emitter settle (bench A/B; NOT persisted)
+                    uint8_t ok = 0;
+                    if (arg >= 5 && arg <= 500) {
+                        photon_cmd_t c = { .op = PHOTON_CMD_SETTLE, .a = arg };
+                        cmd_mailbox_push(&c);
+                        ok = 1;
+                    }
+                    if (addressed) {
+                        send_reply(PHOTON_FT_CAL_ACK, f->src, f->seq, &ok, 1, false);
+                    }
+                    break;
+                }
                 case 4: {    // scan mode + persist
                     uint8_t ok = 0;
                     if (arg <= PHOTON_SCAN_TWO_PHASE) {
