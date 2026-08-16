@@ -277,6 +277,43 @@ this may be a harness change rather than a respin. Bulk capacitance (~1 mF per
 board, sized for the 590 µs emitter pulse at 100 mV droop) helps the pulsed
 component but does nothing for DC droop.
 
+### CORRECTION: the emitters are ~5% of system power
+
+Two clean measurements at verified-uniform fleet states (four sensor boards +
+bridge, sequential mode) overturned the premise this plan was built on:
+
+| Fleet state | Emitter duty | Measured system power |
+|---|---|---|
+| 200 Hz sequential | 51% | **3.93 W** |
+| 300 Hz sequential | 76% | **4.00 W** |
+
+Solving those two points: **fixed baseline ~3.79 W (95%)**, emitters ~0.14 W at
+200 Hz and ~0.21 W at 300 Hz. A 1.5x change in emitter duty moves total power
+by 0.07 W. An earlier "1.75 W" reading was an artifact — it was taken while
+several boards were halted mid-flash-write.
+
+Where the 4 W actually goes (800 mA at 5 V in):
+- **~1.4 W (35%) dissipated as heat in the bridge's LDO** dropping 5 V to 3.3 V.
+  Pure loss, and the reason the board runs warm.
+- ~2.6 W across five RP2350s at 150 MHz, **forty TLA2518 ADCs** (eight per
+  sensor board, permanently powered), and five RS-485 transceivers.
+
+**Consequence for tuning:** scan rate and mode are NOT power levers. Keep
+`mode 0` anyway — its value is **peak** current (~27 mA vs ~216 mA), which is
+what collapses the 3.3 V rail and caused the ADC-saturation failures; that is a
+stability argument, not an energy one. Set the rate for the temporal resolution
+you want (300 Hz costs 0.07 W over 200 Hz).
+
+Real power levers, in order of size, none of them scan-related:
+1. **LDO dissipation (~1.4 W)** — lower the input voltage toward the dropout
+   limit, or use a buck. No firmware change; biggest single win.
+2. **MCU clock** — five RP2350s at 150 MHz; `clk_peri` is pinned for the
+   4 Mbaud UART divisor, so this needs care.
+3. **Core 1 idle** — it busy-spins between paced sweeps (24% of the period at
+   300 Hz); a WFE wait would recover some of that.
+4. **TLA2518 standby** — forty always-on ADCs is a large share of the baseline;
+   they have low-power modes worth investigating.
+
 ### Measured scan cost per mode (board 4, at the ADC)
 
 | Mode | Sweep | Peak emitter current | Max usable rate |
