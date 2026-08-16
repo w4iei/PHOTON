@@ -95,7 +95,7 @@ static void print_help(void) {
     log_printf("  capture [sec]    timed local trace of last/default sensor");
     log_printf("  burst <n> [id]   inject one-shot synthetic events");
     log_printf("  test <evps|stop> [id]  pseudorandom load for loss validation");
-    log_printf("  cal save|reset   persist / clear calibration");
+    log_printf("  cal save|reset [id]  persist / clear calibration (one node or all)");
     log_printf("  mode <0|1|2>     scan: 0=seq 1=parallel 2=two-phase");
     log_printf("  rate <hz>|max    paced sweep rate (default 400; saved)");
     log_printf("  localmidi on|off node plays its own USB-MIDI (default off; saved)");
@@ -455,9 +455,16 @@ static void handle_line(char *line) {
             cal_enter();
         } else if (strcmp(a1, "save") == 0) {
             if (C.is_bridge) {
+                // Optional node id: commit one board instead of the whole
+                // bus, so a single miscalibrated board can be redone without
+                // disturbing calibrations that are already good.
+                int only = a2 ? atoi(a2) : 0;
                 const photon_node_slot_t *t = protocol_node_table();
                 int queued = 0, dropped = 0;
                 for (int id = 1; id <= PHOTON_MAX_NODE_ID; id++) {
+                    if (only && id != only) {
+                        continue;
+                    }
                     if (t[id].alive) {
                         if (protocol_bridge_request(PHOTON_FT_CAL_COMMIT, (uint8_t)id, NULL, 0)) {
                             queued++;
@@ -474,12 +481,15 @@ static void handle_line(char *line) {
         } else if (strcmp(a1, "reset") == 0) {
             if (C.is_bridge) {
                 uint8_t p[5] = { PHOTON_CAL_IDX_ALL, 0, 0, 0, 0 };
-                protocol_bridge_request(PHOTON_FT_CAL_SET, PHOTON_ADDR_BROADCAST, p, 5);
+                uint8_t dst = a2 ? (uint8_t)atoi(a2) : PHOTON_ADDR_BROADCAST;
+                protocol_bridge_request(PHOTON_FT_CAL_SET, dst, p, 5);
+                log_info("calibration reset -> %s (learning ON there)",
+                         a2 ? a2 : "ALL nodes");
             } else if (C.sensor_role) {
                 photon_cmd_t cmdm = { .op = PHOTON_CMD_RESET_CAL };
                 push_core1_cmd(&cmdm);
+                log_info("calibration reset");
             }
-            log_info("calibration reset");
         }
     } else if ((strcmp(cmd, "disable") == 0 || strcmp(cmd, "enable") == 0) && a1 != NULL) {
         int idx = atoi(a1);
