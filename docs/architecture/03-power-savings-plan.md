@@ -355,6 +355,23 @@ Validation recipe: flash one node, A/B `mode 0` vs `mode 2` readings via
 `data <id>` — all 31 sensors including idx 28 must converge between modes
 at rest and under a held key.
 
+**Validation run 2026-08-13 on board 1: PARTIAL PASS — mode 0 stays
+quarantined.** The catastrophic failure is fixed (idx 28: pinned 31,064
+with 750-1300 noise -> 10,876 with 240-380 noise), confirming the
+mux-settling diagnosis. But the modes still do not converge: 8 sensors
+differ >15% (idx 0,1,2,24,25,26,28,30), idx 28 by 44% (mode 0 reads
+10,876 vs mode 2's 7,624), and mode 0 remains ~10x noisier.
+
+Leading hypothesis for the residual, untested: mode 0 lights ONE emitter
+where mode 2 lights four, so the 3.3 V rail sags less — and on this
+hardware the rail is known-marginal (see the NCP1117 section above), so a
+systematically higher reading in mode 0 may be partly REAL rather than a
+scan defect. That would mean "modes must converge" is the wrong
+acceptance test; a better one is whether mode 0 readings are *stable and
+repeatable* enough to calibrate against, judged on noise, not on
+agreement with mode 2. The 10x noise gap is the part that still needs
+explaining either way.
+
 **Production configuration: mode 2 (two-phase), 300 Hz, 50 us settle.**
 Two-phase delivers the peak-current goal that motivated sequential (~108 mA
 vs parallel's ~216 mA), with 8-key-pitch spacing between simultaneously lit
