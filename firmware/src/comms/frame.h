@@ -33,6 +33,7 @@
 #define PHOTON_FT_CAL_COMMIT 'C'
 #define PHOTON_FT_CAL_ACK    'k'
 #define PHOTON_FT_TEST_BURST 'B'
+#define PHOTON_FT_NODECTL    'Z'  // remote node control (op u8 | arg u16)
 
 // flags
 #define PHOTON_FLAG_DIR        (1u << 0)  // reserved for RS-422 routing

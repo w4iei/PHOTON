@@ -80,6 +80,10 @@
 #define PHOTON_POLL_TIMEOUT_US   700  // > worst-case 158 B reply @ 4 Mbaud (395 us) + guards
 #define PHOTON_POLL_RETRIES      2
 #define PHOTON_PING_INTERVAL_MS  250  // re-discovery cadence for silent ids
+// Bridge poll-cycle pacing: minimum period of one full rotation over all
+// alive nodes. 0 = free-run. 1000 us halves the bridge's transmitter duty
+// (and its LDO heat) while keeping worst-case event latency ~1 ms.
+#define PHOTON_POLL_CYCLE_US     1000
 
 // ---------------------------------------------------------------------------
 // Frame format v2

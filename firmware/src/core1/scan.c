@@ -20,6 +20,28 @@ static inline uint8_t emitter_mask(int slot) {
     return (uint8_t)(1u << slot_emitter_bit[slot]);
 }
 
+// Per-(bank, slot) emitter mask: 0 means "never light this position" for
+// slots past the populated count or masked out by config. Skipping the GPO
+// writes saves emitter current (and two SPI frames) on every sweep.
+static uint8_t bank_slot_mask[PHOTON_BANK_COUNT][PHOTON_SLOTS_PER_BANK];
+static uint32_t emitter_mask_source = 0xFFFFFFFFu;  // forces the first build
+
+static void refresh_emitter_masks(void) {
+    uint32_t disabled = g_events.disabled_mask;
+    if (disabled == emitter_mask_source) {
+        return;
+    }
+    emitter_mask_source = disabled;
+    for (int b = 0; b < PHOTON_BANK_COUNT; b++) {
+        for (int s = 0; s < PHOTON_SLOTS_PER_BANK; s++) {
+            int idx = b * PHOTON_SLOTS_PER_BANK + s;
+            bool skip = idx >= PHOTON_ACTIVE_SENSORS ||
+                        ((disabled >> idx) & 1u) != 0;
+            bank_slot_mask[b][s] = skip ? 0u : emitter_mask(s);
+        }
+    }
+}
+
 static inline void wait_until_us(uint32_t target) {
     int32_t remain = (int32_t)(target - time_us_32());
     if (remain > 0) {
@@ -63,13 +85,17 @@ static void sweep_sequential(void) {
             continue;
         }
         for (int slot = 0; slot < PHOTON_SLOTS_PER_BANK; slot++) {
-            uint8_t mask = emitter_mask(slot);
-            tla2518_write3(b, TLA_OP_BIT_SET, TLA_REG_GPO_VALUE, mask);
+            uint8_t mask = bank_slot_mask[bank][slot];
+            if (mask) {
+                tla2518_write3(b, TLA_OP_BIT_SET, TLA_REG_GPO_VALUE, mask);
+            }
             busy_wait_us_32(PHOTON_SETTLE_US);
             tla2518_write3(b, TLA_OP_REGISTER_WRITE, TLA_REG_CHANNEL_SEL,
                            slot_adc_channel[slot] & 0x0F);
             readings[bank * PHOTON_SLOTS_PER_BANK + slot] = read_slot_single(b);
-            tla2518_write3(b, TLA_OP_BIT_CLEAR, TLA_REG_GPO_VALUE, mask);
+            if (mask) {
+                tla2518_write3(b, TLA_OP_BIT_CLEAR, TLA_REG_GPO_VALUE, mask);
+            }
         }
     }
 }
@@ -82,11 +108,11 @@ static void sweep_sequential(void) {
 // --------------------------------------------------------------------------
 
 static void step_banks(const uint8_t *bank_list, int nbanks, int slot) {
-    uint8_t mask = emitter_mask(slot);
-    // 1. LEDs on.
+    // 1. LEDs on (skipping masked/unpopulated positions).
     for (int i = 0; i < nbanks; i++) {
         tla2518_t *b = &g_banks[bank_list[i]];
-        if (b->present) {
+        uint8_t mask = bank_slot_mask[bank_list[i]][slot];
+        if (b->present && mask) {
             tla2518_write3(b, TLA_OP_BIT_SET, TLA_REG_GPO_VALUE, mask);
         }
     }
@@ -120,7 +146,8 @@ static void step_banks(const uint8_t *bank_list, int nbanks, int slot) {
     // 5. LEDs off.
     for (int i = 0; i < nbanks; i++) {
         tla2518_t *b = &g_banks[bank_list[i]];
-        if (b->present) {
+        uint8_t mask = bank_slot_mask[bank_list[i]][slot];
+        if (b->present && mask) {
             tla2518_write3(b, TLA_OP_BIT_CLEAR, TLA_REG_GPO_VALUE, mask);
         }
     }
@@ -145,6 +172,7 @@ static void sweep_two_phase(void) {
 }
 
 static void sweep(void) {
+    refresh_emitter_masks();
     switch (g_scan_ctl.mode) {
         case PHOTON_SCAN_PARALLEL:
             sweep_parallel();

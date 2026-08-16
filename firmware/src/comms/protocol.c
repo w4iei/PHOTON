@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+#include "hardware/watchdog.h"
+#include "pico/bootrom.h"
 #include "pico/time.h"
 
 #include "board_config.h"
@@ -45,6 +47,12 @@ static struct {
     uint8_t next_poll_id;
     uint8_t next_ping_id;
     absolute_time_t next_ping_at;
+    absolute_time_t next_cycle_at;   // poll-rotation pacing (A2)
+    // Deferred self-reset (NODECTL): the reply must reach the wire and
+    // the DE state machine must finish before the MCU resets, so the
+    // main loop keeps pumping transport_task() until this deadline.
+    uint8_t pending_reset;           // 0 none, 1 reboot, 2 bootsel
+    absolute_time_t reset_at;
     // console-driven bulk request FIFO, one dispatched per poll cycle
     photon_frame_t bulk_q[BULK_QUEUE_SLOTS];
     uint32_t bulk_head, bulk_tail;
@@ -58,6 +66,7 @@ void protocol_init(bool is_bridge, uint8_t own_addr) {
     P.next_poll_id = 1;
     P.next_ping_id = 1;
     P.next_ping_at = get_absolute_time();
+    P.next_cycle_at = get_absolute_time();
     // Boot epoch: low byte of the boot-time microsecond counter. Crystal
     // and regulator ramp jitter make consecutive boots differ; a collision
     // (1/256) only delays reboot detection until the next seq mismatch.
@@ -291,6 +300,70 @@ static void node_handle_request(const photon_frame_t *f, bool addressed) {
             }
             break;
         }
+        case PHOTON_FT_NODECTL: {
+            // Remote service path for boards whose USB is unreachable once
+            // the instrument is assembled. payload: op u8 | arg u16 (LE).
+            if (f->len < 3) {
+                break;
+            }
+            uint8_t op = f->payload[0];
+            uint16_t arg;
+            memcpy(&arg, &f->payload[1], 2);
+            // Reboot / bootsel / setid are addressed-only: a broadcast would
+            // take every node down (or renumber them all) at once.
+            if (op <= 2 && !addressed) {
+                break;
+            }
+            switch (op) {
+                case 0:      // reboot
+                case 1: {    // bootsel
+                    uint8_t ok = 1;
+                    send_reply(PHOTON_FT_CAL_ACK, f->src, f->seq, &ok, 1, false);
+                    P.pending_reset = op == 0 ? 1 : 2;
+                    P.reset_at = make_timeout_time_ms(20);
+                    break;
+                }
+                case 2: {    // setid (takes effect on next boot, as locally)
+                    uint8_t ok = 0;
+                    if (arg >= 1 && arg <= PHOTON_MAX_NODE_ID) {
+                        g_config.node_id = (uint8_t)arg;
+                        ok = config_store_save() ? 1 : 0;
+                    }
+                    send_reply(PHOTON_FT_CAL_ACK, f->src, f->seq, &ok, 1, false);
+                    break;
+                }
+                case 3: {    // scan rate + persist (0 = default, 0xFFFF = max)
+                    uint8_t ok = 0;
+                    if (arg == 0 || arg == 0xFFFF || (arg >= 50 && arg <= 2000)) {
+                        photon_cmd_t c = { .op = PHOTON_CMD_SCAN_RATE, .a = arg };
+                        cmd_mailbox_push(&c);
+                        g_config.scan_rate_hz = arg;
+                        ok = config_store_save() ? 1 : 0;
+                    }
+                    if (addressed) {
+                        send_reply(PHOTON_FT_CAL_ACK, f->src, f->seq, &ok, 1, false);
+                    }
+                    break;
+                }
+                case 4: {    // scan mode + persist
+                    uint8_t ok = 0;
+                    if (arg <= PHOTON_SCAN_TWO_PHASE) {
+                        photon_cmd_t c = { .op = PHOTON_CMD_SCAN_MODE,
+                                           .arg8 = (uint8_t)arg };
+                        cmd_mailbox_push(&c);
+                        g_config.scan_mode = (uint8_t)arg;
+                        ok = config_store_save() ? 1 : 0;
+                    }
+                    if (addressed) {
+                        send_reply(PHOTON_FT_CAL_ACK, f->src, f->seq, &ok, 1, false);
+                    }
+                    break;
+                }
+                default:
+                    break;
+            }
+            break;
+        }
         default:
             break;
     }
@@ -503,6 +576,21 @@ static void bridge_task(void) {
                 return;
             }
             if (target == first_alive) {
+#if PHOTON_POLL_CYCLE_US > 0
+                // Start of a new rotation: pace it. This is a guard, not a
+                // sleep — the caller keeps spinning, and bulk/ping dispatch
+                // above stays outside the guard so console traffic and
+                // discovery never wait on the idle window.
+                if (!time_reached(P.next_cycle_at)) {
+                    return;
+                }
+                P.next_cycle_at = delayed_by_us(P.next_cycle_at, PHOTON_POLL_CYCLE_US);
+                if (absolute_time_diff_us(get_absolute_time(), P.next_cycle_at) < 0) {
+                    // Fell more than a period behind (long stall): resync to
+                    // now instead of bursting to catch up.
+                    P.next_cycle_at = make_timeout_time_us(PHOTON_POLL_CYCLE_US);
+                }
+#endif
                 P.poll_cycles++;
             }
             P.next_poll_id = (uint8_t)((target % PHOTON_MAX_NODE_ID) + 1);
@@ -619,6 +707,18 @@ void protocol_task(void) {
     if (P.is_bridge) {
         bridge_task();
         return;
+    }
+    // Deferred NODECTL self-reset: fires only after the ack has had time to
+    // clear the DE state machine (main loop keeps pumping transport_task()
+    // until then), so the bridge always sees the acknowledgement.
+    if (P.pending_reset != 0 && time_reached(P.reset_at)) {
+        uint8_t op = P.pending_reset;
+        P.pending_reset = 0;
+        if (op == 1) {
+            watchdog_reboot(0, 0, 100);
+        } else {
+            reset_usb_boot(0, 0);
+        }
     }
     // Node local delivery: a mounted USB MIDI host owns this board's
     // events; without one they wait for bus polls. A bridge polling a

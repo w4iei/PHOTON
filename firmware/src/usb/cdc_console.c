@@ -82,6 +82,14 @@ static void push_core1_cmd(const photon_cmd_t *cmd) {
 // Output helpers
 // ---------------------------------------------------------------------------
 
+// NODECTL payload builder (bridge role): op u8 | arg u16 (LE).
+static void send_nodectl(uint8_t op, uint16_t arg, uint8_t dst) {
+    uint8_t p[3];
+    p[0] = op;
+    memcpy(&p[1], &arg, 2);
+    protocol_bridge_request(PHOTON_FT_NODECTL, dst, p, 3);
+}
+
 static void print_help(void) {
     log_printf("PHOTON native console. Commands:");
     log_printf("  stats            local + node counters");
@@ -96,15 +104,15 @@ static void print_help(void) {
     log_printf("  burst <n> [id]   inject one-shot synthetic events");
     log_printf("  test <evps|stop> [id]  pseudorandom load for loss validation");
     log_printf("  cal save|reset [id]  persist / clear calibration (one node or all)");
-    log_printf("  mode <0|1|2>     scan: 0=seq 1=parallel 2=two-phase");
-    log_printf("  rate <hz>|max    paced sweep rate (default 400; saved)");
+    log_printf("  mode <0|1|2> [id]    scan: 0=seq 1=parallel 2=two-phase (bridge: remote)");
+    log_printf("  rate <hz>|max [id]   paced sweep rate (saved; bridge: remote)");
     log_printf("  localmidi on|off node plays its own USB-MIDI (default off; saved)");
     log_printf("  disable|enable <idx>  mask a sensor (node: local idx; bridge: global idx)");
-    log_printf("  setid <n>        set this node's bus id (1-%d)", PHOTON_MAX_NODE_ID);
+    log_printf("  setid <n> | setid <node> <newid>   bus id, local or remote");
     log_printf("  chmap [m] [ch|auto]  per-manual MIDI channel map (bridge; manual 1-%d,"
                " user channel 1-16)", PHOTON_MAX_MANUALS);
     log_printf("  flashtest        hammer flash while core 1 scans (M1 proof)");
-    log_printf("  reboot / bootsel restart firmware / enter UF2 bootloader");
+    log_printf("  reboot|bootsel [id]  restart / UF2 bootloader (bridge: remote node)");
     log_printf("  id               role/version summary");
 }
 
@@ -522,25 +530,28 @@ static void handle_line(char *line) {
             log_info("sensor %d %sd (persist with 'cal save')", idx, cmd);
         }
     } else if (strcmp(cmd, "rate") == 0 && a1 != NULL) {
-        if (!C.sensor_role) {
+        uint32_t hz;
+        if (strcmp(a1, "max") == 0) {
+            hz = 0xFFFF;  // unthrottled
+        } else {
+            int v = atoi(a1);
+            hz = (v >= 50 && v <= 2000) ? (uint32_t)v : 0;
+        }
+        if (hz == 0) {
+            log_note("rate: 50-2000 or 'max'");
+        } else if (C.is_bridge) {
+            uint8_t dst = a2 ? (uint8_t)atoi(a2) : PHOTON_ADDR_BROADCAST;
+            send_nodectl(3, (uint16_t)hz, dst);
+            log_info("scan rate %s -> node %u (persisted there; brief drop-out"
+                     " while it writes flash)", a1, dst);
+        } else if (!C.sensor_role) {
             log_note("rate: no scanner on this board");
         } else {
-            uint32_t hz;
-            if (strcmp(a1, "max") == 0) {
-                hz = 0xFFFF;  // unthrottled
-            } else {
-                int v = atoi(a1);
-                hz = (v >= 50 && v <= 2000) ? (uint32_t)v : 0;
-            }
-            if (hz == 0) {
-                log_note("rate: 50-2000 or 'max'");
-            } else {
-                photon_cmd_t cmdm = { .op = PHOTON_CMD_SCAN_RATE, .a = hz };
-                push_core1_cmd(&cmdm);
-                g_config.scan_rate_hz = (uint16_t)hz;
-                config_store_save();
-                log_info("scan rate -> %s (saved)", hz == 0xFFFF ? "max" : a1);
-            }
+            photon_cmd_t cmdm = { .op = PHOTON_CMD_SCAN_RATE, .a = hz };
+            push_core1_cmd(&cmdm);
+            g_config.scan_rate_hz = (uint16_t)hz;
+            config_store_save();
+            log_info("scan rate -> %s (saved)", hz == 0xFFFF ? "max" : a1);
         }
     } else if (strcmp(cmd, "localmidi") == 0 && a1 != NULL) {
         if (!C.sensor_role) {
@@ -558,7 +569,15 @@ static void handle_line(char *line) {
         log_info("event log + heartbeat %s", C.log_events ? "on" : "off");
     } else if (strcmp(cmd, "mode") == 0 && a1 != NULL) {
         uint8_t m = (uint8_t)atoi(a1);
-        if (C.sensor_role && m <= PHOTON_SCAN_TWO_PHASE) {
+        if (C.is_bridge) {
+            if (m > PHOTON_SCAN_TWO_PHASE) {
+                log_note("mode: 0=seq 1=parallel 2=two-phase");
+            } else {
+                uint8_t dst = a2 ? (uint8_t)atoi(a2) : PHOTON_ADDR_BROADCAST;
+                send_nodectl(4, m, dst);
+                log_info("scan mode %u -> node %u (persisted there)", m, dst);
+            }
+        } else if (C.sensor_role && m <= PHOTON_SCAN_TWO_PHASE) {
             photon_cmd_t cmdm = { .op = PHOTON_CMD_SCAN_MODE, .arg8 = m };
             push_core1_cmd(&cmdm);
             g_config.scan_mode = m;
@@ -566,7 +585,16 @@ static void handle_line(char *line) {
         }
     } else if (strcmp(cmd, "setid") == 0 && a1 != NULL) {
         int id = atoi(a1);
-        if (id >= 1 && id <= PHOTON_MAX_NODE_ID) {
+        if (C.is_bridge && a2 != NULL) {
+            int newid = atoi(a2);
+            if (newid >= 1 && newid <= PHOTON_MAX_NODE_ID) {
+                send_nodectl(2, (uint16_t)newid, (uint8_t)id);
+                log_info("setid: node %d -> id %d (effective on its reboot)",
+                         id, newid);
+            } else {
+                log_note("setid <node> <newid>: newid 1-%d", PHOTON_MAX_NODE_ID);
+            }
+        } else if (id >= 1 && id <= PHOTON_MAX_NODE_ID) {
             g_config.node_id = (uint8_t)id;
             config_store_save();
             log_info("node id -> %d (takes effect on reboot)", id);
@@ -599,6 +627,13 @@ static void handle_line(char *line) {
                 log_note("chmap: manual 1-%d, channel 1-16 or auto", PHOTON_MAX_MANUALS);
             }
         }
+    } else if (strcmp(cmd, "reboot") == 0 && a1 != NULL && C.is_bridge) {
+        send_nodectl(0, 0, (uint8_t)atoi(a1));
+        log_info("reboot -> node %s", a1);
+    } else if (strcmp(cmd, "bootsel") == 0 && a1 != NULL && C.is_bridge) {
+        send_nodectl(1, 0, (uint8_t)atoi(a1));
+        log_info("bootsel -> node %s (it will drop off the bus until reflashed)",
+                 a1);
     } else if (strcmp(cmd, "reboot") == 0) {
         // SWD-free maintenance: restart the firmware over USB alone.
         log_printf("rebooting...");
