@@ -43,8 +43,17 @@ For more than two boards, either:
 - feed the shared 3.3 V rail from a dedicated supply or buck converter sized
   for the whole chain, rather than from one board's regulator.
 
-Bulk capacitance (~1 mF per board) helps the pulsed emitter load but does
-nothing for steady-state droop.
+**Add more bulk capacitance on the next revision.** The emitter load is
+pulsed, not steady: a sweep lights LEDs for a few hundred microseconds at a
+time, so the board asks for its peak current in bursts that the cable and
+regulator have to service. Local bulk capacitance supplies those bursts so the
+upstream supply only has to deliver the average. Size it for the pulse rather
+than by habit — holding ~150 mA for a ~600 us sweep within 100 mV needs on the
+order of **1 mF per board** (e.g. 2 x 470 uF polymer/electrolytic near the
+emitter drivers), not the 10-47 uF normally sprinkled around. Caps only fix the
+*transient* component: they do nothing for steady-state droop caused by cable
+resistance or an undersized regulator, so they complement the 5 V distribution
+change above rather than replacing it.
 
 ## Verification
 Manual review is required after replication and before fabrication.
