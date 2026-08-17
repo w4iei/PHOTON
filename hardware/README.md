@@ -20,6 +20,32 @@ This directory contains the KiCad sources for the PHOTON main controller board a
 ## Design Recommendations
 - For a PCB greater than 250mm long, it is recommended to have three mounting holes for M2.5 (wood) screws to secure the boards in place. Putty (e.g. Blu Tack) is fine for a temporary setup, but screws ensure stability over the long term, including preventing the PCBs from shifting during moving. Having one mounting hole on each end and one in the center (doesn't need to be exactly in the center) ensures that the PCB doesn't bow or flex in the middle and raise up above the wood mounting surface. Install the screws in a linear fashion — not both ends and then the center.
 
+## Power Budget
+A 31-sensor board draws roughly **150-200 mA** at 3.3 V while scanning: mostly
+the RP2350 at 150 MHz plus eight always-on TLA2518 ADCs, with the emitters a
+surprisingly small share (~5% of system power — only one to four are lit at any
+instant depending on scan mode). Peak current is set by the scan mode: ~27 mA
+of emitter per lit LED, so ~108 mA extra in two-phase (4 lit) and ~216 mA in
+parallel (8 lit).
+
+**The RP2350 reference-design LDO (NCP1117, 1.0 A, SOT-223) realistically
+powers about two boards.** Note that is a *linear* regulator: it burns
+(Vin - 3.3 V) x I as heat, so at 5 V in it dissipates ~1.7 W per amp in a
+package that sheds roughly 1 W. Four boards fed from a single board's LDO
+exceeded both its current rating and its thermal limit — the symptom is not a
+clean shutdown but **sensor ADCs reading saturated (~65,000 on every channel)**
+as the analog rail droops, which looks deceptively like an optical or firmware
+fault.
+
+For more than two boards, either:
+- distribute **5 V** on the inter-board cables so each board regulates locally
+  with its own LDO (the part is already fitted on every sensor board), or
+- feed the shared 3.3 V rail from a dedicated supply or buck converter sized
+  for the whole chain, rather than from one board's regulator.
+
+Bulk capacitance (~1 mF per board) helps the pulsed emitter load but does
+nothing for steady-state droop.
+
 ## Verification
 Manual review is required after replication and before fabrication.
 
