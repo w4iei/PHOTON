@@ -1,13 +1,14 @@
 (kicad_sch
-	(version 20250114)
+	(version 20260306)
 	(generator "eeschema")
-	(generator_version "9.0")
+	(generator_version "10.0")
 	(uuid "2406761d-ec8b-4c07-9c01-8828e96619ae")
 	(paper "A4")
 	(title_block
 		(title "8x4-Channel LED Sensor Array")
-		(date "2026-01-02")
-		(rev "C")
+		(date "2026-04-22")
+		(rev "E")
+		(company "Noah Jaffe")
 		(comment 1 "SPI Sensor Bank Connections")
 	)
 	(lib_symbols)
@@ -408,11 +409,13 @@
 			(type solid)
 		)
 		(fill
-			(color 0 0 0 0.0000)
+			(color 0 0 0 0)
 		)
 		(uuid "1f3c5546-2135-48f1-a4dc-e0c99dc1341d")
 		(property "Sheetname" "4_Sensor_bank"
 			(at 21.59 36.1184 0)
+			(show_name no)
+			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -422,6 +425,8 @@
 		)
 		(property "Sheetfile" "4_Sensor_Bank.kicad_sch"
 			(at 21.59 57.7346 0)
+			(show_name no)
+			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -431,6 +436,8 @@
 		)
 		(property "Field2" ""
 			(at 21.59 36.83 0)
+			(show_name no)
+			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -478,7 +485,7 @@
 			)
 		)
 		(instances
-			(project "014_Sensor_PI_RS485 board"
+			(project "002_Sensor_PI_RS485 board"
 				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef"
 					(page "4")
 				)
@@ -498,11 +505,13 @@
 			(type solid)
 		)
 		(fill
-			(color 0 0 0 0.0000)
+			(color 0 0 0 0)
 		)
 		(uuid "25c23f8c-98d8-4cf3-af53-bf3a2aa69c0d")
 		(property "Sheetname" "4_Sensor_bank6"
 			(at 74.93 91.9984 0)
+			(show_name no)
+			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -512,6 +521,8 @@
 		)
 		(property "Sheetfile" "4_Sensor_Bank.kicad_sch"
 			(at 74.93 113.6146 0)
+			(show_name no)
+			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -521,6 +532,8 @@
 		)
 		(property "Field2" ""
 			(at 74.93 92.71 0)
+			(show_name no)
+			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -568,7 +581,7 @@
 			)
 		)
 		(instances
-			(project "014_Sensor_PI_RS485 board"
+			(project "002_Sensor_PI_RS485 board"
 				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef"
 					(page "33")
 				)
@@ -588,11 +601,13 @@
 			(type solid)
 		)
 		(fill
-			(color 0 0 0 0.0000)
+			(color 0 0 0 0)
 		)
 		(uuid "70b52523-2629-4084-a9e1-582b7135575b")
 		(property "Sheetname" "4_Sensor_bank2"
 			(at 21.59 91.9984 0)
+			(show_name no)
+			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -602,6 +617,8 @@
 		)
 		(property "Sheetfile" "4_Sensor_Bank.kicad_sch"
 			(at 21.59 113.6146 0)
+			(show_name no)
+			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -611,6 +628,8 @@
 		)
 		(property "Field2" ""
 			(at 21.59 92.71 0)
+			(show_name no)
+			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -658,7 +677,7 @@
 			)
 		)
 		(instances
-			(project "014_Sensor_PI_RS485 board"
+			(project "002_Sensor_PI_RS485 board"
 				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef"
 					(page "13")
 				)
@@ -678,11 +697,13 @@
 			(type solid)
 		)
 		(fill
-			(color 0 0 0 0.0000)
+			(color 0 0 0 0)
 		)
 		(uuid "80523f9a-b0b8-4efa-b3d9-d2f9096ba0cd")
 		(property "Sheetname" "Last_sensor_bank"
 			(at 74.93 121.2084 0)
+			(show_name no)
+			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -692,6 +713,8 @@
 		)
 		(property "Sheetfile" "last_sensor_bank.kicad_sch"
 			(at 74.93 144.0946 0)
+			(show_name no)
+			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -740,7 +763,7 @@
 			)
 		)
 		(instances
-			(project "014_Sensor_PI_RS485 board"
+			(project "002_Sensor_PI_RS485 board"
 				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef"
 					(page "38")
 				)
@@ -760,11 +783,13 @@
 			(type solid)
 		)
 		(fill
-			(color 0 0 0 0.0000)
+			(color 0 0 0 0)
 		)
 		(uuid "8d30b6fc-4531-43a8-bd91-9e6b22228f4d")
 		(property "Sheetname" "4_Sensor_bank5"
 			(at 74.93 64.0584 0)
+			(show_name no)
+			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -774,6 +799,8 @@
 		)
 		(property "Sheetfile" "4_Sensor_Bank.kicad_sch"
 			(at 74.93 85.6746 0)
+			(show_name no)
+			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -783,6 +810,8 @@
 		)
 		(property "Field2" ""
 			(at 74.93 64.77 0)
+			(show_name no)
+			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -830,7 +859,7 @@
 			)
 		)
 		(instances
-			(project "014_Sensor_PI_RS485 board"
+			(project "002_Sensor_PI_RS485 board"
 				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef"
 					(page "28")
 				)
@@ -850,11 +879,13 @@
 			(type solid)
 		)
 		(fill
-			(color 0 0 0 0.0000)
+			(color 0 0 0 0)
 		)
 		(uuid "a2963094-a324-44eb-aae5-350c5ae995ee")
 		(property "Sheetname" "4_Sensor_bank4"
 			(at 74.93 36.1184 0)
+			(show_name no)
+			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -864,6 +895,8 @@
 		)
 		(property "Sheetfile" "4_Sensor_Bank.kicad_sch"
 			(at 74.93 57.7346 0)
+			(show_name no)
+			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -873,6 +906,8 @@
 		)
 		(property "Field2" ""
 			(at 74.93 36.83 0)
+			(show_name no)
+			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -920,7 +955,7 @@
 			)
 		)
 		(instances
-			(project "014_Sensor_PI_RS485 board"
+			(project "002_Sensor_PI_RS485 board"
 				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef"
 					(page "23")
 				)
@@ -940,11 +975,13 @@
 			(type solid)
 		)
 		(fill
-			(color 0 0 0 0.0000)
+			(color 0 0 0 0)
 		)
 		(uuid "a8414ea3-1864-4085-b09d-ba1ee86ddb1a")
 		(property "Sheetname" "4_Sensor_bank1"
 			(at 21.59 64.0584 0)
+			(show_name no)
+			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -954,6 +991,8 @@
 		)
 		(property "Sheetfile" "4_Sensor_Bank.kicad_sch"
 			(at 21.59 85.6746 0)
+			(show_name no)
+			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -963,6 +1002,8 @@
 		)
 		(property "Field2" ""
 			(at 21.59 64.77 0)
+			(show_name no)
+			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1010,7 +1051,7 @@
 			)
 		)
 		(instances
-			(project "014_Sensor_PI_RS485 board"
+			(project "002_Sensor_PI_RS485 board"
 				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef"
 					(page "8")
 				)
@@ -1030,11 +1071,13 @@
 			(type solid)
 		)
 		(fill
-			(color 0 0 0 0.0000)
+			(color 0 0 0 0)
 		)
 		(uuid "ac3e6ed6-395a-4fc3-a422-0b68eeab2252")
 		(property "Sheetname" "4_Sensor_bank3"
 			(at 21.59 119.9384 0)
+			(show_name no)
+			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1044,6 +1087,8 @@
 		)
 		(property "Sheetfile" "4_Sensor_Bank.kicad_sch"
 			(at 21.59 141.5546 0)
+			(show_name no)
+			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1053,6 +1098,8 @@
 		)
 		(property "Field2" ""
 			(at 21.59 120.65 0)
+			(show_name no)
+			(do_not_autoplace no)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1100,7 +1147,7 @@
 			)
 		)
 		(instances
-			(project "014_Sensor_PI_RS485 board"
+			(project "002_Sensor_PI_RS485 board"
 				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef"
 					(page "18")
 				)

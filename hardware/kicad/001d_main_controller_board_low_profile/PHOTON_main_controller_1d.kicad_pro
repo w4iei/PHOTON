@@ -3,6 +3,8 @@
     "3dviewports": [],
     "design_settings": {
       "defaults": {
+        "apply_defaults_to_fp_barcodes": false,
+        "apply_defaults_to_fp_dimensions": false,
         "apply_defaults_to_fp_fields": false,
         "apply_defaults_to_fp_shapes": false,
         "apply_defaults_to_fp_text": false,
@@ -37,9 +39,9 @@
         "other_text_thickness": 0.15,
         "other_text_upright": false,
         "pads": {
-          "drill": 0.65,
-          "height": 1.5,
-          "width": 1.5
+          "drill": 2.7,
+          "height": 2.7,
+          "width": 2.7
         },
         "silk_line_width": 0.1,
         "silk_text_italic": false,
@@ -48,7 +50,23 @@
         "silk_text_thickness": 0.1,
         "silk_text_upright": false,
         "zones": {
-          "min_clearance": 0.5
+          "border_display_style": 2,
+          "border_hatch_pitch": 0.5,
+          "corner_radius": 0.0,
+          "corner_smoothing": 0,
+          "fill_mode": 0,
+          "hatch_gap": 1.5,
+          "hatch_orientation": 0.0,
+          "hatch_smoothing_level": 0,
+          "hatch_smoothing_value": 0.1,
+          "hatch_thickness": 1.0,
+          "min_clearance": 0.0,
+          "min_island_area": 10.0,
+          "min_thickness": 0.25,
+          "pad_connection": 1,
+          "remove_islands": 0,
+          "thermal_relief_gap": 0.5,
+          "thermal_relief_spoke_width": 0.5
         }
       },
       "diff_pair_dimensions": [
@@ -56,6 +74,11 @@
           "gap": 0.0,
           "via_gap": 0.0,
           "width": 0.0
+        },
+        {
+          "gap": 0.2,
+          "via_gap": 0.2,
+          "width": 0.2
         }
       ],
       "drc_exclusions": [],
@@ -77,6 +100,7 @@
         "extra_footprint": "warning",
         "footprint": "error",
         "footprint_filters_mismatch": "ignore",
+        "footprint_symbol_field_mismatch": "warning",
         "footprint_symbol_mismatch": "warning",
         "footprint_type_mismatch": "ignore",
         "hole_clearance": "error",
@@ -94,6 +118,7 @@
         "mirrored_text_on_front_layer": "warning",
         "missing_courtyard": "ignore",
         "missing_footprint": "warning",
+        "missing_tuning_profile": "warning",
         "net_conflict": "warning",
         "nonmirrored_text_on_back_layer": "warning",
         "npth_inside_courtyard": "ignore",
@@ -113,9 +138,12 @@
         "too_many_vias": "error",
         "track_angle": "error",
         "track_dangling": "warning",
+        "track_not_centered_on_via": "ignore",
+        "track_on_post_machined_layer": "error",
         "track_segment_length": "error",
         "track_width": "error",
         "tracks_crossing": "error",
+        "tuning_profile_track_geometries": "ignore",
         "unconnected_items": "error",
         "unresolved_variable": "error",
         "via_dangling": "warning",
@@ -230,7 +258,7 @@
       "internal_id": "",
       "mfg": "",
       "mpn": "",
-      "sch_revision": "E"
+      "sch_revision": "A"
     },
     "layer_pairs": [],
     "layer_presets": [],
@@ -479,7 +507,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "002_Sensor_PI_RS485 board.kicad_pro",
+    "filename": "PHOTON_main_controller_1d.kicad_pro",
     "version": 3
   },
   "net_settings": {
@@ -504,19 +532,19 @@
         "wire_width": 6
       },
       {
-        "clearance": 0.15,
-        "diff_pair_gap": 0.15,
-        "diff_pair_width": 0.8,
+        "clearance": 0.2,
+        "diff_pair_gap": 0.25,
+        "diff_pair_width": 0.2,
         "microvia_diameter": 0.3,
         "microvia_drill": 0.1,
-        "name": "USB_DIFF_90",
+        "name": "0.2mm",
         "pcb_color": "rgba(0, 0, 0, 0.000)",
         "priority": 0,
         "schematic_color": "rgba(0, 0, 0, 0.000)",
-        "track_width": 0.15,
+        "track_width": 0.2,
         "tuning_profile": "",
         "via_diameter": 0.6,
-        "via_drill": 0.35
+        "via_drill": 0.3
       },
       {
         "clearance": 0.2,
@@ -547,14 +575,6 @@
       {
         "netclass": "VCC",
         "pattern": "+3V3"
-      },
-      {
-        "netclass": "USB_DIFF_90",
-        "pattern": "/USB_D+"
-      },
-      {
-        "netclass": "USB_DIFF_90",
-        "pattern": "/USB_D-"
       }
     ]
   },
@@ -694,9 +714,15 @@
           "label": "#",
           "name": "${ITEM_NUMBER}",
           "show": false
+        },
+        {
+          "group_by": false,
+          "label": "Part #",
+          "name": "Part #",
+          "show": false
         }
       ],
-      "filter_string": "jp",
+      "filter_string": "",
       "group_symbols": true,
       "include_excluded_from_bom": true,
       "name": "",
@@ -747,70 +773,18 @@
     "subpart_id_separator": 0,
     "top_level_sheets": [
       {
-        "filename": "002_Sensor_PI_RS485 board.kicad_sch",
-        "name": "002_Sensor_PI_RS485 board",
+        "filename": "PHOTON_main_controller_1d.kicad_sch",
+        "name": "PHOTON_main_controller_1d",
         "uuid": "b0089fb8-2318-4750-8145-7647caa10afa"
       }
     ],
-    "used_designators": "",
+    "used_designators": "J104,#PWR19-20,#PWR119-120,C4,R103-105,L2,U5",
     "variants": []
   },
   "sheets": [
     [
       "b0089fb8-2318-4750-8145-7647caa10afa",
-      "002_Sensor_PI_RS485 board"
-    ],
-    [
-      "8abbdb56-ea85-4864-aa21-196a08be6eef",
-      "Sensor Array"
-    ],
-    [
-      "1f3c5546-2135-48f1-a4dc-e0c99dc1341d",
-      "4_Sensor_bank"
-    ],
-    [
-      "a8414ea3-1864-4085-b09d-ba1ee86ddb1a",
-      "4_Sensor_bank1"
-    ],
-    [
-      "70b52523-2629-4084-a9e1-582b7135575b",
-      "4_Sensor_bank2"
-    ],
-    [
-      "ac3e6ed6-395a-4fc3-a422-0b68eeab2252",
-      "4_Sensor_bank3"
-    ],
-    [
-      "a2963094-a324-44eb-aae5-350c5ae995ee",
-      "4_Sensor_bank4"
-    ],
-    [
-      "8d30b6fc-4531-43a8-bd91-9e6b22228f4d",
-      "4_Sensor_bank5"
-    ],
-    [
-      "25c23f8c-98d8-4cf3-af53-bf3a2aa69c0d",
-      "4_Sensor_bank6"
-    ],
-    [
-      "80523f9a-b0b8-4efa-b3d9-d2f9096ba0cd",
-      "Last_sensor_bank"
-    ],
-    [
-      "926d436b-343e-4461-9833-51817a6a0a90",
-      "Individual Sensor4"
-    ],
-    [
-      "9e491945-3b11-4a52-b357-96278869dc24",
-      "Individual Sensor5"
-    ],
-    [
-      "f866b113-7147-447b-b39a-2624275a8636",
-      "Individual Sensor6"
-    ],
-    [
-      "a64023a5-2ab7-40ed-b0fb-83c93071d343",
-      "Individual Sensor7"
+      "PHOTON_main_controller_1d"
     ]
   ],
   "text_variables": {},
