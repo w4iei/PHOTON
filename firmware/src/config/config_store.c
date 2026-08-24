@@ -17,14 +17,14 @@ bool g_config_from_flash = false;
 static bool core1_running = false;
 static int active_sector = -1;  // sector index (0 or 1) holding the loaded copy
 
-static const uint8_t *sector_ptr(int idx) {
-    return (const uint8_t *)(XIP_BASE + PHOTON_CONFIG_FLASH_OFFS +
+static const uint8_t *sector_ptr_at(uint32_t base, int idx) {
+    return (const uint8_t *)(XIP_BASE + base +
                              (uint32_t)idx * PHOTON_CONFIG_SECTOR_SIZE);
 }
 
-static bool sector_valid(int idx, photon_config_t *out) {
+static bool sector_valid_at(uint32_t base, int idx, photon_config_t *out) {
     photon_config_t c;
-    memcpy(&c, sector_ptr(idx), sizeof c);
+    memcpy(&c, sector_ptr_at(base, idx), sizeof c);
     if (c.magic != PHOTON_CONFIG_MAGIC) {
         return false;
     }
@@ -36,7 +36,7 @@ static bool sector_valid(int idx, photon_config_t *out) {
     // Layout migration: sectors written before manual_channel[] existed are
     // shorter, with the CRC directly after vel_curve. Accept them and default
     // the new field so node id and calibration survive the upgrade.
-    const uint8_t *raw = sector_ptr(idx);
+    const uint8_t *raw = sector_ptr_at(base, idx);
     size_t old_size = sizeof c - sizeof c.manual_channel;
     uint32_t old_crc;
     memcpy(&old_crc, raw + old_size - sizeof old_crc, sizeof old_crc);
@@ -46,6 +46,10 @@ static bool sector_valid(int idx, photon_config_t *out) {
     memset(out, 0, sizeof *out);
     memcpy(out, raw, old_size - sizeof old_crc);
     return true;
+}
+
+static bool sector_valid(int idx, photon_config_t *out) {
+    return sector_valid_at(PHOTON_CONFIG_FLASH_OFFS, idx, out);
 }
 
 static void load_defaults(void) {
@@ -91,6 +95,24 @@ void config_store_init(void) {
         active_sector = va ? 0 : 1;
         g_config = va ? a : b;
         g_config_from_flash = true;
+    } else if (sector_valid_at(PHOTON_CONFIG_LEGACY_OFFS, 0, &a) ||
+               sector_valid_at(PHOTON_CONFIG_LEGACY_OFFS, 1, &b)) {
+        // Flash-size migration: this board was previously flashed by a build
+        // that anchored the config to the top of a 16 MB part. Adopt it so
+        // node id and calibration survive; the next save writes it to the
+        // flash-size-agnostic location and the old copy is simply orphaned.
+        photon_config_t la, lb;
+        bool va2 = sector_valid_at(PHOTON_CONFIG_LEGACY_OFFS, 0, &la);
+        bool vb2 = sector_valid_at(PHOTON_CONFIG_LEGACY_OFFS, 1, &lb);
+        if (va2 && vb2) {
+            g_config = (int32_t)(la.version - lb.version) >= 0 ? la : lb;
+        } else {
+            g_config = va2 ? la : lb;
+        }
+        active_sector = -1;          // force the next save onto the new base
+        g_config_from_flash = true;
+        log_info("config migrated from the 16 MB location (v%lu); "
+                 "it moves on the next save", (unsigned long)g_config.version);
     } else {
         active_sector = -1;
         load_defaults();

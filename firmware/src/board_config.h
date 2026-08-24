@@ -142,5 +142,10 @@
 // ---------------------------------------------------------------------------
 #define PHOTON_CONFIG_SECTOR_SIZE 4096u
 #define PHOTON_CONFIG_FLASH_OFFS  (PICO_FLASH_SIZE_BYTES - 2u * PHOTON_CONFIG_SECTOR_SIZE)
+// Where the config lived when the firmware was built for a 16 MB part. Read
+// only, for one-way migration onto the flash-size-agnostic location above.
+// Harmless on a 2 MB device: the address is inside the 16 MB XIP window, and
+// the flash simply wraps, so the CRC check rejects whatever comes back.
+#define PHOTON_CONFIG_LEGACY_OFFS (16u * 1024u * 1024u - 2u * PHOTON_CONFIG_SECTOR_SIZE)
 
 #endif // PHOTON_BOARD_CONFIG_H

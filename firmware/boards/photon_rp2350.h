@@ -12,8 +12,17 @@
 #define PICO_RP2350A 1
 #define PICO_XOSC_STARTUP_DELAY_MULTIPLIER 64
 
-// Winbond W25Q128JVxQ, 16 MB QSPI flash.
-#define PICO_FLASH_SIZE_BYTES (16 * 1024 * 1024)
+// Flash size is deliberately set to the SMALLER of the two parts we ship on,
+// so ONE UF2 runs on both:
+//   RP2350A + external Winbond W25Q128JVxQ ... 16 MB
+//   RP2354A with 2 MB stacked W25Q16JVWI   ...  2 MB
+// The firmware image is ~82 kB, so 2 MB is ample; the only size-dependent
+// item is the config store, which anchors to the top of flash (see
+// PHOTON_CONFIG_FLASH_OFFS) and therefore must live inside 2 MB to be valid
+// on both. config_store.c additionally reads the old 16 MB location so that
+// boards previously flashed with a 16 MB build keep their node id and
+// calibration across the upgrade.
+#define PICO_FLASH_SIZE_BYTES (2 * 1024 * 1024)
 #define PICO_FLASH_SPI_CLKDIV 2
 
 #define PICO_BOOT_STAGE2_CHOOSE_W25Q080 1
