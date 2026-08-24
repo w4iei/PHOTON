@@ -40,8 +40,39 @@ fault.
 For more than two boards, either:
 - distribute **5 V** on the inter-board cables so each board regulates locally
   with its own LDO (the part is already fitted on every sensor board), or
-- feed the shared 3.3 V rail from a dedicated supply or buck converter sized
-  for the whole chain, rather than from one board's regulator.
+- feed the shared 3.3 V rail from a **buck converter** sized for the whole
+  chain, rather than from one board's linear regulator.
+
+### Measured: LDO vs buck on the four-board chain
+
+Main controller board rev 1D replaced the NCP1117 with a buck. Same four
+sensor boards, same firmware, same scan settings, measured at the 5 V input:
+
+| | NCP1117 (linear) | Buck |
+|---|---|---|
+| Input power | 3.93 W (0.79 A @ 5 V) | **2.70 W (0.54 A @ 5 V)** |
+| Conversion efficiency | 3.3/5 = **66%**, fixed | ~90% |
+| Delivered to the 3.3 V rail | ~2.6 W | ~2.4 W |
+| Wasted as heat | **~1.34 W** | ~0.27 W |
+| Board temperature | hot to the touch | cool |
+
+**The load did not change** — the 3.3 V-side current is ~0.75 A either way.
+The 1.2 W saved is almost exactly the heat the LDO was dissipating across its
+1.7 V drop.
+
+How far outside its ratings the linear part was running:
+
+| Scan setting | LDO current | vs 1.0 A rating | Heat | vs ~1 W SOT-223 capability |
+|---|---|---|---|---|
+| 400 Hz parallel | 1.00 A | **at the limit** | 1.70 W | **170%** |
+| 300 Hz sequential | 0.79 A | 79% | 1.34 W | **134%** |
+
+Note the thermal limit binds well before the current limit. **Firmware tuning
+could not have fixed this**: even after scan-mode and rate optimisation cut
+system power from 5 W to 3.93 W, the regulator was still at 134% of its
+thermal budget, because the emitters are only ~5% of system power while the
+regulator's 66% efficiency accounted for ~34% of it. Use a buck for any chain
+beyond two boards.
 
 **Add more bulk capacitance on the next revision.** The emitter load is
 pulsed, not steady: a sweep lights LEDs for a few hundred microseconds at a
