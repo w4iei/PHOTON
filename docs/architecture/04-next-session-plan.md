@@ -1,6 +1,10 @@
 # Next Bench Session — Plan
 
-Short and ordered. Do 1 first (it needs no hardware), then 2, then 3.
+Short and ordered.
+
+**Step 2a is software-only and must happen before any config field is added** —
+it is the one item that can silently destroy all four boards' calibration.
+Everything else needs the hardware connected.
 
 ## 1. Power characterisation + RS-485 sanity (~15 min)
 
@@ -53,12 +57,51 @@ question the user will iterate on: add `velrange <min> <max>` to the console
 sample library without reflashing. Bridge-side only — velocity is computed in
 `midi_map_velocity()` on the bridge.
 
-**Config-layout hazard — fix it properly this time.** `sector_valid()` in
-`config_store.c` hardcodes exactly ONE legacy layout. Appending two more
-fields creates a third layout that would fail both CRC checks and silently
-wipe calibration and node ids. Before adding fields, add a stored
-length/version to the config header so any older valid prefix migrates
-generically. This was flagged in the code review and is now due.
+### 2a. FIRST: generalise the config-layout migration (do this before 2b)
+
+Pure software, no hardware needed, testable on the host. **Do it before
+appending any field**, or all four boards lose calibration and node ids the
+moment they are flashed.
+
+Why. The config record ends with a CRC32 over everything preceding it, so the
+reader must know the record's exact length to locate and verify it:
+
+| | layout | ends with |
+|---|---|---|
+| v1 | original | `... vel_curve, crc` |
+| **v2** | **what all four boards hold today** | `... vel_curve, manual_channel[3], crc` |
+| v3 | after appending velocity range | `... manual_channel[3], vel_out_min, vel_out_max, crc` |
+
+`sector_valid()` currently tries exactly TWO offsets: the current struct size,
+and "current size minus `sizeof(manual_channel)`". Today those are v2 and v1,
+so both are covered. Make v3 current and those two become v3 and *v3 minus 3
+bytes* — which is **not v2**. Every board's record then fails both checks,
+`config_store_init()` calls `load_defaults()`, calibration is wiped and every
+node returns as `node_id = 1` (all four answering at the same bus address).
+
+Note reflashing is NOT the hazard — config lives above the program region and
+survives. The hazard is the new firmware failing to *recognise* what survived.
+
+Fix (~10 lines in `sector_valid()`): replace the single hardcoded fallback
+with a loop over a table of known historical record sizes. The struct only
+ever grows by appending, so size uniquely identifies the layout:
+
+```c
+// Historical record sizes, newest first. Append one entry whenever a field
+// is added to photon_config_t; never reorder or remove entries.
+static const size_t k_layout_sizes[] = {
+    sizeof(photon_config_t),                                    // v3
+    offsetof(photon_config_t, vel_out_min) + sizeof(uint32_t),  // v2 + crc
+    offsetof(photon_config_t, manual_channel) + sizeof(uint32_t)// v1 + crc
+};
+```
+For each size: read the CRC from `base + size - 4`, verify over the preceding
+`size - 4` bytes, and on a match zero-fill the remainder of the struct so new
+fields take their defaults. Add a host test in `firmware/test/host` that
+builds a v1 and a v2 record and asserts both load with node id and cal_min
+intact.
+
+### 2b. Then: the velocity change itself
 
 ## 3. Rev-bump the second controller board
 
