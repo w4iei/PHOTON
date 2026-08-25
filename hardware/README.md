@@ -86,6 +86,15 @@ emitter drivers), not the 10-47 uF normally sprinkled around. Caps only fix the
 resistance or an undersized regulator, so they complement the 5 V distribution
 change above rather than replacing it.
 
+## TODO — next revisions
+- **Rev-bump the second main controller board** to the rev 1D power system:
+  buck regulator instead of the NCP1117, and RP2354 (2 MB internal flash) in
+  place of RP2350 + external W25Q128. See the LDO-vs-buck measurements above.
+- Add bulk capacitance (~1 mF/board) near the emitter drivers, per the power
+  budget section.
+- Consider distributing 5 V rather than 3.3 V on inter-board cables, so each
+  board regulates locally — removes any dependence on one board's regulator.
+
 ## Verification
 Manual review is required after replication and before fabrication.
 
