@@ -23,6 +23,15 @@ Expected: still dominated by fixed baseline (~2.4 W delivered), with mode/rate
 worth only a few hundred mW. Record in `hardware/README.md` next to the
 LDO-vs-buck table. **Do NOT test mode 0** — quarantined, see 03-plan.
 
+Not pursuing further power work. For the record, in case it comes up again:
+core 1 busy-waits (`wait_until_us` -> `busy_wait_us_32`) through its ~76% idle
+gap rather than sleeping, so a WFE/timer wait is available. It is NOT worth
+doing — datasheet 14.9.7.3 puts a single RP2350 core at 150 MHz at ~39 mW for
+the whole chip, so halting core 1 on four boards saves roughly 0.08 W of 2.7 W
+(~3%). Note also that component estimates do not account for ~500 mA of the
+3.3 V rail; if power ever matters again, measure the per-board increment
+(bridge alone, then +1/+2/+3/+4 boards) rather than modelling it.
+
 Then RS-485, 20 s only (nothing in the transport changed):
 ```
 test 100          # broadcast load
