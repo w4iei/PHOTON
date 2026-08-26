@@ -6,7 +6,7 @@
 	(paper "A4")
 	(title_block
 		(date "2026-04-22")
-		(rev "E")
+		(rev "B")
 		(company "Noah Jaffe")
 	)
 	(lib_symbols
@@ -667,7 +667,7 @@
 			(on_board yes)
 			(in_pos_files yes)
 			(duplicate_pin_numbers_are_jumpers no)
-			(property "Reference" "U"
+			(property "Reference" "U3801"
 				(at 33.02 10.16 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -687,7 +687,7 @@
 					)
 				)
 			)
-			(property "Footprint" "WQFN16_RTE_TEX"
+			(property "Footprint" "footprints:WQFN16_RTE_TEX"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -947,7 +947,7 @@
 						)
 					)
 				)
-				(pin power_out line
+				(pin power_in line
 					(at 66.04 -20.32 180)
 					(length 7.62)
 					(name "GND"
@@ -1001,7 +1001,7 @@
 						)
 					)
 				)
-				(pin output line
+				(pin tri_state line
 					(at 66.04 -12.7 180)
 					(length 7.62)
 					(name "SDO"
@@ -1091,7 +1091,9 @@
 						)
 					)
 				)
-				(pin power_out line
+			)
+			(symbol "TLA2518IRTER_1_1"
+				(pin power_in line
 					(at 66.04 0 180)
 					(length 7.62)
 					(name "GND"
@@ -1112,6 +1114,16 @@
 			)
 			(embedded_fonts no)
 		)
+	)
+	(text "Place these caps next to ADC input pins"
+		(exclude_from_sim no)
+		(at 235.712 127.254 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "7be6afa8-6c71-4c86-8d88-eb94a555b253")
 	)
 	(junction
 		(at 87.63 118.11)
@@ -1213,6 +1225,26 @@
 	)
 	(wire
 		(pts
+			(xy 251.46 109.22) (xy 257.81 109.22)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "38fedbcf-7991-446c-aa47-c242752cb194")
+	)
+	(wire
+		(pts
+			(xy 238.76 109.22) (xy 246.38 109.22)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "3be86eb0-c660-4bba-ba47-77202955eb3b")
+	)
+	(wire
+		(pts
 			(xy 90.17 102.87) (xy 100.33 102.87)
 		)
 		(stroke
@@ -1293,6 +1325,16 @@
 	)
 	(wire
 		(pts
+			(xy 210.82 109.22) (xy 218.44 109.22)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a9869761-a5e3-4bde-81fa-c4d71eff61d7")
+	)
+	(wire
+		(pts
 			(xy 187.96 118.11) (xy 166.37 118.11)
 		)
 		(stroke
@@ -1310,6 +1352,16 @@
 			(type default)
 		)
 		(uuid "c0b6ef55-f680-45de-abd1-67906cd1eeb9")
+	)
+	(wire
+		(pts
+			(xy 224.79 109.22) (xy 232.41 109.22)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "ca47df43-3b8a-4498-88c7-6459dd84e650")
 	)
 	(wire
 		(pts
@@ -1421,6 +1473,16 @@
 		)
 		(uuid "30df3bd2-7b99-4276-bdd6-86732b7023d5")
 	)
+	(label "Y0"
+		(at 218.44 109.22 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "315f0975-378a-4149-99e7-dfb09385a212")
+	)
 	(label "EN2"
 		(at 102.87 67.31 0)
 		(effects
@@ -1440,6 +1502,26 @@
 			(justify right bottom)
 		)
 		(uuid "47b45c6e-d167-4b64-acf7-75afc3a8ea74")
+	)
+	(label "Y1"
+		(at 232.41 109.22 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "4978691c-cf00-4899-977e-a38f306a6dab")
+	)
+	(label "Y2"
+		(at 246.38 109.22 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "4a7a6738-bd44-4ae4-8962-37972c7462d3")
 	)
 	(label "Y2"
 		(at 90.17 105.41 0)
@@ -1500,6 +1582,16 @@
 			(justify right bottom)
 		)
 		(uuid "913b912d-65e3-4508-a371-24bcd11801f8")
+	)
+	(label "Y3"
+		(at 257.81 109.22 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "a81c3f55-f8e0-4400-a959-00d860e5f559")
 	)
 	(label "EN1"
 		(at 90.17 107.95 0)
@@ -1744,6 +1836,84 @@
 		)
 	)
 	(symbol
+		(lib_id "power:GND")
+		(at 210.82 116.84 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "26c6ac3e-7631-45d4-9030-fb52ecadde13")
+		(property "Reference" "#PWR03802"
+			(at 210.82 123.19 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GND"
+			(at 210.82 121.92 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 210.82 116.84 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 210.82 116.84 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 210.82 116.84 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "1be3585f-f2a7-4bdc-a859-c7c0b7485556")
+		)
+		(instances
+			(project "002_Sensor_PI_RS485 board"
+				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef/80523f9a-b0b8-4efa-b3d9-d2f9096ba0cd"
+					(reference "#PWR03802")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:C")
 		(at 177.8 132.08 0)
 		(unit 1)
@@ -1903,6 +2073,244 @@
 	)
 	(symbol
 		(lib_id "Device:C")
+		(at 238.76 113.03 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "36e4a1e6-9224-454b-b7b9-ea1bc7b7b35a")
+		(property "Reference" "C3806"
+			(at 242.316 112.522 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "1 nF"
+			(at 241.808 116.078 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
+			(at 239.7252 116.84 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 238.76 113.03 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Unpolarized capacitor"
+			(at 238.76 113.03 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "2"
+			(uuid "e2c7a8f8-6816-4e55-9e3d-5937c3049925")
+		)
+		(pin "1"
+			(uuid "9977f584-670a-41b6-8a10-568d71a047b7")
+		)
+		(instances
+			(project "002_Sensor_PI_RS485 board"
+				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef/80523f9a-b0b8-4efa-b3d9-d2f9096ba0cd"
+					(reference "C3806")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:C")
+		(at 210.82 113.03 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "46aedb15-358f-4847-acde-09b665154ac6")
+		(property "Reference" "C3804"
+			(at 214.376 112.522 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "1 nF"
+			(at 213.868 116.078 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
+			(at 211.7852 116.84 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 210.82 113.03 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Unpolarized capacitor"
+			(at 210.82 113.03 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "2"
+			(uuid "7d5811fc-ab2a-4f4e-a83b-a29022944d55")
+		)
+		(pin "1"
+			(uuid "6456dec8-a4dc-4fb8-b75e-2b28baa04682")
+		)
+		(instances
+			(project "002_Sensor_PI_RS485 board"
+				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef/80523f9a-b0b8-4efa-b3d9-d2f9096ba0cd"
+					(reference "C3804")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Mechanical:MountingHole")
+		(at 144.78 69.85 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "55e9e32f-8eb6-468e-bce7-eb1304a7c72d")
+		(property "Reference" "H3802"
+			(at 147.32 68.5799 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "Mousebites to detatch sensor"
+			(at 147.32 71.1199 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "custom_mousebite:mousebite"
+			(at 144.78 69.85 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 144.78 69.85 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Mounting Hole without connection"
+			(at 144.78 69.85 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(instances
+			(project "002_Sensor_PI_RS485 board"
+				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef/80523f9a-b0b8-4efa-b3d9-d2f9096ba0cd"
+					(reference "H3802")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:C")
 		(at 99.06 124.46 0)
 		(unit 1)
 		(body_style 1)
@@ -1977,6 +2385,165 @@
 			(project "002_Sensor_PI_RS485 board"
 				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef/80523f9a-b0b8-4efa-b3d9-d2f9096ba0cd"
 					(reference "C3802")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:GND")
+		(at 224.79 116.84 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "6fdb14d4-83b7-45aa-8725-e33c9c4dad0a")
+		(property "Reference" "#PWR03803"
+			(at 224.79 123.19 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GND"
+			(at 224.79 121.92 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 224.79 116.84 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 224.79 116.84 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 224.79 116.84 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "9104d012-bc8a-474b-a5ba-b6361a1c0d96")
+		)
+		(instances
+			(project "002_Sensor_PI_RS485 board"
+				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef/80523f9a-b0b8-4efa-b3d9-d2f9096ba0cd"
+					(reference "#PWR03803")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:C")
+		(at 224.79 113.03 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "7af9dffc-4e4b-4106-bf5b-334c484e1a05")
+		(property "Reference" "C3805"
+			(at 228.346 112.522 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "1 nF"
+			(at 227.838 116.078 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
+			(at 225.7552 116.84 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 224.79 113.03 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Unpolarized capacitor"
+			(at 224.79 113.03 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "2"
+			(uuid "ca582a95-c8ac-41e0-b515-7bdecce2b567")
+		)
+		(pin "1"
+			(uuid "8c57799e-068c-4066-a06a-fc286ded1464")
+		)
+		(instances
+			(project "002_Sensor_PI_RS485 board"
+				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef/80523f9a-b0b8-4efa-b3d9-d2f9096ba0cd"
+					(reference "C3805")
 					(unit 1)
 				)
 			)
@@ -2216,6 +2783,87 @@
 		)
 	)
 	(symbol
+		(lib_id "Device:C")
+		(at 251.46 113.03 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "c316dd52-eadd-4324-a7a1-1056bf8ecb3e")
+		(property "Reference" "C3807"
+			(at 255.016 112.522 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "1 nF"
+			(at 254.508 116.078 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
+			(at 252.4252 116.84 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 251.46 113.03 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Unpolarized capacitor"
+			(at 251.46 113.03 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "2"
+			(uuid "aef1d886-0091-45a7-9998-d15044ca393b")
+		)
+		(pin "1"
+			(uuid "708885c9-b5e8-428d-8722-51c35bb5c819")
+		)
+		(instances
+			(project "002_Sensor_PI_RS485 board"
+				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef/80523f9a-b0b8-4efa-b3d9-d2f9096ba0cd"
+					(reference "C3807")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "tla2518:TLA2518IRTER")
 		(at 100.33 102.87 0)
 		(unit 1)
@@ -2344,7 +2992,7 @@
 	)
 	(symbol
 		(lib_id "Mechanical:MountingHole")
-		(at 139.7 62.23 0)
+		(at 144.78 63.5 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -2355,7 +3003,7 @@
 		(fields_autoplaced yes)
 		(uuid "c6dc0f98-7c77-4297-9740-3a2fe39c6609")
 		(property "Reference" "H3801"
-			(at 142.24 60.9599 0)
+			(at 147.32 62.2299 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -2365,8 +3013,8 @@
 				(justify left)
 			)
 		)
-		(property "Value" "Mousebites to detatch last sensor"
-			(at 142.24 63.4999 0)
+		(property "Value" "Mousebites to detatch sensor"
+			(at 147.32 64.7699 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -2377,7 +3025,7 @@
 			)
 		)
 		(property "Footprint" "custom_mousebite:mousebite"
-			(at 139.7 62.23 0)
+			(at 144.78 63.5 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2388,7 +3036,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 139.7 62.23 0)
+			(at 144.78 63.5 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2399,7 +3047,7 @@
 			)
 		)
 		(property "Description" "Mounting Hole without connection"
-			(at 139.7 62.23 0)
+			(at 144.78 63.5 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2413,6 +3061,84 @@
 			(project "002_Sensor_PI_RS485 board"
 				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef/80523f9a-b0b8-4efa-b3d9-d2f9096ba0cd"
 					(reference "H3801")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:GND")
+		(at 251.46 116.84 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "c7bca1eb-c326-4e3d-8fa1-a3a5922594f2")
+		(property "Reference" "#PWR03805"
+			(at 251.46 123.19 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GND"
+			(at 251.46 121.92 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 251.46 116.84 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 251.46 116.84 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 251.46 116.84 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "9198a552-0ba3-411c-bdb1-bab85cddb3f5")
+		)
+		(instances
+			(project "002_Sensor_PI_RS485 board"
+				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef/80523f9a-b0b8-4efa-b3d9-d2f9096ba0cd"
+					(reference "#PWR03805")
 					(unit 1)
 				)
 			)
@@ -2491,6 +3217,82 @@
 			(project "002_Sensor_PI_RS485 board"
 				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef/80523f9a-b0b8-4efa-b3d9-d2f9096ba0cd"
 					(reference "#PWR03812")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Mechanical:MountingHole")
+		(at 144.78 76.2 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "e23cab24-4545-4667-8999-ae43bd885961")
+		(property "Reference" "H3803"
+			(at 147.32 74.9299 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "Mousebites to detatch sensor"
+			(at 147.32 77.4699 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "custom_mousebite:mousebite"
+			(at 144.78 76.2 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 144.78 76.2 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Mounting Hole without connection"
+			(at 144.78 76.2 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(instances
+			(project "002_Sensor_PI_RS485 board"
+				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef/80523f9a-b0b8-4efa-b3d9-d2f9096ba0cd"
+					(reference "H3803")
 					(unit 1)
 				)
 			)
@@ -2729,6 +3531,84 @@
 			(project "002_Sensor_PI_RS485 board"
 				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef/80523f9a-b0b8-4efa-b3d9-d2f9096ba0cd"
 					(reference "#PWR03811")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:GND")
+		(at 238.76 116.84 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "faada1c3-1ce3-4399-b747-84e7235586ee")
+		(property "Reference" "#PWR03804"
+			(at 238.76 123.19 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GND"
+			(at 238.76 121.92 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 238.76 116.84 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 238.76 116.84 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 238.76 116.84 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "74be1018-9385-4513-9b95-0ebd4dca73c5")
+		)
+		(instances
+			(project "002_Sensor_PI_RS485 board"
+				(path "/b0089fb8-2318-4750-8145-7647caa10afa/8abbdb56-ea85-4864-aa21-196a08be6eef/80523f9a-b0b8-4efa-b3d9-d2f9096ba0cd"
+					(reference "#PWR03804")
 					(unit 1)
 				)
 			)

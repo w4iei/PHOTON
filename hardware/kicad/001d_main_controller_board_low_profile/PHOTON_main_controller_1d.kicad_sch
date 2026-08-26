@@ -6,10 +6,10 @@
 	(paper "A3")
 	(title_block
 		(title "PHOTON Main Controller Board A004")
-		(date "2026-04-22")
-		(rev "A")
+		(date "2026-08-26")
+		(rev "B")
 		(company "Noah Jaffe")
-		(comment 1 "Low profile, with BUCK")
+		(comment 1 "Low profile, with BUCK, 5V RS485")
 	)
 	(lib_symbols
 		(symbol "2025-08-11_08-44-22:TPD4E05U06QDQARQ1"
@@ -6335,7 +6335,7 @@
 	)
 	(text "Inter-board RS-485 UART Interface"
 		(exclude_from_sim no)
-		(at 54.61 148.082 0)
+		(at 55.626 134.366 0)
 		(effects
 			(font
 				(size 3 3)
@@ -6437,6 +6437,12 @@
 		(uuid "17849f98-ed31-4211-a92f-9c7e5846e343")
 	)
 	(junction
+		(at 118.11 223.52)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "1953f0f1-0782-48a2-a0d7-7a49b947862d")
+	)
+	(junction
 		(at 317.5 35.56)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -6447,12 +6453,6 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "231fec91-9a8a-43bf-aec0-bfcd83de3e05")
-	)
-	(junction
-		(at 118.11 223.52)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "250829a3-f3b8-47cd-9738-1c6e17334875")
 	)
 	(junction
 		(at 281.94 44.45)
@@ -6485,12 +6485,6 @@
 		(uuid "2e031a4b-6be1-4d56-8a33-c31878c50929")
 	)
 	(junction
-		(at 33.02 163.83)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "3a14ed08-4fcb-4ebf-9451-6bb480aedcec")
-	)
-	(junction
 		(at 279.4 44.45)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -6501,12 +6495,6 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "3f65e2b0-8810-4d25-9c46-c04163ae1dd1")
-	)
-	(junction
-		(at 66.04 223.52)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "443957aa-5069-4b0c-adb9-d5842b9e30cd")
 	)
 	(junction
 		(at 92.71 95.25)
@@ -6533,12 +6521,6 @@
 		(uuid "469d17b5-37b5-4c82-bba3-cf504abeb271")
 	)
 	(junction
-		(at 38.1 179.07)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "48b84eab-238a-49cb-9671-8e7f711cceb9")
-	)
-	(junction
 		(at 90.17 237.49)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -6549,12 +6531,6 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "5119226b-e22e-4ffe-8056-81a0105130e5")
-	)
-	(junction
-		(at 38.1 163.83)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "526e7638-87a6-4b24-9e00-98d23b3c38f6")
 	)
 	(junction
 		(at 297.18 44.45)
@@ -6713,12 +6689,6 @@
 		(uuid "97700c2d-f589-4e61-be87-006caae77368")
 	)
 	(junction
-		(at 38.1 194.31)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "98419ae5-f5e1-453f-996f-cb40e4ad4a65")
-	)
-	(junction
 		(at 328.93 24.13)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -6771,6 +6741,12 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "cc6dac06-2c36-4ce1-a6f2-55f0fc447e87")
+	)
+	(junction
+		(at 74.93 223.52)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "d62ad043-61bc-4fb3-b26b-5a0171e140ce")
 	)
 	(junction
 		(at 248.92 24.13)
@@ -7248,16 +7224,6 @@
 	)
 	(wire
 		(pts
-			(xy 29.21 179.07) (xy 38.1 179.07)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "1e694300-0131-4885-bb83-1289ab72113e")
-	)
-	(wire
-		(pts
 			(xy 248.92 69.85) (xy 224.79 69.85)
 		)
 		(stroke
@@ -7468,16 +7434,6 @@
 	)
 	(wire
 		(pts
-			(xy 29.21 163.83) (xy 33.02 163.83)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "346dbcfb-aab7-4465-95cb-c2efdfa085fd")
-	)
-	(wire
-		(pts
 			(xy 224.79 69.85) (xy 224.79 62.23)
 		)
 		(stroke
@@ -7678,7 +7634,7 @@
 	)
 	(wire
 		(pts
-			(xy 48.26 223.52) (xy 66.04 223.52)
+			(xy 48.26 223.52) (xy 63.5 223.52)
 		)
 		(stroke
 			(width 0)
@@ -8118,6 +8074,16 @@
 	)
 	(wire
 		(pts
+			(xy 30.48 179.07) (xy 52.07 179.07)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "6b2234a1-f0e1-4547-a156-ddefc7f1ed87")
+	)
+	(wire
+		(pts
 			(xy 43.18 243.84) (xy 48.26 243.84)
 		)
 		(stroke
@@ -8155,16 +8121,6 @@
 			(type default)
 		)
 		(uuid "6ef106f0-48db-4dbb-a0c9-d7f3290b0a71")
-	)
-	(wire
-		(pts
-			(xy 66.04 223.52) (xy 71.12 223.52)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "711d964a-8428-4a00-93a7-b94ebb26c8b2")
 	)
 	(wire
 		(pts
@@ -8288,6 +8244,16 @@
 	)
 	(wire
 		(pts
+			(xy 30.48 163.83) (xy 52.07 163.83)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "7b2b5099-5d86-4d7c-a190-5c56d0afb841")
+	)
+	(wire
+		(pts
 			(xy 30.48 264.16) (xy 30.48 261.62)
 		)
 		(stroke
@@ -8318,16 +8284,6 @@
 	)
 	(wire
 		(pts
-			(xy 29.21 194.31) (xy 38.1 194.31)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "8076d376-27c9-4661-b2f6-73cb6f5252a7")
-	)
-	(wire
-		(pts
 			(xy 201.93 62.23) (xy 217.17 62.23)
 		)
 		(stroke
@@ -8335,16 +8291,6 @@
 			(type default)
 		)
 		(uuid "812e0b49-b6b5-4e24-bafa-83a1570476a9")
-	)
-	(wire
-		(pts
-			(xy 52.07 179.07) (xy 38.1 179.07)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "82109413-ba60-4768-9d4f-b40cbea0a06f")
 	)
 	(wire
 		(pts
@@ -8478,16 +8424,6 @@
 	)
 	(wire
 		(pts
-			(xy 38.1 176.53) (xy 38.1 179.07)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "89dfe1ec-c20e-4c64-a41f-951960cd9432")
-	)
-	(wire
-		(pts
 			(xy 236.22 49.53) (xy 246.38 49.53)
 		)
 		(stroke
@@ -8605,6 +8541,16 @@
 			(type default)
 		)
 		(uuid "8fae986f-14ff-4f0e-a77c-ababd4439db2")
+	)
+	(wire
+		(pts
+			(xy 30.48 194.31) (xy 52.07 194.31)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "9014deff-bba0-48d5-bfe2-79d83b592310")
 	)
 	(wire
 		(pts
@@ -8798,6 +8744,16 @@
 	)
 	(wire
 		(pts
+			(xy 74.93 223.52) (xy 110.49 223.52)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a372b8ad-803f-4539-9da3-ff03fb1c67a3")
+	)
+	(wire
+		(pts
 			(xy 43.18 236.22) (xy 90.17 236.22)
 		)
 		(stroke
@@ -8928,16 +8884,6 @@
 	)
 	(wire
 		(pts
-			(xy 33.02 163.83) (xy 38.1 163.83)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "ac9bd436-a655-4f25-9263-2cd6c1c89a83")
-	)
-	(wire
-		(pts
 			(xy 250.19 191.77) (xy 266.7 191.77)
 		)
 		(stroke
@@ -9008,6 +8954,16 @@
 	)
 	(wire
 		(pts
+			(xy 71.12 223.52) (xy 74.93 223.52)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "af8a5b2d-189e-4c17-b9de-48e81381555c")
+	)
+	(wire
+		(pts
 			(xy 248.92 24.13) (xy 257.81 24.13)
 		)
 		(stroke
@@ -9048,16 +9004,6 @@
 	)
 	(wire
 		(pts
-			(xy 38.1 157.48) (xy 38.1 163.83)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "b5927208-cf97-4682-bec9-ccae1906798a")
-	)
-	(wire
-		(pts
 			(xy 224.79 62.23) (xy 217.17 62.23)
 		)
 		(stroke
@@ -9078,16 +9024,6 @@
 	)
 	(wire
 		(pts
-			(xy 78.74 223.52) (xy 118.11 223.52)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "b8f2f1df-fa3e-4bbf-9a89-6426ef46381f")
-	)
-	(wire
-		(pts
 			(xy 306.07 33.02) (xy 306.07 35.56)
 		)
 		(stroke
@@ -9095,6 +9031,16 @@
 			(type default)
 		)
 		(uuid "b9762282-d1c8-4e0b-9394-8d82e3d47a9f")
+	)
+	(wire
+		(pts
+			(xy 31.75 148.59) (xy 36.83 148.59)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "b98dd563-7e2a-4d2c-b678-3f11fd3b0094")
 	)
 	(wire
 		(pts
@@ -9598,16 +9544,6 @@
 	)
 	(wire
 		(pts
-			(xy 52.07 163.83) (xy 38.1 163.83)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "e9b64c45-febd-465a-aa71-adee680dab65")
-	)
-	(wire
-		(pts
 			(xy 87.63 270.51) (xy 87.63 255.27)
 		)
 		(stroke
@@ -9665,16 +9601,6 @@
 			(type default)
 		)
 		(uuid "f0cb77d5-9d6f-41b4-8caf-eff6f8879c6d")
-	)
-	(wire
-		(pts
-			(xy 52.07 194.31) (xy 38.1 194.31)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "f0fb697f-9082-4e60-9a1f-d8664965440a")
 	)
 	(wire
 		(pts
@@ -9745,16 +9671,6 @@
 			(type default)
 		)
 		(uuid "f7d9e30f-275c-4148-a6ac-f57e9644d0e0")
-	)
-	(wire
-		(pts
-			(xy 38.1 191.77) (xy 38.1 194.31)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "f8a2a287-d7e8-49c5-b13f-e386ff28f626")
 	)
 	(wire
 		(pts
@@ -10894,6 +10810,82 @@
 		)
 	)
 	(symbol
+		(lib_id "power:VBUS")
+		(at 30.48 163.83 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "073da201-44ed-4c7d-8326-cd7cf0accbc6")
+		(property "Reference" "#PWR029"
+			(at 30.48 167.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "VBUS"
+			(at 30.861 159.4358 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 30.48 163.83 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 30.48 163.83 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 30.48 163.83 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "43bd0b8d-317f-46d1-a3d2-7e1602bcffda")
+		)
+		(instances
+			(project "PHOTON_main_controller_1d"
+				(path "/b0089fb8-2318-4750-8145-7647caa10afa"
+					(reference "#PWR029")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "power:+3V3")
 		(at 247.65 177.8 0)
 		(unit 1)
@@ -11311,84 +11303,6 @@
 		)
 	)
 	(symbol
-		(lib_id "power:PWR_FLAG")
-		(at 33.02 163.83 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "0f1fd91f-3b2c-486c-91e9-02578c5615cf")
-		(property "Reference" "#FLG0101"
-			(at 33.02 161.925 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "PWR_FLAG"
-			(at 33.02 158.496 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 33.02 163.83 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 33.02 163.83 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Special symbol for telling ERC where power comes from"
-			(at 33.02 163.83 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "8f9e3f3b-6cad-44bf-b370-d40a49e25937")
-		)
-		(instances
-			(project "PHOTON_main_controller_1d"
-				(path "/b0089fb8-2318-4750-8145-7647caa10afa"
-					(reference "#FLG0101")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "Device:C")
 		(at 226.06 181.61 0)
 		(unit 1)
@@ -11463,6 +11377,82 @@
 			(project "PHOTON_main_controller_1d"
 				(path "/b0089fb8-2318-4750-8145-7647caa10afa"
 					(reference "C105")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:VBUS")
+		(at 31.75 148.59 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "16c8a932-4f4d-48d6-a53d-44eec34f74f3")
+		(property "Reference" "#PWR031"
+			(at 31.75 152.4 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "VBUS"
+			(at 32.131 144.1958 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 31.75 148.59 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 31.75 148.59 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 31.75 148.59 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "8cf67a15-8ac9-4da5-9bb0-5e30545b81bc")
+		)
+		(instances
+			(project "PHOTON_main_controller_1d"
+				(path "/b0089fb8-2318-4750-8145-7647caa10afa"
+					(reference "#PWR031")
 					(unit 1)
 				)
 			)
@@ -11711,6 +11701,82 @@
 			(project "PHOTON_main_controller_1d"
 				(path "/b0089fb8-2318-4750-8145-7647caa10afa"
 					(reference "CR1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:VBUS")
+		(at 30.48 179.07 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "24fd43e0-bdf4-4b6b-9178-82c46ac7fdc4")
+		(property "Reference" "#PWR026"
+			(at 30.48 182.88 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "VBUS"
+			(at 30.861 174.6758 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 30.48 179.07 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 30.48 179.07 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 30.48 179.07 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "fba88c12-5d5c-43f7-a7b2-645a4098eed8")
+		)
+		(instances
+			(project "PHOTON_main_controller_1d"
+				(path "/b0089fb8-2318-4750-8145-7647caa10afa"
+					(reference "#PWR026")
 					(unit 1)
 				)
 			)
@@ -12320,7 +12386,7 @@
 	)
 	(symbol
 		(lib_id "power:VBUS")
-		(at 66.04 223.52 0)
+		(at 74.93 223.52 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -12330,7 +12396,7 @@
 		(dnp no)
 		(uuid "3995526b-5933-4931-b2a7-cf571197e6fd")
 		(property "Reference" "#PWR08"
-			(at 66.04 227.33 0)
+			(at 74.93 227.33 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12341,7 +12407,7 @@
 			)
 		)
 		(property "Value" "VBUS"
-			(at 66.421 219.1258 0)
+			(at 75.311 219.1258 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -12351,7 +12417,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 66.04 223.52 0)
+			(at 74.93 223.52 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12362,7 +12428,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 66.04 223.52 0)
+			(at 74.93 223.52 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12373,7 +12439,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 66.04 223.52 0)
+			(at 74.93 223.52 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -12549,7 +12615,7 @@
 	)
 	(symbol
 		(lib_id "Device:FerriteBead")
-		(at 74.93 223.52 90)
+		(at 114.3 223.52 90)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -12560,7 +12626,7 @@
 		(fields_autoplaced yes)
 		(uuid "3dc97761-d7cd-4bdf-8fb0-afafde87444d")
 		(property "Reference" "FB1"
-			(at 74.8792 215.9 90)
+			(at 114.2492 215.9 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -12570,7 +12636,7 @@
 			)
 		)
 		(property "Value" "FerriteBead"
-			(at 74.8792 218.44 90)
+			(at 114.2492 218.44 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -12580,7 +12646,7 @@
 			)
 		)
 		(property "Footprint" "Inductor_SMD:L_0603_1608Metric"
-			(at 74.93 225.298 90)
+			(at 114.3 225.298 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12591,7 +12657,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 74.93 223.52 0)
+			(at 114.3 223.52 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12602,7 +12668,7 @@
 			)
 		)
 		(property "Description" "Ferrite bead"
-			(at 74.93 223.52 0)
+			(at 114.3 223.52 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12613,7 +12679,7 @@
 			)
 		)
 		(property "JLCPCB Part #" "C14709"
-			(at 74.93 223.52 90)
+			(at 114.3 223.52 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -12796,82 +12862,6 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 19.05 163.83 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "42e2e8a5-8870-491a-b670-8a8546878fee")
-		(property "Reference" "#PWR0111"
-			(at 19.05 170.18 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "GND"
-			(at 23.114 168.148 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 19.05 163.83 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 19.05 163.83 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 19.05 163.83 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "86f5d95d-43a3-4eb2-9ef1-e3fbf3c48b4b")
-		)
-		(instances
-			(project "PHOTON_main_controller_1d"
-				(path "/b0089fb8-2318-4750-8145-7647caa10afa"
-					(reference "#PWR0111")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "power:GND")
 		(at 107.95 144.78 0)
 		(unit 1)
 		(body_style 1)
@@ -13025,6 +13015,82 @@
 		)
 	)
 	(symbol
+		(lib_id "power:GND")
+		(at 46.99 148.59 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "4c42564d-1065-4ef3-8330-0bff54822bf3")
+		(property "Reference" "#PWR030"
+			(at 46.99 154.94 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GND"
+			(at 50.292 150.876 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 46.99 148.59 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 46.99 148.59 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 46.99 148.59 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "b60ad54c-0e08-4e51-9e29-b493d3f6ba23")
+		)
+		(instances
+			(project "PHOTON_main_controller_1d"
+				(path "/b0089fb8-2318-4750-8145-7647caa10afa"
+					(reference "#PWR030")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:C")
 		(at 363.22 29.21 0)
 		(unit 1)
@@ -13099,82 +13165,6 @@
 			(project "PHOTON_main_controller_1d"
 				(path "/b0089fb8-2318-4750-8145-7647caa10afa"
 					(reference "C20")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "power:+3V3")
-		(at 38.1 176.53 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "52821a4e-26dd-453c-8d9c-698360f982ef")
-		(property "Reference" "#PWR0117"
-			(at 38.1 180.34 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "+3V3"
-			(at 38.481 172.1358 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 38.1 176.53 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 38.1 176.53 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 38.1 176.53 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "a9ccd19d-fb8d-4e33-a29b-0d0d794fd12b")
-		)
-		(instances
-			(project "PHOTON_main_controller_1d"
-				(path "/b0089fb8-2318-4750-8145-7647caa10afa"
-					(reference "#PWR0117")
 					(unit 1)
 				)
 			)
@@ -14490,6 +14480,97 @@
 		)
 	)
 	(symbol
+		(lib_id "Device:D_Schottky")
+		(at 67.31 223.52 0)
+		(mirror y)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "7998eaa2-a967-4fa3-9930-d8ecd4bc9bc3")
+		(property "Reference" "D1"
+			(at 67.6275 217.17 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "SS14"
+			(at 67.6275 219.71 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Diode_SMD:D_SMA"
+			(at 67.31 223.52 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 67.31 223.52 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Schottky diode"
+			(at 67.31 223.52 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "JLCPCB Part #" "C2480"
+			(at 67.31 223.52 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "2"
+			(uuid "8156d573-ba89-4f55-8e1b-5a9ae1604dda")
+		)
+		(pin "1"
+			(uuid "f6af2fcc-54e5-4f70-b22f-e4af20f3bdfb")
+		)
+		(instances
+			(project "PHOTON_main_controller_1d"
+				(path "/b0089fb8-2318-4750-8145-7647caa10afa"
+					(reference "D1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "power:GND")
 		(at 58.42 218.44 0)
 		(unit 1)
@@ -14796,6 +14877,82 @@
 		)
 	)
 	(symbol
+		(lib_id "power:VBUS")
+		(at 30.48 194.31 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "872668dc-c98f-4eb7-a952-523e30ea7b74")
+		(property "Reference" "#PWR018"
+			(at 30.48 198.12 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "VBUS"
+			(at 30.861 189.9158 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 30.48 194.31 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 30.48 194.31 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 30.48 194.31 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "8cfc8eaf-cdff-433d-83af-2b6923e08f15")
+		)
+		(instances
+			(project "PHOTON_main_controller_1d"
+				(path "/b0089fb8-2318-4750-8145-7647caa10afa"
+					(reference "#PWR018")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "2025-08-11_08-49-29:SMF5.0A")
 		(at 58.42 91.44 0)
 		(mirror y)
@@ -14883,98 +15040,6 @@
 			(project "PHOTON_main_controller_1d"
 				(path "/b0089fb8-2318-4750-8145-7647caa10afa"
 					(reference "CR5")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "2025-08-11_08-49-29:SMF5.0A")
-		(at 19.05 163.83 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "8a1c1864-4ead-4be8-be16-7003450e66dc")
-		(property "Reference" "CR101"
-			(at 24.13 170.434 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.524 1.524)
-				)
-			)
-		)
-		(property "Value" "H7VHD3UA"
-			(at 23.114 159.766 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.524 1.524)
-				)
-			)
-		)
-		(property "Footprint" "Diode_SMD:D_SOD-323"
-			(at 19.05 163.83 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-					(italic yes)
-				)
-			)
-		)
-		(property "Datasheet" "https://jlcpcb.com/api/file/downloadByFileSystemAccessId/8590925244540530688"
-			(at 19.05 163.83 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-					(italic yes)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 19.05 163.83 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "JLCPCB Part #" "C20615807"
-			(at 19.05 163.83 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "2"
-			(uuid "14e9d9dc-fd80-4244-90f0-597fe1eb4ac2")
-		)
-		(pin "1"
-			(uuid "c35ff18c-7bee-4fbb-817f-4515bdbc5abb")
-		)
-		(instances
-			(project "PHOTON_main_controller_1d"
-				(path "/b0089fb8-2318-4750-8145-7647caa10afa"
-					(reference "CR101")
 					(unit 1)
 				)
 			)
@@ -17413,6 +17478,98 @@
 		)
 	)
 	(symbol
+		(lib_id "2025-08-11_08-49-29:SMF5.0A")
+		(at 46.99 148.59 180)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "be5a4661-c6eb-4ecb-9d57-8319ed0d0a51")
+		(property "Reference" "CR2"
+			(at 41.91 141.986 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.524 1.524)
+				)
+			)
+		)
+		(property "Value" "H7VHD3UA"
+			(at 41.91 144.78 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.524 1.524)
+				)
+			)
+		)
+		(property "Footprint" "Diode_SMD:D_SOD-323"
+			(at 46.99 148.59 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+					(italic yes)
+				)
+			)
+		)
+		(property "Datasheet" "https://jlcpcb.com/api/file/downloadByFileSystemAccessId/8590925244540530688"
+			(at 46.99 148.59 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+					(italic yes)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 46.99 148.59 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "JLCPCB Part #" "C20615807"
+			(at 46.99 148.59 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "2"
+			(uuid "49875e81-08e7-4903-9b71-c7d49d3ccf3d")
+		)
+		(pin "1"
+			(uuid "4933da55-cc29-42e8-8acd-f480df26dd97")
+		)
+		(instances
+			(project "PHOTON_main_controller_1d"
+				(path "/b0089fb8-2318-4750-8145-7647caa10afa"
+					(reference "CR2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:D_Schottky")
 		(at 54.61 101.6 0)
 		(mirror x)
@@ -18133,82 +18290,6 @@
 		)
 	)
 	(symbol
-		(lib_id "power:+3V3")
-		(at 38.1 191.77 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "cd647c42-5a8d-4d7b-82cd-1654300af1b1")
-		(property "Reference" "#PWR0119"
-			(at 38.1 195.58 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "+3V3"
-			(at 38.481 187.3758 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 38.1 191.77 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 38.1 191.77 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 38.1 191.77 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "2d6ab799-c174-4204-88eb-3a7c3e1e107e")
-		)
-		(instances
-			(project "PHOTON_main_controller_1d"
-				(path "/b0089fb8-2318-4750-8145-7647caa10afa"
-					(reference "#PWR0119")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "power:GND")
 		(at 149.86 160.02 0)
 		(unit 1)
@@ -18836,82 +18917,6 @@
 			(project "PHOTON_main_controller_1d"
 				(path "/b0089fb8-2318-4750-8145-7647caa10afa"
 					(reference "R233")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "power:+3V3")
-		(at 38.1 157.48 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "dcc24bbc-9e7c-4f31-8517-1a05ae5b88ca")
-		(property "Reference" "#PWR0112"
-			(at 38.1 161.29 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "+3V3"
-			(at 38.481 153.0858 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 38.1 157.48 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 38.1 157.48 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 38.1 157.48 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "43d7b19c-c2fb-4d34-a0e5-1392c6c3d0e1")
-		)
-		(instances
-			(project "PHOTON_main_controller_1d"
-				(path "/b0089fb8-2318-4750-8145-7647caa10afa"
-					(reference "#PWR0112")
 					(unit 1)
 				)
 			)

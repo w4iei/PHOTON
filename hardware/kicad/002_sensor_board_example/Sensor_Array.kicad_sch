@@ -7,7 +7,7 @@
 	(title_block
 		(title "8x4-Channel LED Sensor Array")
 		(date "2026-04-22")
-		(rev "E")
+		(rev "B")
 		(company "Noah Jaffe")
 		(comment 1 "SPI Sensor Bank Connections")
 	)

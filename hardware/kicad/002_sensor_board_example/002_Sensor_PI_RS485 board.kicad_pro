@@ -3,6 +3,8 @@
     "3dviewports": [],
     "design_settings": {
       "defaults": {
+        "apply_defaults_to_fp_barcodes": false,
+        "apply_defaults_to_fp_dimensions": false,
         "apply_defaults_to_fp_fields": false,
         "apply_defaults_to_fp_shapes": false,
         "apply_defaults_to_fp_text": false,
@@ -48,7 +50,23 @@
         "silk_text_thickness": 0.1,
         "silk_text_upright": false,
         "zones": {
-          "min_clearance": 0.5
+          "border_display_style": 2,
+          "border_hatch_pitch": 0.5,
+          "corner_radius": 0.0,
+          "corner_smoothing": 0,
+          "fill_mode": 0,
+          "hatch_gap": 1.5,
+          "hatch_orientation": 0.0,
+          "hatch_smoothing_level": 0,
+          "hatch_smoothing_value": 0.1,
+          "hatch_thickness": 1.0,
+          "min_clearance": 0.5,
+          "min_island_area": 10.0,
+          "min_thickness": 0.25,
+          "pad_connection": 1,
+          "remove_islands": 0,
+          "thermal_relief_gap": 0.5,
+          "thermal_relief_spoke_width": 0.5
         }
       },
       "diff_pair_dimensions": [
@@ -77,6 +95,7 @@
         "extra_footprint": "warning",
         "footprint": "error",
         "footprint_filters_mismatch": "ignore",
+        "footprint_symbol_field_mismatch": "warning",
         "footprint_symbol_mismatch": "warning",
         "footprint_type_mismatch": "ignore",
         "hole_clearance": "error",
@@ -94,6 +113,7 @@
         "mirrored_text_on_front_layer": "warning",
         "missing_courtyard": "ignore",
         "missing_footprint": "warning",
+        "missing_tuning_profile": "warning",
         "net_conflict": "warning",
         "nonmirrored_text_on_back_layer": "warning",
         "npth_inside_courtyard": "ignore",
@@ -113,9 +133,12 @@
         "too_many_vias": "error",
         "track_angle": "error",
         "track_dangling": "warning",
+        "track_not_centered_on_via": "ignore",
+        "track_on_post_machined_layer": "error",
         "track_segment_length": "error",
         "track_width": "error",
         "tracks_crossing": "error",
+        "tuning_profile_track_geometries": "ignore",
         "unconnected_items": "error",
         "unresolved_variable": "error",
         "via_dangling": "warning",
@@ -230,7 +253,7 @@
       "internal_id": "",
       "mfg": "",
       "mpn": "",
-      "sch_revision": "E"
+      "sch_revision": "B"
     },
     "layer_pairs": [],
     "layer_presets": [],
@@ -250,7 +273,44 @@
     "equivalence_files": []
   },
   "erc": {
-    "erc_exclusions": [],
+    "erc_exclusions": [
+      [
+        "isolated_pin_label|3302000|1016000|8c253eed-d7d9-44c4-83c3-ab8a29611a69|00000000-0000-0000-0000-000000000000|/b0089fb8-2318-4750-8145-7647caa10afa||",
+        ""
+      ],
+      [
+        "isolated_pin_label|3302000|1041400|df33d776-8b2a-497f-bc33-72b242e93be9|00000000-0000-0000-0000-000000000000|/b0089fb8-2318-4750-8145-7647caa10afa||",
+        ""
+      ],
+      [
+        "isolated_pin_label|3302000|1066800|80888f08-652f-40fb-90af-808f47a68ee0|00000000-0000-0000-0000-000000000000|/b0089fb8-2318-4750-8145-7647caa10afa||",
+        ""
+      ],
+      [
+        "isolated_pin_label|3302000|939800|2924fe3e-c549-47e4-b7e4-022c390e7f71|00000000-0000-0000-0000-000000000000|/b0089fb8-2318-4750-8145-7647caa10afa||",
+        ""
+      ],
+      [
+        "multiple_net_names|3302000|838200|160f1d17-5e4f-4783-843f-a627142d09c5|2ec1bebc-f534-4aba-9654-5e7397f4a163|/b0089fb8-2318-4750-8145-7647caa10afa|/b0089fb8-2318-4750-8145-7647caa10afa|/b0089fb8-2318-4750-8145-7647caa10afa",
+        ""
+      ],
+      [
+        "multiple_net_names|3302000|863600|160f1d17-5e4f-4783-843f-a627142d09c7|f4d7c332-42ad-4e6d-82d1-86e3ece47e0a|/b0089fb8-2318-4750-8145-7647caa10afa|/b0089fb8-2318-4750-8145-7647caa10afa|/b0089fb8-2318-4750-8145-7647caa10afa",
+        ""
+      ],
+      [
+        "multiple_net_names|3302000|889000|160f1d17-5e4f-4783-843f-a627142d09c6|e06c7e6a-d02e-4ece-a9ed-4fa63008ab98|/b0089fb8-2318-4750-8145-7647caa10afa|/b0089fb8-2318-4750-8145-7647caa10afa|/b0089fb8-2318-4750-8145-7647caa10afa",
+        ""
+      ],
+      [
+        "multiple_net_names|3543300|711200|c976a0ad-1d4d-487d-8d1d-456fdf6e3df3|a0c88775-62b5-4e29-8be3-53824935a89f|/b0089fb8-2318-4750-8145-7647caa10afa|/b0089fb8-2318-4750-8145-7647caa10afa|/b0089fb8-2318-4750-8145-7647caa10afa",
+        ""
+      ],
+      [
+        "power_pin_not_driven|508000|2260600|b38a5213-a5a4-45b8-8934-01b4d2fdd0e5|00000000-0000-0000-0000-000000000000|/b0089fb8-2318-4750-8145-7647caa10afa|/b0089fb8-2318-4750-8145-7647caa10afa|",
+        ""
+      ]
+    ],
     "meta": {
       "version": 0
     },
@@ -752,7 +812,7 @@
         "uuid": "b0089fb8-2318-4750-8145-7647caa10afa"
       }
     ],
-    "used_designators": "",
+    "used_designators": "J1-4,J101-104,CR1-2,CR101-102,#FLG1-5,#FLG101,JP1-3,JP101-103,R1-123,R301-303,R401,R501-503,R601-603,R701-703,R801,R901-903,R1001-1003,R1101-1103,R1201-1203,R1301,R1401-1403,R1501-1503,R1601-1603,R1701-1703,R1801,R1901-1903,R2001-2003,R2101-2103,R2201-2203,R2301,R2401-2403,R2501-2503,R2601-2603,R2701-2703,R2801,R2901-2903,R3001-3003,R3101-3103,R3201-3203,R3301,R3401-3403,R3501-3503,R3601-3603,R3701-3703,R3801,R4301-4303,R4401-4403,R4501-4503,R4601-4603,H1-19,H101-116,H3801-3803,L1-2,L101-102,Q1-32,Q301,Q501,Q601,Q701,Q901,Q1001,Q1101,Q1201,Q1401,Q1501,Q1601,Q1701,Q1901,Q2001,Q2101,Q2201,Q2401,Q2501,Q2601,Q2701,Q2901,Q3001,Q3101,Q3201,Q3401,Q3501,Q3601,Q3701,Q4301,Q4401,Q4501,Q4601,U1-44,U101-104,U301,U401,U501,U601,U701,U801,U901,U1001,U1101,U1201,U1301,U1401,U1501,U1601,U1701,U1801,U1901,U2001,U2101,U2201,U2301,U2401,U2501,U2601,U2701,U2801,U2901,U3001,U3101,U3201,U3301,U3401,U3501,U3601,U3701,U3801,U4301,U4401,U4501,U4601,C1-71,C101-119,C401-407,C801-807,C1301-1307,C1801-1807,C2301-2307,C2801-2807,C3301-3311,C3801-3807,FB1,FB101,#PWR1-291,#PWR3802-3805,D1-2,D101-102,Y1,Y101",
     "variants": []
   },
   "sheets": [
@@ -765,32 +825,144 @@
       "Sensor Array"
     ],
     [
+      "3e590848-e5b9-40ea-8a52-c5ebf7e5d1f3",
+      "Individual Sensor"
+    ],
+    [
       "1f3c5546-2135-48f1-a4dc-e0c99dc1341d",
       "4_Sensor_bank"
+    ],
+    [
+      "77c49820-a33b-432b-83c6-448256fbd63a",
+      "Individual Sensor1"
+    ],
+    [
+      "04dc4f5c-58ee-40e2-9096-7640eb2b5b75",
+      "Individual Sensor2"
+    ],
+    [
+      "d45dee16-14d9-4121-9dc9-71b73c9adf30",
+      "Individual Sensor3"
     ],
     [
       "a8414ea3-1864-4085-b09d-ba1ee86ddb1a",
       "4_Sensor_bank1"
     ],
     [
+      "3e590848-e5b9-40ea-8a52-c5ebf7e5d1f3",
+      "Individual Sensor"
+    ],
+    [
+      "77c49820-a33b-432b-83c6-448256fbd63a",
+      "Individual Sensor1"
+    ],
+    [
+      "04dc4f5c-58ee-40e2-9096-7640eb2b5b75",
+      "Individual Sensor2"
+    ],
+    [
+      "d45dee16-14d9-4121-9dc9-71b73c9adf30",
+      "Individual Sensor3"
+    ],
+    [
       "70b52523-2629-4084-a9e1-582b7135575b",
       "4_Sensor_bank2"
+    ],
+    [
+      "3e590848-e5b9-40ea-8a52-c5ebf7e5d1f3",
+      "Individual Sensor"
+    ],
+    [
+      "77c49820-a33b-432b-83c6-448256fbd63a",
+      "Individual Sensor1"
+    ],
+    [
+      "04dc4f5c-58ee-40e2-9096-7640eb2b5b75",
+      "Individual Sensor2"
+    ],
+    [
+      "d45dee16-14d9-4121-9dc9-71b73c9adf30",
+      "Individual Sensor3"
     ],
     [
       "ac3e6ed6-395a-4fc3-a422-0b68eeab2252",
       "4_Sensor_bank3"
     ],
     [
+      "3e590848-e5b9-40ea-8a52-c5ebf7e5d1f3",
+      "Individual Sensor"
+    ],
+    [
+      "77c49820-a33b-432b-83c6-448256fbd63a",
+      "Individual Sensor1"
+    ],
+    [
+      "04dc4f5c-58ee-40e2-9096-7640eb2b5b75",
+      "Individual Sensor2"
+    ],
+    [
+      "d45dee16-14d9-4121-9dc9-71b73c9adf30",
+      "Individual Sensor3"
+    ],
+    [
       "a2963094-a324-44eb-aae5-350c5ae995ee",
       "4_Sensor_bank4"
+    ],
+    [
+      "3e590848-e5b9-40ea-8a52-c5ebf7e5d1f3",
+      "Individual Sensor"
+    ],
+    [
+      "77c49820-a33b-432b-83c6-448256fbd63a",
+      "Individual Sensor1"
+    ],
+    [
+      "04dc4f5c-58ee-40e2-9096-7640eb2b5b75",
+      "Individual Sensor2"
+    ],
+    [
+      "d45dee16-14d9-4121-9dc9-71b73c9adf30",
+      "Individual Sensor3"
     ],
     [
       "8d30b6fc-4531-43a8-bd91-9e6b22228f4d",
       "4_Sensor_bank5"
     ],
     [
+      "3e590848-e5b9-40ea-8a52-c5ebf7e5d1f3",
+      "Individual Sensor"
+    ],
+    [
+      "77c49820-a33b-432b-83c6-448256fbd63a",
+      "Individual Sensor1"
+    ],
+    [
+      "04dc4f5c-58ee-40e2-9096-7640eb2b5b75",
+      "Individual Sensor2"
+    ],
+    [
+      "d45dee16-14d9-4121-9dc9-71b73c9adf30",
+      "Individual Sensor3"
+    ],
+    [
       "25c23f8c-98d8-4cf3-af53-bf3a2aa69c0d",
       "4_Sensor_bank6"
+    ],
+    [
+      "3e590848-e5b9-40ea-8a52-c5ebf7e5d1f3",
+      "Individual Sensor"
+    ],
+    [
+      "77c49820-a33b-432b-83c6-448256fbd63a",
+      "Individual Sensor1"
+    ],
+    [
+      "04dc4f5c-58ee-40e2-9096-7640eb2b5b75",
+      "Individual Sensor2"
+    ],
+    [
+      "d45dee16-14d9-4121-9dc9-71b73c9adf30",
+      "Individual Sensor3"
     ],
     [
       "80523f9a-b0b8-4efa-b3d9-d2f9096ba0cd",
