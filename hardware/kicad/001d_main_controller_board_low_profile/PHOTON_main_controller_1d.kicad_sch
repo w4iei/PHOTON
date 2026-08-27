@@ -12,7 +12,7 @@
 		(comment 1 "Low profile, with BUCK, 5V RS485")
 	)
 	(lib_symbols
-		(symbol "2025-08-11_08-44-22:TPD4E05U06QDQARQ1"
+		(symbol "PHOTON:TPD4E05U06QDQARQ1"
 			(pin_names
 				(offset 0.254)
 			)
@@ -351,7 +351,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "2025-08-11_08-49-29:SMF5.0A"
+		(symbol "PHOTON:SMF5.0A"
 			(body_styles demorgan)
 			(pin_names
 				(offset 0.254)
@@ -694,7 +694,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "2025-11-21_08-29-10_THVD1424RGTR:THVD1424RGTR"
+		(symbol "PHOTON:THVD1424RGTR"
 			(pin_names
 				(offset 0.254)
 			)
@@ -1388,7 +1388,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "Connector:Micro_SD_Card"
+		(symbol "PHOTON_Modified:Micro_SD_Card"
 			(pin_names
 				(offset 1.016)
 			)
@@ -1754,7 +1754,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "Connector:USB_C_Receptacle_USB2.0"
+		(symbol "PHOTON_Modified:USB_C_Receptacle_USB2.0"
 			(pin_names
 				(offset 1.016)
 			)
@@ -2829,7 +2829,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "Device:Crystal_GND24"
+		(symbol "PHOTON_Modified:Crystal_GND24"
 			(pin_names
 				(offset 1.016)
 				(hide yes)
@@ -4117,7 +4117,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "MCU_RaspberryPi_RP2350:RP2350_60QFN"
+		(symbol "PHOTON:RP2350_60QFN"
 			(pin_names
 				(offset 1.016)
 			)
@@ -5413,7 +5413,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "TI BUCK:TPS62A0569ADRLR"
+		(symbol "PHOTON:TPS62A0569ADRLR"
 			(pin_names
 				(offset 0.254)
 			)
@@ -5442,7 +5442,7 @@
 					)
 				)
 			)
-			(property "Footprint" "Pretty Custom:DRL0006A-MFG"
+			(property "Footprint" "footprints:SOT-563_DRL0006A"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -5509,7 +5509,7 @@
 					)
 				)
 			)
-			(property "ki_fp_filters" "DRL0006A-MFG"
+			(property "ki_fp_filters" "SOT-563*"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -11615,7 +11615,7 @@
 		)
 	)
 	(symbol
-		(lib_id "2025-08-11_08-49-29:SMF5.0A")
+		(lib_id "PHOTON:SMF5.0A")
 		(at 58.42 218.44 180)
 		(unit 1)
 		(body_style 1)
@@ -11937,7 +11937,7 @@
 		)
 	)
 	(symbol
-		(lib_id "2025-08-11_08-44-22:TPD4E05U06QDQARQ1")
+		(lib_id "PHOTON:TPD4E05U06QDQARQ1")
 		(at 67.31 262.89 0)
 		(unit 1)
 		(body_style 1)
@@ -13399,7 +13399,7 @@
 		)
 	)
 	(symbol
-		(lib_id "TI BUCK:TPS62A0569ADRLR")
+		(lib_id "PHOTON:TPS62A0569ADRLR")
 		(at 137.16 223.52 0)
 		(unit 1)
 		(body_style 1)
@@ -13430,7 +13430,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Pretty Custom:DRL0006A-MFG"
+		(property "Footprint" "footprints:SOT-563_DRL0006A"
 			(at 137.16 223.52 0)
 			(hide yes)
 			(show_name no)
@@ -13582,7 +13582,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Connector:Micro_SD_Card")
+		(lib_id "PHOTON_Modified:Micro_SD_Card")
 		(at 289.56 184.15 0)
 		(unit 1)
 		(body_style 1)
@@ -13613,7 +13613,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Pretty Custom:TF-015_corrected"
+		(property "Footprint" "footprints:TF-015_corrected"
 			(at 318.77 176.53 0)
 			(hide yes)
 			(show_name no)
@@ -14170,7 +14170,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Connector:USB_C_Receptacle_USB2.0")
+		(lib_id "PHOTON_Modified:USB_C_Receptacle_USB2.0")
 		(at 27.94 238.76 0)
 		(unit 1)
 		(body_style 1)
@@ -14953,7 +14953,7 @@
 		)
 	)
 	(symbol
-		(lib_id "2025-08-11_08-49-29:SMF5.0A")
+		(lib_id "PHOTON:SMF5.0A")
 		(at 58.42 91.44 0)
 		(mirror y)
 		(unit 1)
@@ -15956,7 +15956,7 @@
 		)
 	)
 	(symbol
-		(lib_id "MCU_RaspberryPi_RP2350:RP2350_60QFN")
+		(lib_id "PHOTON:RP2350_60QFN")
 		(at 280.67 104.14 0)
 		(unit 1)
 		(body_style 1)
@@ -17478,7 +17478,7 @@
 		)
 	)
 	(symbol
-		(lib_id "2025-08-11_08-49-29:SMF5.0A")
+		(lib_id "PHOTON:SMF5.0A")
 		(at 46.99 148.59 180)
 		(unit 1)
 		(body_style 1)
@@ -18923,7 +18923,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Device:Crystal_GND24")
+		(lib_id "PHOTON_Modified:Crystal_GND24")
 		(at 355.6 236.22 270)
 		(unit 1)
 		(body_style 1)
@@ -19754,7 +19754,7 @@
 		)
 	)
 	(symbol
-		(lib_id "2025-11-21_08-29-10_THVD1424RGTR:THVD1424RGTR")
+		(lib_id "PHOTON:THVD1424RGTR")
 		(at 100.33 160.02 0)
 		(unit 1)
 		(body_style 1)
@@ -19785,7 +19785,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Pretty Custom:QFN_24RGTR_TEX"
+		(property "Footprint" "footprints:QFN_24RGTR_TEX"
 			(at 100.33 160.02 0)
 			(hide yes)
 			(show_name no)

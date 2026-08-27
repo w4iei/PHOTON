@@ -29,9 +29,13 @@ fp-info-cache
 *.dsn
 *.ses
 
-# Exported BOM files
+# Exported BOM files (Eeschema scratch exports).
+# Fabrication outputs under production/ are deliverables and ARE tracked:
+# the .zip ships with its bom/positions/designators CSVs.
 *.xml
 *.csv
+!**/production/*.csv
+!**/production/*.xml
 
 # Archived Backups (KiCad 6.0)
 **/*-backups/*.zip
