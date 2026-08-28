@@ -6375,12 +6375,6 @@
 		(uuid "294bc32a-0124-4ebc-990f-dca1a3952c9f")
 	)
 	(junction
-		(at 180.34 140.97)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "29b2a1a6-c919-4dfa-a8de-5edceb54b7bf")
-	)
-	(junction
 		(at 204.47 62.23)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -6615,6 +6609,12 @@
 		(uuid "c8a75b6b-3ec3-46de-8b56-8f7fb4d6bdf0")
 	)
 	(junction
+		(at 180.34 146.05)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "cb172198-be7c-4abc-8e82-24a972fc3466")
+	)
+	(junction
 		(at 342.9 35.56)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -6764,6 +6764,16 @@
 	)
 	(wire
 		(pts
+			(xy 166.37 146.05) (xy 166.37 140.97)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "02b9bb33-cc9c-469d-b641-029690872868")
+	)
+	(wire
+		(pts
 			(xy 251.46 135.89) (xy 237.49 135.89)
 		)
 		(stroke
@@ -6784,6 +6794,16 @@
 	)
 	(wire
 		(pts
+			(xy 180.34 123.19) (xy 180.34 121.92)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "0406a998-5083-4a64-bd36-89b32f6eeb74")
+	)
+	(wire
+		(pts
 			(xy 199.39 204.47) (xy 233.68 204.47)
 		)
 		(stroke
@@ -6794,7 +6814,7 @@
 	)
 	(wire
 		(pts
-			(xy 166.37 140.97) (xy 180.34 140.97)
+			(xy 166.37 146.05) (xy 180.34 146.05)
 		)
 		(stroke
 			(width 0)
@@ -7614,6 +7634,16 @@
 	)
 	(wire
 		(pts
+			(xy 180.34 147.32) (xy 180.34 146.05)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "4b78b70a-24a4-4c24-9071-657f5dd96f9c")
+	)
+	(wire
+		(pts
 			(xy 193.04 74.93) (xy 204.47 74.93)
 		)
 		(stroke
@@ -8114,16 +8144,6 @@
 	)
 	(wire
 		(pts
-			(xy 180.34 148.59) (xy 180.34 149.86)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "75ada1ee-7d60-4d48-8fd6-f9599d4cbe9a")
-	)
-	(wire
-		(pts
 			(xy 33.02 162.56) (xy 33.02 166.37)
 		)
 		(stroke
@@ -8401,16 +8421,6 @@
 			(type default)
 		)
 		(uuid "925f53a3-6340-4cf0-a12c-2eae533f6c19")
-	)
-	(wire
-		(pts
-			(xy 180.34 138.43) (xy 180.34 140.97)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "9289c313-8e61-4484-a5b5-c1f468b065b8")
 	)
 	(wire
 		(pts
@@ -9461,16 +9471,6 @@
 			(type default)
 		)
 		(uuid "f163d2a1-3597-42f6-96f5-0120966785cf")
-	)
-	(wire
-		(pts
-			(xy 180.34 121.92) (xy 180.34 123.19)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "f229567a-1306-472d-b1a2-16cbed46859d")
 	)
 	(wire
 		(pts
@@ -10690,7 +10690,7 @@
 	)
 	(symbol
 		(lib_id "Device:R")
-		(at 180.34 127 0)
+		(at 180.34 127 180)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -10700,7 +10700,7 @@
 		(dnp no)
 		(uuid "017b1cfc-4cea-44bf-8f0d-88f5653c3710")
 		(property "Reference" "R104"
-			(at 180.34 127.254 90)
+			(at 180.34 127 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -10709,8 +10709,8 @@
 				)
 			)
 		)
-		(property "Value" "300kΩ"
-			(at 178.054 127 90)
+		(property "Value" "200kΩ"
+			(at 182.626 127 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -10720,7 +10720,7 @@
 			)
 		)
 		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
-			(at 178.562 127 90)
+			(at 182.118 127 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -10863,7 +10863,7 @@
 		(exclude_from_sim no)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
+		(in_pos_files no)
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "05b61c6b-3c6e-42aa-9c8e-b7e061791daf")
@@ -10939,7 +10939,7 @@
 		(exclude_from_sim no)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
+		(in_pos_files no)
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "0bcf44e3-7f35-4721-a83b-7e580aefb937")
@@ -11280,7 +11280,7 @@
 		(exclude_from_sim no)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
+		(in_pos_files no)
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "10b110af-47e5-4134-801a-12555173d4aa")
@@ -11511,7 +11511,7 @@
 		(exclude_from_sim no)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
+		(in_pos_files no)
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "1360e0e6-99cc-46dc-a21b-46034c60af5c")
@@ -11843,7 +11843,7 @@
 	)
 	(symbol
 		(lib_id "Device:R")
-		(at 180.34 144.78 0)
+		(at 180.34 151.13 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -11853,7 +11853,7 @@
 		(dnp no)
 		(uuid "1d6d5424-79a3-4357-98e4-68630dbcc7dd")
 		(property "Reference" "R103"
-			(at 180.34 145.034 90)
+			(at 180.34 151.384 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -11863,7 +11863,7 @@
 			)
 		)
 		(property "Value" "100kΩ"
-			(at 178.054 144.78 90)
+			(at 178.054 151.13 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -11873,7 +11873,7 @@
 			)
 		)
 		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
-			(at 178.562 144.78 90)
+			(at 178.562 151.13 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -11884,7 +11884,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 180.34 144.78 0)
+			(at 180.34 151.13 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -11895,7 +11895,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 180.34 144.78 0)
+			(at 180.34 151.13 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -11927,7 +11927,7 @@
 		(exclude_from_sim no)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
+		(in_pos_files no)
 		(dnp no)
 		(uuid "2036ee94-948f-420e-8d76-9522e01fa461")
 		(property "Reference" "JP1"
@@ -12007,7 +12007,7 @@
 		(exclude_from_sim no)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
+		(in_pos_files no)
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "21201549-f2ad-42b6-bad9-e1429af90ae2")
@@ -12497,7 +12497,7 @@
 		(exclude_from_sim no)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
+		(in_pos_files no)
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "2feac3af-4ccf-4013-a5bc-f7f924efb6fc")
@@ -12573,7 +12573,7 @@
 		(exclude_from_sim no)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
+		(in_pos_files no)
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "33454a3e-bf97-40da-ab2e-193901d7cba1")
@@ -12722,7 +12722,7 @@
 	)
 	(symbol
 		(lib_id "Device:R")
-		(at 180.34 134.62 0)
+		(at 180.34 134.62 180)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -12732,7 +12732,7 @@
 		(dnp no)
 		(uuid "35d8bac1-c62d-4284-a43d-6aa425ca2cbc")
 		(property "Reference" "R105"
-			(at 180.34 134.874 90)
+			(at 180.34 134.366 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -12741,8 +12741,8 @@
 				)
 			)
 		)
-		(property "Value" "150kΩ"
-			(at 178.054 134.62 90)
+		(property "Value" "200kΩ"
+			(at 182.626 134.62 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -12752,7 +12752,7 @@
 			)
 		)
 		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
-			(at 178.562 134.62 90)
+			(at 182.118 134.62 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -13116,7 +13116,7 @@
 		(exclude_from_sim no)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
+		(in_pos_files no)
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "41bdcf91-59a6-456b-b9ac-4778fa27fd35")
@@ -14587,7 +14587,7 @@
 		(exclude_from_sim no)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
+		(in_pos_files no)
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "696668d7-7d78-4b93-8b3f-10f4f585e2ac")
@@ -15366,7 +15366,7 @@
 		(exclude_from_sim no)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
+		(in_pos_files no)
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "88ba81b0-addf-4acb-94f6-a2aa22e405ee")
@@ -15522,7 +15522,7 @@
 		(exclude_from_sim no)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
+		(in_pos_files no)
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "970db8c0-53d9-40a7-a58a-bbf580e8ba84")
@@ -15591,6 +15591,84 @@
 		)
 	)
 	(symbol
+		(lib_id "Device:R")
+		(at 180.34 142.24 180)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "9ac46362-57b1-4c6c-a795-0183d7a52500")
+		(property "Reference" "R106"
+			(at 180.34 141.986 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "51kΩ"
+			(at 182.626 142.24 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+			(at 182.118 142.24 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 180.34 142.24 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 180.34 142.24 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "efea95c9-13d4-4089-aec6-fadf6bf1a5bc")
+		)
+		(pin "2"
+			(uuid "586dd423-f579-44fc-9673-b52cfb404f83")
+		)
+		(instances
+			(project "002_Sensor_PI_RS485 board"
+				(path "/b0089fb8-2318-4750-8145-7647caa10afa"
+					(reference "R106")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Mechanical:MountingHole")
 		(at 128.27 44.45 0)
 		(unit 1)
@@ -15598,7 +15676,7 @@
 		(exclude_from_sim no)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
+		(in_pos_files no)
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "9c6a90ae-a4fb-4015-9a50-9402524779d2")
@@ -16645,7 +16723,7 @@
 		(exclude_from_sim no)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
+		(in_pos_files no)
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "b23864f4-08e9-421e-84f6-1eb3cf5aafb5")
@@ -16957,7 +17035,7 @@
 		(exclude_from_sim no)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
+		(in_pos_files no)
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "b7cbb90a-916d-461b-846c-d54baf946a84")
@@ -17669,7 +17747,7 @@
 		(exclude_from_sim no)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
+		(in_pos_files no)
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "c57ef2e9-3b2a-4015-a740-f6dce5b6a4a5")
@@ -17836,7 +17914,7 @@
 				)
 			)
 		)
-		(property "Value" "LED GREEN"
+		(property "Value" "LED RED"
 			(at 207.3275 116.84 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -17846,7 +17924,7 @@
 				)
 			)
 		)
-		(property "Footprint" "LED_SMD:LED_0402_1005Metric"
+		(property "Footprint" "LED_SMD:LED_0603_1608Metric"
 			(at 205.74 121.92 0)
 			(hide yes)
 			(show_name no)
@@ -17868,7 +17946,7 @@
 				)
 			)
 		)
-		(property "Description" "GREEN Light emitting diode"
+		(property "Description" "RED Light emitting diode"
 			(at 205.74 121.92 0)
 			(hide yes)
 			(show_name no)
@@ -17890,18 +17968,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C130722"
-			(at 205.74 121.92 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Field7" ""
+		(property "JLCPCB Part #" "C2286"
 			(at 205.74 121.92 0)
 			(hide yes)
 			(show_name no)
@@ -18009,7 +18076,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 180.34 149.86 0)
+		(at 180.34 154.94 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -18020,7 +18087,7 @@
 		(fields_autoplaced yes)
 		(uuid "c9c851e5-f71a-4532-b6cb-2f2bfa5b7dd7")
 		(property "Reference" "#PWR0225"
-			(at 180.34 156.21 0)
+			(at 180.34 161.29 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -18031,7 +18098,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 180.34 154.94 0)
+			(at 180.34 160.02 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -18041,7 +18108,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 180.34 149.86 0)
+			(at 180.34 154.94 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -18052,7 +18119,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 180.34 149.86 0)
+			(at 180.34 154.94 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -18063,7 +18130,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 180.34 149.86 0)
+			(at 180.34 154.94 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -18173,7 +18240,7 @@
 		(exclude_from_sim no)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
+		(in_pos_files no)
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "ce607e80-f613-4fe5-bfd7-4f6556b3d843")
@@ -19062,7 +19129,7 @@
 		(exclude_from_sim no)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
+		(in_pos_files no)
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "e3504ad5-8ce6-4e8f-9540-128a40e1b064")
@@ -19138,7 +19205,7 @@
 		(exclude_from_sim no)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
+		(in_pos_files no)
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "e6562839-a7d5-40a9-8a4f-be54649a2583")
@@ -19214,7 +19281,7 @@
 		(exclude_from_sim no)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
+		(in_pos_files no)
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "e9abe67d-83df-4625-9bfb-acb86dc7343b")
@@ -19529,7 +19596,7 @@
 		(exclude_from_sim no)
 		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
+		(in_pos_files no)
 		(dnp no)
 		(uuid "f55999db-4e59-4c27-ae1f-a3b21eac9983")
 		(property "Reference" "JP2"
