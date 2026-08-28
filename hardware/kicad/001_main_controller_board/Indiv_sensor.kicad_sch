@@ -1861,7 +1861,7 @@
 				)
 			)
 		)
-		(property "Footprint" "common:VCNT2025X01_VIS"
+		(property "Footprint" "photon_common:VCNT2025X01_VIS"
 			(at 138.43 102.87 0)
 			(hide yes)
 			(show_name no)
@@ -2106,7 +2106,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "common:WM02N08F"
+		(property "Footprint" "photon_common:WM02N08F"
 			(at 133.35 106.68 0)
 			(hide yes)
 			(show_name no)

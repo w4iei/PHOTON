@@ -293,7 +293,7 @@
 					)
 				)
 			)
-			(property "Footprint" "common:WQFN16_RTE_TEX"
+			(property "Footprint" "photon_common:WQFN16_RTE_TEX"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -2122,7 +2122,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "common:mousebite_34mm"
+		(property "Footprint" "photon_common:mousebite_34mm"
 			(at 144.78 69.85 0)
 			(hide yes)
 			(show_name no)
@@ -2673,7 +2673,7 @@
 				)
 			)
 		)
-		(property "Footprint" "common:WQFN16_RTE_TEX"
+		(property "Footprint" "photon_common:WQFN16_RTE_TEX"
 			(at 100.33 102.87 0)
 			(hide yes)
 			(show_name no)
@@ -2813,7 +2813,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "common:mousebite_34mm"
+		(property "Footprint" "photon_common:mousebite_34mm"
 			(at 144.78 63.5 0)
 			(hide yes)
 			(show_name no)
@@ -3045,7 +3045,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "common:mousebite_34mm"
+		(property "Footprint" "photon_common:mousebite_34mm"
 			(at 144.78 76.2 0)
 			(hide yes)
 			(show_name no)

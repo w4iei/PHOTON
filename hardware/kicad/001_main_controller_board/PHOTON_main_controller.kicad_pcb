@@ -2388,7 +2388,7 @@
 			)
 		)
 	)
-	(footprint "common:VCNT2025X01_VIS"
+	(footprint "photon_common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "220587d3-8f67-4b8c-a7d5-094825deb67b")
 		(at 14.63 2.94)
@@ -3460,7 +3460,7 @@
 			)
 		)
 	)
-	(footprint "common:TF-015_corrected"
+	(footprint "photon_common:TF-015_corrected"
 		(layer "F.Cu")
 		(uuid "34103fec-dc1a-47b1-8b45-648ba37022a4")
 		(at 50.65 4.235 180)
@@ -3950,7 +3950,7 @@
 			)
 		)
 	)
-	(footprint "common:CONN18x1_FH34SRJ-18S-0.5SH50_HIR"
+	(footprint "photon_common:CONN18x1_FH34SRJ-18S-0.5SH50_HIR"
 		(layer "F.Cu")
 		(uuid "3a939d91-880e-4b98-ab8f-53fec9171138")
 		(at 54.9651 24.944493 -90)
@@ -4637,7 +4637,7 @@
 			)
 		)
 	)
-	(footprint "common:RP2350-QFN-60-1EP_7x7_P0.4mm_EP3.4x3.4mm_ThermalVias"
+	(footprint "photon_common:RP2350-QFN-60-1EP_7x7_P0.4mm_EP3.4x3.4mm_ThermalVias"
 		(layer "F.Cu")
 		(uuid "3f303415-989f-400b-a721-2c98dc6a6dbb")
 		(at 34.765 25.97 180)
@@ -6219,7 +6219,7 @@
 			)
 		)
 	)
-	(footprint "common:WSON_128JVPIQ_WIN"
+	(footprint "photon_common:WSON_128JVPIQ_WIN"
 		(layer "F.Cu")
 		(uuid "4aa4544e-1dbb-406d-bcc4-b0fd05d7738b")
 		(at 42 34.2522 -90)
@@ -8301,7 +8301,7 @@
 		)
 		(embedded_fonts no)
 	)
-	(footprint "common:PSON50P200X300X50-9N"
+	(footprint "photon_common:PSON50P200X300X50-9N"
 		(layer "F.Cu")
 		(uuid "5d3e4b2b-4eaf-420b-9a80-073a9cf730f3")
 		(at 43.66 40.44 180)
@@ -11570,7 +11570,7 @@
 			)
 		)
 	)
-	(footprint "common:DQA0010A"
+	(footprint "photon_common:DQA0010A"
 		(layer "F.Cu")
 		(uuid "87f73dfe-de83-4117-8f42-fe363307d29c")
 		(at 34.349998 38.925 -90)
@@ -13283,7 +13283,7 @@
 			)
 		)
 	)
-	(footprint "common:C_0402_1005Metric_small_pads"
+	(footprint "photon_common:C_0402_1005Metric_small_pads"
 		(layer "F.Cu")
 		(uuid "966831b6-f7d4-4cd5-8adc-a50d2b1b7431")
 		(at 32.695 30.61 180)
@@ -13462,7 +13462,7 @@
 			)
 		)
 	)
-	(footprint "common:qwiic_8mm"
+	(footprint "photon_common:qwiic_8mm"
 		(layer "F.Cu")
 		(uuid "9990eaad-7411-44b0-902c-6e73d5f5fc84")
 		(at 33.5 9.08 180)
@@ -15035,7 +15035,7 @@
 			)
 		)
 	)
-	(footprint "common:C_0402_1005Metric_small_pads"
+	(footprint "photon_common:C_0402_1005Metric_small_pads"
 		(layer "F.Cu")
 		(uuid "b16c3213-49ed-4dc8-8263-63ed649aa2f1")
 		(at 32.695 31.59 180)
@@ -16738,7 +16738,7 @@
 			)
 		)
 	)
-	(footprint "common:QFN_24RGTR_TEX"
+	(footprint "photon_common:QFN_24RGTR_TEX"
 		(layer "F.Cu")
 		(uuid "c286f330-771a-4ec3-a773-78f95c6bc503")
 		(at 59.398389 38.613352 -90)
@@ -19216,7 +19216,7 @@
 			)
 		)
 	)
-	(footprint "common:WM02N08F"
+	(footprint "photon_common:WM02N08F"
 		(layer "F.Cu")
 		(uuid "d1515e76-20aa-410f-9447-30c527bdc9cc")
 		(at 17.09 3.605)
@@ -22386,7 +22386,7 @@
 			)
 		)
 	)
-	(footprint "common:L_pol_2016"
+	(footprint "photon_common:L_pol_2016"
 		(layer "F.Cu")
 		(uuid "edffa48b-85d8-4a69-b84b-3c2f631f1cee")
 		(at 32.38 33.16 180)
