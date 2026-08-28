@@ -7,6 +7,7 @@
 		(at 0 -0.5 0)
 		(unlocked yes)
 		(layer "F.SilkS")
+		(hide yes)
 		(uuid "1a2ba66f-9e6c-47ab-b749-014d4e151224")
 		(effects
 			(font
@@ -54,16 +55,6 @@
 		)
 	)
 	(attr smd)
-	(fp_line
-		(start 0 -11.04)
-		(end 0 11.96)
-		(stroke
-			(width 0.3)
-			(type dash)
-		)
-		(layer "F.SilkS")
-		(uuid "022abffa-2d0d-48de-8368-cd1572abfea3")
-	)
 	(fp_rect
 		(start -1.82 -11.13)
 		(end 1.8 11.93)
