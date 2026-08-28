@@ -2186,7 +2186,7 @@
 					)
 				)
 			)
-			(property "Footprint" "footprints:SOD-323_L1.8-W1.3-LS2.5-RD"
+			(property "Footprint" "common:SOD-323_L1.8-W1.3-LS2.5-RD"
 				(at 0 -7.62 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -2334,7 +2334,7 @@
 					)
 				)
 			)
-			(property "Footprint" "footprints:RP2350-QFN-60-1EP_7x7_P0.4mm_EP3.4x3.4mm_ThermalVias"
+			(property "Footprint" "common:RP2350-QFN-60-1EP_7x7_P0.4mm_EP3.4x3.4mm_ThermalVias"
 				(at -19.05 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -3531,7 +3531,7 @@
 					)
 				)
 			)
-			(property "Footprint" "footprints:QFN_24RGTR_TEX"
+			(property "Footprint" "common:QFN_24RGTR_TEX"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -3987,7 +3987,7 @@
 					)
 				)
 			)
-			(property "Footprint" "footprints:DQA0010A"
+			(property "Footprint" "common:DQA0010A"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -4326,7 +4326,7 @@
 					)
 				)
 			)
-			(property "Footprint" "footprints:SOT-563_DRL0006A"
+			(property "Footprint" "common:SOT-563_DRL0006A"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -10889,7 +10889,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "footprints:MountingHole_2.7mm_M2.5_Keepout"
+		(property "Footprint" "common:MountingHole_2.7mm_M2.5_Keepout"
 			(at 105.41 44.45 0)
 			(hide yes)
 			(show_name no)
@@ -10965,7 +10965,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "footprints:MountingHole_2.7mm_M2.5_Keepout"
+		(property "Footprint" "common:MountingHole_2.7mm_M2.5_Keepout"
 			(at 128.27 19.05 0)
 			(hide yes)
 			(show_name no)
@@ -11306,7 +11306,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "footprints:MountingHole_2.7mm_M2.5_Keepout"
+		(property "Footprint" "common:MountingHole_2.7mm_M2.5_Keepout"
 			(at 105.41 27.94 0)
 			(hide yes)
 			(show_name no)
@@ -11537,7 +11537,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "footprints:MountingHole_2.7mm_M2.5_Keepout"
+		(property "Footprint" "common:MountingHole_2.7mm_M2.5_Keepout"
 			(at 128.27 60.96 0)
 			(hide yes)
 			(show_name no)
@@ -12033,7 +12033,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "footprints:MountingHole_2.7mm_M2.5_Keepout"
+		(property "Footprint" "common:MountingHole_2.7mm_M2.5_Keepout"
 			(at 105.41 60.96 0)
 			(hide yes)
 			(show_name no)
@@ -12183,7 +12183,7 @@
 				)
 			)
 		)
-		(property "Footprint" "footprints:SOD-323_L1.8-W1.3-LS2.5-RD"
+		(property "Footprint" "common:SOD-323_L1.8-W1.3-LS2.5-RD"
 			(at 58.42 106.68 0)
 			(hide yes)
 			(show_name no)
@@ -12523,7 +12523,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "footprints:MountingHole_2.7mm_M2.5_Keepout"
+		(property "Footprint" "common:MountingHole_2.7mm_M2.5_Keepout"
 			(at 128.27 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -12599,7 +12599,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "footprints:MountingHole_2.7mm_M2.5_Keepout"
+		(property "Footprint" "common:MountingHole_2.7mm_M2.5_Keepout"
 			(at 153.67 27.94 0)
 			(hide yes)
 			(show_name no)
@@ -13142,7 +13142,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "footprints:MountingHole_2.7mm_M2.5_Keepout"
+		(property "Footprint" "common:MountingHole_2.7mm_M2.5_Keepout"
 			(at 128.27 27.94 0)
 			(hide yes)
 			(show_name no)
@@ -14352,7 +14352,7 @@
 				)
 			)
 		)
-		(property "Footprint" "footprints:SOT-563_DRL0006A"
+		(property "Footprint" "common:SOT-563_DRL0006A"
 			(at 130.81 124.46 0)
 			(hide yes)
 			(show_name no)
@@ -14613,7 +14613,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "footprints:MountingHole_2.7mm_M2.5_Keepout"
+		(property "Footprint" "common:MountingHole_2.7mm_M2.5_Keepout"
 			(at 128.27 52.07 0)
 			(hide yes)
 			(show_name no)
@@ -14689,7 +14689,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "footprints:C_0402_1005Metric_small_pads"
+		(property "Footprint" "common:C_0402_1005Metric_small_pads"
 			(at 194.0052 71.12 0)
 			(hide yes)
 			(show_name no)
@@ -15392,7 +15392,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "footprints:MountingHole_2.7mm_M2.5_Keepout"
+		(property "Footprint" "common:MountingHole_2.7mm_M2.5_Keepout"
 			(at 128.27 77.47 0)
 			(hide yes)
 			(show_name no)
@@ -15548,7 +15548,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "footprints:MountingHole_2.7mm_M2.5_Keepout"
+		(property "Footprint" "common:MountingHole_2.7mm_M2.5_Keepout"
 			(at 153.67 19.05 0)
 			(hide yes)
 			(show_name no)
@@ -15702,7 +15702,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "footprints:MountingHole_2.7mm_M2.5_Keepout"
+		(property "Footprint" "common:MountingHole_2.7mm_M2.5_Keepout"
 			(at 128.27 44.45 0)
 			(hide yes)
 			(show_name no)
@@ -15935,7 +15935,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "footprints:RP2350-QFN-60-1EP_7x7_P0.4mm_EP3.4x3.4mm_ThermalVias"
+		(property "Footprint" "common:RP2350-QFN-60-1EP_7x7_P0.4mm_EP3.4x3.4mm_ThermalVias"
 			(at 264.16 104.14 0)
 			(hide yes)
 			(show_name no)
@@ -16749,7 +16749,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "footprints:MountingHole_2.7mm_M2.5_Keepout"
+		(property "Footprint" "common:MountingHole_2.7mm_M2.5_Keepout"
 			(at 105.41 77.47 0)
 			(hide yes)
 			(show_name no)
@@ -17061,7 +17061,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "footprints:MountingHole_2.7mm_M2.5_Keepout"
+		(property "Footprint" "common:MountingHole_2.7mm_M2.5_Keepout"
 			(at 105.41 36.83 0)
 			(hide yes)
 			(show_name no)
@@ -17773,7 +17773,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "footprints:MountingHole_2.7mm_M2.5_Keepout"
+		(property "Footprint" "common:MountingHole_2.7mm_M2.5_Keepout"
 			(at 105.41 69.85 0)
 			(hide yes)
 			(show_name no)
@@ -18266,7 +18266,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "footprints:MountingHole_2.7mm_M2.5_Keepout"
+		(property "Footprint" "common:MountingHole_2.7mm_M2.5_Keepout"
 			(at 105.41 19.05 0)
 			(hide yes)
 			(show_name no)
@@ -18812,7 +18812,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "footprints:L_pol_2016"
+		(property "Footprint" "common:L_pol_2016"
 			(at 219.71 67.31 0)
 			(hide yes)
 			(show_name no)
@@ -19155,7 +19155,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "footprints:MountingHole_2.7mm_M2.5_Keepout"
+		(property "Footprint" "common:MountingHole_2.7mm_M2.5_Keepout"
 			(at 128.27 69.85 0)
 			(hide yes)
 			(show_name no)
@@ -19231,7 +19231,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "footprints:MountingHole_2.7mm_M2.5_Keepout"
+		(property "Footprint" "common:MountingHole_2.7mm_M2.5_Keepout"
 			(at 105.41 52.07 0)
 			(hide yes)
 			(show_name no)
@@ -19777,7 +19777,7 @@
 				)
 			)
 		)
-		(property "Footprint" "footprints:DQA0010A"
+		(property "Footprint" "common:DQA0010A"
 			(at 71.12 167.64 0)
 			(hide yes)
 			(show_name no)
@@ -20154,7 +20154,7 @@
 				)
 			)
 		)
-		(property "Footprint" "footprints:QFN_24RGTR_TEX"
+		(property "Footprint" "common:QFN_24RGTR_TEX"
 			(at 167.64 233.68 0)
 			(hide yes)
 			(show_name no)
@@ -20449,7 +20449,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "footprints:C_0402_1005Metric_small_pads"
+		(property "Footprint" "common:C_0402_1005Metric_small_pads"
 			(at 205.4352 71.12 0)
 			(hide yes)
 			(show_name no)

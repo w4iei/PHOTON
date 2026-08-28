@@ -1426,7 +1426,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Pretty Custom:SON_NT2020_VIS"
+		(property "Footprint" "common:SON_NT2020_VIS"
 			(at 36.83 48.26 0)
 			(effects
 				(font

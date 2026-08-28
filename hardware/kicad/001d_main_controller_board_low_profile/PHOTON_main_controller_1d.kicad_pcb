@@ -2654,7 +2654,7 @@
 			)
 		)
 	)
-	(footprint "footprints:TF-015_corrected"
+	(footprint "common:TF-015_corrected"
 		(layer "F.Cu")
 		(uuid "34103fec-dc1a-47b1-8b45-648ba37022a4")
 		(at 50.65 4.235 180)
@@ -2951,7 +2951,7 @@
 		)
 		(embedded_fonts no)
 	)
-	(footprint "RP2350_60QFN_minimal:RP2350-QFN-60-1EP_7x7_P0.4mm_EP3.4x3.4mm_ThermalVias"
+	(footprint "common:RP2350-QFN-60-1EP_7x7_P0.4mm_EP3.4x3.4mm_ThermalVias"
 		(layer "F.Cu")
 		(uuid "3f303415-989f-400b-a721-2c98dc6a6dbb")
 		(at 34.765 25.97 180)
@@ -9054,7 +9054,7 @@
 			)
 		)
 	)
-	(footprint "footprints:DQA0010A"
+	(footprint "common:DQA0010A"
 		(layer "F.Cu")
 		(uuid "87f73dfe-de83-4117-8f42-fe363307d29c")
 		(at 34.349998 38.925 -90)
@@ -10148,7 +10148,7 @@
 			)
 		)
 	)
-	(footprint "RP2350_60QFN_minimal:C_0402_1005Metric_small_pads"
+	(footprint "common:C_0402_1005Metric_small_pads"
 		(layer "F.Cu")
 		(uuid "966831b6-f7d4-4cd5-8adc-a50d2b1b7431")
 		(at 32.695 30.61 180)
@@ -10334,7 +10334,7 @@
 			)
 		)
 	)
-	(footprint "footprints:qwiic_8mm"
+	(footprint "common:qwiic_8mm"
 		(layer "F.Cu")
 		(uuid "9990eaad-7411-44b0-902c-6e73d5f5fc84")
 		(at 33.5 9.08 180)
@@ -11541,7 +11541,7 @@
 			)
 		)
 	)
-	(footprint "RP2350_60QFN_minimal:C_0402_1005Metric_small_pads"
+	(footprint "common:C_0402_1005Metric_small_pads"
 		(layer "F.Cu")
 		(uuid "b16c3213-49ed-4dc8-8263-63ed649aa2f1")
 		(at 32.695 31.59 180)
@@ -12613,7 +12613,7 @@
 			)
 		)
 	)
-	(footprint "footprints:QFN_24RGTR_TEX"
+	(footprint "common:QFN_24RGTR_TEX"
 		(layer "F.Cu")
 		(uuid "c286f330-771a-4ec3-a773-78f95c6bc503")
 		(at 59.398389 38.613352 -90)
@@ -15838,7 +15838,7 @@
 			)
 		)
 	)
-	(footprint "footprints:SOT-563_DRL0006A"
+	(footprint "common:SOT-563_DRL0006A"
 		(layer "F.Cu")
 		(uuid "ea4198fc-cc00-48de-a39f-89a072f573a7")
 		(at 24.03 40.299999 90)
@@ -16054,7 +16054,7 @@
 		)
 		(embedded_fonts no)
 	)
-	(footprint "RP2350_60QFN_minimal:L_pol_2016"
+	(footprint "common:L_pol_2016"
 		(layer "F.Cu")
 		(uuid "edffa48b-85d8-4a69-b84b-3c2f631f1cee")
 		(at 32.38 33.16 180)

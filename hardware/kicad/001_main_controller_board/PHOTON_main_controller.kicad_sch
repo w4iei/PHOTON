@@ -4976,7 +4976,7 @@
 					)
 				)
 			)
-			(property "Footprint" "RP2350_60QFN_minimal:RP2350-QFN-60-1EP_7x7_P0.4mm_EP3.4x3.4mm_ThermalVias"
+			(property "Footprint" "common:RP2350-QFN-60-1EP_7x7_P0.4mm_EP3.4x3.4mm_ThermalVias"
 				(at -19.05 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -14763,7 +14763,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Pretty Custom:PSON50P200X300X50-9N"
+		(property "Footprint" "common:PSON50P200X300X50-9N"
 			(at 289.56 232.41 0)
 			(hide yes)
 			(show_name no)
@@ -15140,7 +15140,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Pretty Custom:CONN18x1_FH34SRJ-18S-0.5SH50_HIR"
+		(property "Footprint" "common:CONN18x1_FH34SRJ-18S-0.5SH50_HIR"
 			(at 172.72 180.34 0)
 			(hide yes)
 			(show_name no)
@@ -16755,7 +16755,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Pretty Custom:TF-015_corrected"
+		(property "Footprint" "common:TF-015_corrected"
 			(at 318.77 176.53 0)
 			(hide yes)
 			(show_name no)
@@ -17260,7 +17260,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "RP2350_60QFN_minimal:C_0402_1005Metric_small_pads"
+		(property "Footprint" "common:C_0402_1005Metric_small_pads"
 			(at 191.4652 71.12 0)
 			(hide yes)
 			(show_name no)
@@ -17885,7 +17885,7 @@
 				)
 			)
 		)
-		(property "Footprint" "small_flash:WSON_128JVPIQ_WIN"
+		(property "Footprint" "common:WSON_128JVPIQ_WIN"
 			(at 375.92 210.82 0)
 			(hide yes)
 			(show_name no)
@@ -19777,7 +19777,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "RP2350_60QFN_minimal:RP2350-QFN-60-1EP_7x7_P0.4mm_EP3.4x3.4mm_ThermalVias"
+		(property "Footprint" "common:RP2350-QFN-60-1EP_7x7_P0.4mm_EP3.4x3.4mm_ThermalVias"
 			(at 261.62 104.14 0)
 			(hide yes)
 			(show_name no)
@@ -23408,7 +23408,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "RP2350_60QFN_minimal:L_pol_2016"
+		(property "Footprint" "common:L_pol_2016"
 			(at 217.17 67.31 0)
 			(hide yes)
 			(show_name no)
@@ -24443,7 +24443,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Pretty Custom:DQA0010A"
+		(property "Footprint" "common:DQA0010A"
 			(at 66.04 266.7 0)
 			(hide yes)
 			(show_name no)
@@ -24948,7 +24948,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Pretty Custom:QFN_24RGTR_TEX"
+		(property "Footprint" "common:QFN_24RGTR_TEX"
 			(at 100.33 160.02 0)
 			(hide yes)
 			(show_name no)
@@ -25155,7 +25155,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "RP2350_60QFN_minimal:C_0402_1005Metric_small_pads"
+		(property "Footprint" "common:C_0402_1005Metric_small_pads"
 			(at 202.8952 71.12 0)
 			(hide yes)
 			(show_name no)

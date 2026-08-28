@@ -816,7 +816,7 @@
 			)
 		)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "030d8cf4-d0b2-474e-b17b-43b69532db3b")
 		(at 349.665799 2.4)
@@ -1066,7 +1066,7 @@
 		)
 		(embedded_fonts no)
 	)
-	(footprint "footprints:MountingHole_2.7mm_M2.5_Keepout"
+	(footprint "common:MountingHole_2.7mm_M2.5_Keepout"
 		(layer "F.Cu")
 		(uuid "042d657c-f6a5-4d05-805c-e8551c60bf3b")
 		(at 389.74 22.8)
@@ -1223,7 +1223,7 @@
 		)
 		(embedded_fonts no)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "066c670b-69ff-4d35-b437-122af04ea1ed")
 		(at 162.999599 2.4)
@@ -1773,7 +1773,7 @@
 			)
 		)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "09e6e29d-77e7-4523-932a-08495a93be00")
 		(at 176.332899 2.4)
@@ -2173,7 +2173,7 @@
 			)
 		)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "0c2a6e72-b1a7-4efd-8dcf-3fe067fb1957")
 		(at 229.6661 2.4)
@@ -2721,7 +2721,7 @@
 			)
 		)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "0e8e75c0-4448-400c-9a5b-befc5834ebbd")
 		(at 96.3331 2.4)
@@ -3195,7 +3195,7 @@
 			)
 		)
 	)
-	(footprint "footprints:QFN_24RGTR_TEX"
+	(footprint "common:QFN_24RGTR_TEX"
 		(layer "F.Cu")
 		(uuid "10669908-4b97-4fa5-adaf-9d1bdea47350")
 		(at 158.525 18.925 -90)
@@ -6783,7 +6783,7 @@
 			)
 		)
 	)
-	(footprint "footprints:MountingHole_2.7mm_M2.5_Keepout"
+	(footprint "common:MountingHole_2.7mm_M2.5_Keepout"
 		(layer "F.Cu")
 		(uuid "17583ee9-2a3a-4497-bc6b-fc97f9814d97")
 		(at 248.4 22.8)
@@ -7924,7 +7924,7 @@
 			)
 		)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "1c02f279-b433-4e8c-9c0c-3d5599766c69")
 		(at 82.9998 2.4)
@@ -8470,7 +8470,7 @@
 			)
 		)
 	)
-	(footprint "footprints:WQFN16_RTE_TEX"
+	(footprint "common:WQFN16_RTE_TEX"
 		(layer "F.Cu")
 		(uuid "1f956e10-1bc1-459e-884d-e7bb957accdf")
 		(at 363.25 13.025 180)
@@ -9775,7 +9775,7 @@
 		)
 		(embedded_fonts no)
 	)
-	(footprint "footprints:WQFN16_RTE_TEX"
+	(footprint "common:WQFN16_RTE_TEX"
 		(layer "F.Cu")
 		(uuid "1fe3cc79-1b15-4cf8-8831-d6b5d2f66e96")
 		(at 290.546 10.23 -90)
@@ -13995,7 +13995,7 @@
 			)
 		)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "2efbe209-233d-4a57-8e41-cbc361e626df")
 		(at 29.6666 2.4)
@@ -15081,7 +15081,7 @@
 			)
 		)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "348fd2e3-b46e-4029-8422-9f1573984820")
 		(at 202.999499 2.4)
@@ -16503,7 +16503,7 @@
 			)
 		)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "37ce4778-008f-4d89-bf97-177b25a5409c")
 		(at 149.6663 2.4)
@@ -17738,7 +17738,7 @@
 			)
 		)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "3c1af777-a297-49c2-a369-c2a1eb23ec44")
 		(at 3 2.4)
@@ -18437,7 +18437,7 @@
 			)
 		)
 	)
-	(footprint "footprints:SOT-563_DRL0006A"
+	(footprint "common:SOT-563_DRL0006A"
 		(layer "F.Cu")
 		(uuid "40d0af7c-b6c5-4798-a20d-730e6c39dbaa")
 		(at 13.1 17.45)
@@ -18911,7 +18911,7 @@
 			)
 		)
 	)
-	(footprint "footprints:mousebite_34mm"
+	(footprint "common:mousebite_34mm"
 		(locked yes)
 		(layer "F.Cu")
 		(uuid "416860e1-4a53-42c8-85ea-9550771f7274")
@@ -19140,7 +19140,7 @@
 		)
 		(embedded_fonts no)
 	)
-	(footprint "footprints:C_0402_1005Metric_small_pads"
+	(footprint "common:C_0402_1005Metric_small_pads"
 		(layer "F.Cu")
 		(uuid "4172589f-bf48-473c-9421-3d48a97706d2")
 		(at 202.054348 19.366918 -135)
@@ -19773,7 +19773,7 @@
 			)
 		)
 	)
-	(footprint "footprints:WQFN16_RTE_TEX"
+	(footprint "common:WQFN16_RTE_TEX"
 		(layer "F.Cu")
 		(uuid "4665cfb4-0997-4dc9-95d2-28cd4bba140f")
 		(at 178.56 10.23 -90)
@@ -22001,7 +22001,7 @@
 			)
 		)
 	)
-	(footprint "footprints:MountingHole_2.7mm_M2.5_Keepout"
+	(footprint "common:MountingHole_2.7mm_M2.5_Keepout"
 		(layer "F.Cu")
 		(uuid "4b97c04c-5650-4997-8108-b5939ca58c66")
 		(at 50 22.8)
@@ -22457,7 +22457,7 @@
 			)
 		)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "4d24fc30-65ae-4789-b03d-a84647bfac3c")
 		(at 16.3333 2.4)
@@ -22707,7 +22707,7 @@
 		)
 		(embedded_fonts no)
 	)
-	(footprint "footprints:WQFN16_RTE_TEX"
+	(footprint "common:WQFN16_RTE_TEX"
 		(layer "F.Cu")
 		(uuid "4d65cb02-350e-4a40-9183-18f0ceeacf2e")
 		(at 23.88 10.23 -90)
@@ -24847,7 +24847,7 @@
 			)
 		)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "5210ff5f-3462-401b-8eb1-be116197d4a9")
 		(at 296.3326 2.4)
@@ -26583,7 +26583,7 @@
 			)
 		)
 	)
-	(footprint "footprints:MountingHole_2.7mm_M2.5_Keepout"
+	(footprint "common:MountingHole_2.7mm_M2.5_Keepout"
 		(layer "F.Cu")
 		(uuid "5f39d54b-d8cf-4d70-81cc-dc8d82bf6404")
 		(at 312.4 22.8)
@@ -27426,7 +27426,7 @@
 			)
 		)
 	)
-	(footprint "footprints:MountingHole_2.7mm_M2.5_Keepout"
+	(footprint "common:MountingHole_2.7mm_M2.5_Keepout"
 		(layer "F.Cu")
 		(uuid "623714cc-35e4-4538-b50a-c5f64f439fbe")
 		(at 88.93 -4)
@@ -27732,7 +27732,7 @@
 			)
 		)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "6449a4af-f36e-4781-a452-20ea53407bb2")
 		(at 122.9997 2.4)
@@ -29481,7 +29481,7 @@
 			)
 		)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "69ea6782-f8fe-4114-932e-929ad55073b0")
 		(at 402.998999 2.4)
@@ -31013,7 +31013,7 @@
 			)
 		)
 	)
-	(footprint "footprints:WQFN16_RTE_TEX"
+	(footprint "common:WQFN16_RTE_TEX"
 		(layer "F.Cu")
 		(uuid "7009c89a-7965-45a7-afe5-299bc4288dfd")
 		(at 230.4608 10.690001 -90)
@@ -34527,7 +34527,7 @@
 			)
 		)
 	)
-	(footprint "footprints:WQFN16_RTE_TEX"
+	(footprint "common:WQFN16_RTE_TEX"
 		(layer "F.Cu")
 		(uuid "745c88d9-7537-49e6-9422-3ea5e154df71")
 		(at 343.879199 10.23 -90)
@@ -36519,7 +36519,7 @@
 			)
 		)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "797bedcf-f5be-47e8-b1bf-e8579b8799d4")
 		(at 376.3324 2.4)
@@ -37068,7 +37068,7 @@
 			)
 		)
 	)
-	(footprint "footprints:C_0402_1005Metric_small_pads"
+	(footprint "common:C_0402_1005Metric_small_pads"
 		(layer "F.Cu")
 		(uuid "7a6054d0-e207-41a6-ad0e-49b44635b4c0")
 		(at 202.747312 20.059883 -135)
@@ -37552,7 +37552,7 @@
 			)
 		)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "7dfe0d14-c697-4a02-962c-dae8f58df2fa")
 		(at 389.665699 2.4)
@@ -38996,7 +38996,7 @@
 			)
 		)
 	)
-	(footprint "footprints:RP2350-QFN-60-1EP_7x7_P0.4mm_EP3.4x3.4mm_ThermalVias"
+	(footprint "common:RP2350-QFN-60-1EP_7x7_P0.4mm_EP3.4x3.4mm_ThermalVias"
 		(layer "F.Cu")
 		(uuid "84ad5c9c-4fbf-4a7e-b3f8-36a8a196a1ba")
 		(at 200.237083 14.622232 -135)
@@ -40240,7 +40240,7 @@
 			)
 		)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "85e9b1dd-6c8b-4fb1-8485-99884d6f31e0")
 		(at 109.6664 2.4)
@@ -40940,7 +40940,7 @@
 			)
 		)
 	)
-	(footprint "footprints:MountingHole_2.7mm_M2.5_Keepout"
+	(footprint "common:MountingHole_2.7mm_M2.5_Keepout"
 		(layer "F.Cu")
 		(uuid "8b041a36-5637-44db-acef-5c276cd41919")
 		(at 155.21 -4)
@@ -41911,7 +41911,7 @@
 			)
 		)
 	)
-	(footprint "footprints:MountingHole_2.7mm_M2.5_Keepout"
+	(footprint "common:MountingHole_2.7mm_M2.5_Keepout"
 		(layer "F.Cu")
 		(uuid "8e54f715-476d-406b-8cdb-d6a535507607")
 		(at 378.31 -4)
@@ -42666,7 +42666,7 @@
 			)
 		)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "90e24211-d352-48e6-8a26-f340154d7f05")
 		(at 309.6659 2.4)
@@ -43216,7 +43216,7 @@
 			)
 		)
 	)
-	(footprint "footprints:MountingHole_2.7mm_M2.5_Keepout"
+	(footprint "common:MountingHole_2.7mm_M2.5_Keepout"
 		(layer "F.Cu")
 		(uuid "94267dbc-426c-47b8-85cc-44815bcff97a")
 		(at 289.06 -4)
@@ -43373,7 +43373,7 @@
 		)
 		(embedded_fonts no)
 	)
-	(footprint "footprints:MountingHole_2.7mm_M2.5_Keepout"
+	(footprint "common:MountingHole_2.7mm_M2.5_Keepout"
 		(layer "F.Cu")
 		(uuid "958a53fa-6f1d-4b26-a10e-3f9e0fcf044f")
 		(at 10.32 -4)
@@ -44422,7 +44422,7 @@
 			)
 		)
 	)
-	(footprint "footprints:MountingHole_2.7mm_M2.5_Keepout"
+	(footprint "common:MountingHole_2.7mm_M2.5_Keepout"
 		(layer "F.Cu")
 		(uuid "9d872287-2167-4bad-acbc-cf47c0d2444d")
 		(at 389.47 -4)
@@ -44879,7 +44879,7 @@
 			)
 		)
 	)
-	(footprint "footprints:MountingHole_2.7mm_M2.5_Keepout"
+	(footprint "common:MountingHole_2.7mm_M2.5_Keepout"
 		(layer "F.Cu")
 		(uuid "9f15a9c0-1f88-46fa-b384-a9f0d69e2f92")
 		(at 402.39 -4)
@@ -45036,7 +45036,7 @@
 		)
 		(embedded_fonts no)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "a0d2c613-3a6c-4f7a-a0c5-ed639a4a71fd")
 		(at 69.6665 2.4)
@@ -45436,7 +45436,7 @@
 			)
 		)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "a0f50348-dd78-43b9-aef9-be249ba7ef46")
 		(at 42.9999 2.4)
@@ -46282,7 +46282,7 @@
 			)
 		)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "a3a98d42-f786-4bc7-861f-e6c42f08faa7")
 		(at 189.666199 2.4)
@@ -47068,7 +47068,7 @@
 			)
 		)
 	)
-	(footprint "footprints:DQA0010A"
+	(footprint "common:DQA0010A"
 		(layer "F.Cu")
 		(uuid "a493f041-6e3d-4e17-9144-cceca8d01e04")
 		(at 5.025 19.435928 180)
@@ -47342,7 +47342,7 @@
 		)
 		(embedded_fonts no)
 	)
-	(footprint "footprints:WQFN16_RTE_TEX"
+	(footprint "common:WQFN16_RTE_TEX"
 		(layer "F.Cu")
 		(uuid "a56b5682-d529-4e58-abde-48d31177cd07")
 		(at 130.5464 10.23 -90)
@@ -48797,7 +48797,7 @@
 			)
 		)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "a6f89428-f91b-4d9b-afa9-1f09b61e7c7f")
 		(at 216.3328 2.4)
@@ -49496,7 +49496,7 @@
 			)
 		)
 	)
-	(footprint "footprints:SOD-323_L1.8-W1.3-LS2.5-RD"
+	(footprint "common:SOD-323_L1.8-W1.3-LS2.5-RD"
 		(layer "F.Cu")
 		(uuid "a97d7eb8-7488-4965-b2f6-047a71ee2d6d")
 		(at 7.25 16 90)
@@ -50124,7 +50124,7 @@
 			)
 		)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "ad68b1bc-636c-4ea5-9749-55b971dd7623")
 		(at 269.666 2.4)
@@ -50523,7 +50523,7 @@
 			)
 		)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "ae0a7fa6-5aaa-45ad-b749-bb5bca7b0cc0")
 		(at 136.333 2.4)
@@ -50773,7 +50773,7 @@
 		)
 		(embedded_fonts no)
 	)
-	(footprint "footprints:MountingHole_2.7mm_M2.5_Keepout"
+	(footprint "common:MountingHole_2.7mm_M2.5_Keepout"
 		(layer "F.Cu")
 		(uuid "af3ebbeb-0c74-4109-a533-03a1ca74c39a")
 		(at 106.55 22.8)
@@ -51093,7 +51093,7 @@
 			)
 		)
 	)
-	(footprint "footprints:MountingHole_2.7mm_M2.5_Keepout"
+	(footprint "common:MountingHole_2.7mm_M2.5_Keepout"
 		(layer "F.Cu")
 		(uuid "b08fc12c-00da-4506-8a81-e56e96dccfff")
 		(at 364.97 22.8)
@@ -51250,7 +51250,7 @@
 		)
 		(embedded_fonts no)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "b1c94dab-2d70-412d-b4ee-e06efd3d82a5")
 		(at 336.332499 2.4)
@@ -52101,7 +52101,7 @@
 			)
 		)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "b5c42606-4e50-42ff-b3b2-38bed6a1c70f")
 		(at 282.9993 2.4)
@@ -53651,7 +53651,7 @@
 			)
 		)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "bc0b4091-5a69-4aa4-b994-00216ef810ba")
 		(at 256.3327 2.4)
@@ -53901,7 +53901,7 @@
 		)
 		(embedded_fonts no)
 	)
-	(footprint "footprints:L_pol_2016"
+	(footprint "common:L_pol_2016"
 		(layer "F.Cu")
 		(uuid "bca8c969-2886-4d82-b18c-a4a55dfb1224")
 		(at 203.9 21.11 -135)
@@ -54871,7 +54871,7 @@
 			)
 		)
 	)
-	(footprint "footprints:MountingHole_2.7mm_M2.5_Keepout"
+	(footprint "common:MountingHole_2.7mm_M2.5_Keepout"
 		(layer "F.Cu")
 		(uuid "c25051ba-cb57-45e6-ba5e-60cad767f9e2")
 		(at -1.45 8.825)
@@ -56998,7 +56998,7 @@
 			)
 		)
 	)
-	(footprint "footprints:mousebite_34mm"
+	(footprint "common:mousebite_34mm"
 		(locked yes)
 		(layer "F.Cu")
 		(uuid "cb154794-9155-4bf1-8467-7a92d1078a1d")
@@ -57227,7 +57227,7 @@
 		)
 		(embedded_fonts no)
 	)
-	(footprint "footprints:MountingHole_2.7mm_M2.5_Keepout"
+	(footprint "common:MountingHole_2.7mm_M2.5_Keepout"
 		(layer "F.Cu")
 		(uuid "cb6326e7-2e7e-4388-ab11-ca89a88d5cf9")
 		(at 378.79 22.8)
@@ -57534,7 +57534,7 @@
 			)
 		)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "cc34b756-8e9f-415d-b840-74249a15a255")
 		(at 362.999099 2.4)
@@ -60702,7 +60702,7 @@
 			)
 		)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "de250ba4-02f2-41f2-80bd-1528de2714b6")
 		(at 56.3332 2.4)
@@ -61101,7 +61101,7 @@
 			)
 		)
 	)
-	(footprint "footprints:mousebite_34mm"
+	(footprint "common:mousebite_34mm"
 		(locked yes)
 		(layer "F.Cu")
 		(uuid "df875c42-a60b-484a-a2b1-201906f64fa6")
@@ -62251,7 +62251,7 @@
 			)
 		)
 	)
-	(footprint "footprints:MountingHole_2.7mm_M2.5_Keepout"
+	(footprint "common:MountingHole_2.7mm_M2.5_Keepout"
 		(layer "F.Cu")
 		(uuid "e2f60d00-035a-4fee-b87e-18922b31fc65")
 		(at 350.225 -4)
@@ -62559,7 +62559,7 @@
 			)
 		)
 	)
-	(footprint "footprints:MountingHole_2.7mm_M2.5_Keepout"
+	(footprint "common:MountingHole_2.7mm_M2.5_Keepout"
 		(layer "F.Cu")
 		(uuid "e425ad69-7bc0-4323-90e5-c032fe6e21c8")
 		(at 402.35 22.8)
@@ -63476,7 +63476,7 @@
 			)
 		)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "e8724f03-4245-4985-9cb1-59b1c1739616")
 		(at 322.999199 2.4)
@@ -65371,7 +65371,7 @@
 			)
 		)
 	)
-	(footprint "footprints:MountingHole_2.7mm_M2.5_Keepout"
+	(footprint "common:MountingHole_2.7mm_M2.5_Keepout"
 		(layer "F.Cu")
 		(uuid "f2153974-f077-4204-a7c9-5dd62e0ae325")
 		(at 221.74 -4)
@@ -66660,7 +66660,7 @@
 			)
 		)
 	)
-	(footprint "footprints:VCNT2025X01_VIS"
+	(footprint "common:VCNT2025X01_VIS"
 		(layer "F.Cu")
 		(uuid "f8b2d18d-1a4f-4c2c-bca2-7c11353abaa4")
 		(at 242.9994 2.4)
@@ -67359,7 +67359,7 @@
 			)
 		)
 	)
-	(footprint "footprints:WQFN16_RTE_TEX"
+	(footprint "common:WQFN16_RTE_TEX"
 		(layer "F.Cu")
 		(uuid "fba4a3e5-a7dd-4b69-a24a-385692fd9b62")
 		(at 77.2132 10.23 -90)

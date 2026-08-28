@@ -195,7 +195,7 @@
 					)
 				)
 			)
-			(property "Footprint" "footprints:WQFN16_RTE_TEX"
+			(property "Footprint" "common:WQFN16_RTE_TEX"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -2514,7 +2514,7 @@
 				)
 			)
 		)
-		(property "Footprint" "footprints:WQFN16_RTE_TEX"
+		(property "Footprint" "common:WQFN16_RTE_TEX"
 			(at 93.98 120.65 0)
 			(hide yes)
 			(show_name no)
