@@ -37,6 +37,10 @@ fp-info-cache
 !**/production/*.csv
 !**/production/*.xml
 
+# Fab archive zips: the gerbers regenerate from the KiCad source, and the
+# BOM/positions/designators CSVs beside them are tracked separately.
+**/production/*.zip
+
 # Archived Backups (KiCad 6.0)
 **/*-backups/*.zip
 
