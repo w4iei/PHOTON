@@ -28,8 +28,8 @@ Board 4, measured at the ADC:
 Sequential is lowest on both peak and average current: in parallel mode every
 emitter stays lit through the other sensors' ADC reads, so most of that
 emitter-on time is wasted. It also eliminates optical crosstalk by
-construction. Those are the reasons to want it — see the defect below for why
-it is not available.
+construction — which is what makes it a useful measurement reference rather
+than a performance mode. See below.
 
 ## Scan rate and mode are not power levers
 
@@ -53,36 +53,50 @@ Remaining levers, none scan-related: MCU clock (careful — `clk_peri` is pinned
 for the 4 Mbaud UART divisor), core 1 idle (it busy-spins ~24% of the period at
 300 Hz; a WFE wait would recover some), and TLA2518 standby modes.
 
-## DEFECT: mode 0 (sequential) is quarantined — do not deploy
+## Mode 0 (sequential): a benchmarking instrument, not a performance mode
 
-Mode 0 remains selectable from the console and via `scan_mode` in the config
-store. It must not be used.
+Mode 0 lights one emitter at a time, so it is the only mode with **zero
+optical crosstalk by construction**. That is what it is for: parallel and
+two-phase can only be checked for crosstalk by comparing them against
+something that has none.
 
-Sequential reads slots 1-3 elevated and, before the fix below, collapsed sensor
-idx 28 to a pinned, noisy ~31k with no key response on every board — which
-calibrates into a sliver of range and machine-guns that note.
+It is not a candidate for playing. The 2,536 us sweep caps it at ~390 Hz and
+it reads ~10x noisier than mode 2. Keep it selectable — from the console and
+via `scan_mode` in the config store — and keep it out of deployed
+configurations.
+
+### History
+
+Sequential read slots 1-3 elevated and collapsed sensor idx 28 to a pinned,
+noisy ~31k with no key response on every board — which calibrates into a
+sliver of range and machine-guns that note.
 
 **Fix applied (commit after c6f784c):** `sweep_sequential` reordered to write
 `CHANNEL_SEL` *under* the settle window, matching the proven `step_banks`
 ordering, so the ADC mux gets settle time connected to the new channel.
 
 **Validation 2026-08-13, board 1 — PARTIAL PASS.** The catastrophic failure is
-gone (idx 28: pinned 31,064 at 750-1300 noise, to 10,876 at 240-380). But modes
-still do not converge: 8 sensors differ >15%, idx 28 by 44%, and mode 0 stays
-~10x noisier.
+gone (idx 28: pinned 31,064 at 750-1300 noise, to 10,876 at 240-380). But
+modes still do not converge: 8 sensors differ >15%, idx 28 by 44%, and mode 0
+stays ~10x noisier.
 
-**Worth re-testing now.** The leading hypothesis for the residual was that
-mode 0 lights one emitter where mode 2 lights four, so the 3.3 V rail sagged
-less and mode 0's higher readings were partly *real* — a rail artefact, not a
-scan defect. That rail was shared across four boards through the cable. It is
-now regulated locally on every board, so if the hypothesis was right the
-discrepancy should have shrunk or vanished.
+### TODO — characterise mode 0 at the next benchmarking pass
 
-Retest recipe: flash one node, A/B `mode 0` against `mode 2` via `data <id>`,
-at rest and under a held key. Judge on **noise and repeatability**, not on
-agreement with mode 2 — if the old discrepancy was a rail artefact then
-"the modes must converge" was always the wrong acceptance test. The 10x noise
-gap needs explaining either way.
+Mode 0 cannot serve as the crosstalk reference until its own noise floor is
+understood, so this blocks any crosstalk measurement of modes 1 and 2.
+
+The leading hypothesis for the residual was that mode 0 lights one emitter
+where mode 2 lights four, so the 3.3 V rail sagged less and mode 0's higher
+readings were partly *real* — a rail artefact, not a scan defect. That rail
+was shared across four boards through the cable. It is now regulated locally
+on every board, so if the hypothesis was right the discrepancy should have
+shrunk or vanished.
+
+Recipe: flash one node, A/B `mode 0` against `mode 2` via `data <id>`, at rest
+and under a held key. Judge on **noise and repeatability**, not on agreement
+with mode 2 — if the old discrepancy was a rail artefact then "the modes must
+converge" was always the wrong acceptance test. The 10x noise gap needs
+explaining either way.
 
 ## Diagnostic worth keeping
 

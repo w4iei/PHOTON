@@ -96,9 +96,10 @@ static void sweep_sequential(void) {
             // wrong readings on real hardware — worst on bank 7 slot 0,
             // whose mux parks on the floating unpopulated AIN1 (idx 31)
             // through the inter-sweep gap and drifts to mid-rail (~32k).
-            // Reordered 2026-08-13; PENDING HARDWARE VALIDATION (mode 0 is
-            // quarantined from production until this is bench-verified —
-            // see docs/architecture/03-power-savings-plan.md).
+            // Reordered 2026-08-13; bench-validated to a partial pass. Mode 0
+            // is a benchmarking reference (zero optical crosstalk), not a
+            // production mode, and its residual noise is still open — see
+            // docs/architecture/03-scan-modes.md.
             uint32_t settle_done = time_us_32() + g_scan_ctl.settle_us;
             tla2518_write3(b, TLA_OP_REGISTER_WRITE, TLA_REG_CHANNEL_SEL,
                            slot_adc_channel[slot] & 0x0F);

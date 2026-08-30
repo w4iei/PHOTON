@@ -2,9 +2,9 @@
 
 Short and ordered.
 
-**Step 2a is software-only and must happen before any config field is added** —
-it is the one item that can silently destroy all four boards' calibration.
-Everything else needs the hardware connected.
+Step 2 is software-only and testable on the host; it deliberately resets every
+board's stored config once (see 2a), so budget a `setid` + recalibration pass
+with it. Everything else needs the hardware connected.
 
 ## 1. Power characterisation + RS-485 sanity (~15 min)
 
@@ -20,7 +20,10 @@ Now that main rev 1D uses a buck, re-measure with a USB power meter at the
 | 1 parallel | 400 Hz | old `full_performance` operating point |
 
 Expected: still dominated by fixed baseline (~2.4 W delivered), with mode/rate
-worth only a few hundred mW. **Do NOT test mode 0** — quarantined, see `03-scan-modes.md`.
+worth only a few hundred mW. Mode 0 is deliberately absent — it is a
+benchmarking instrument rather than a performance mode, and `03-scan-modes.md`
+already establishes that mode is not a power lever. It gets its own pass in
+step 3.
 
 Not pursuing further power work. For the record, in case it comes up again:
 core 1 busy-waits (`wait_until_us` -> `busy_wait_us_32`) through its ~76% idle
@@ -62,54 +65,86 @@ still expressive, never maxed.
 **Make it a runtime knob, not a constant.** "What number is right" is a taste
 question the user will iterate on: add `velrange <min> <max>` to the console
 (local + remote via NODECTL, persisted), so it can be tuned against a real
-sample library without reflashing. Bridge-side only — velocity is computed in
-`midi_map_velocity()` on the bridge.
+sample library without reflashing.
 
-### 2a. FIRST: generalise the config-layout migration (do this before 2b)
+Velocity is computed wherever MIDI is emitted — events cross the wire as raw
+`dt_us` and are mapped by the receiver. Normally that is the bridge alone; a
+node with `localmidi on` maps its own. Neither the frame format nor NODECTL
+(op + u16 arg) changes, so a new-firmware bridge interoperates with
+old-firmware nodes.
 
-Pure software, no hardware needed, testable on the host. **Do it before
-appending any field**, or all four boards lose calibration and node ids the
-moment they are flashed.
+### 2a. Config layout: take the one-time reset, do not carry a migration table
 
-Why. The config record ends with a CRC32 over everything preceding it, so the
-reader must know the record's exact length to locate and verify it:
+Appending two floats to `photon_config_t` lengthens the record, and the CRC32
+sits at the end — so the reader must know the exact length to locate it.
+`sector_valid_at()` tries two lengths: the current `sizeof`, and current minus
+`sizeof(manual_channel)`. After appending, those become v3 and *v3 minus 3
+bytes*; the v2 layout every board currently holds matches neither. Every
+record fails and `config_store_init()` calls `load_defaults()`.
 
-| | layout | ends with |
-|---|---|---|
-| v1 | original | `... vel_curve, crc` |
-| **v2** | **what all four boards hold today** | `... vel_curve, manual_channel[3], crc` |
-| v3 | after appending velocity range | `... manual_channel[3], vel_out_min, vel_out_max, crc` |
+**That is the accepted outcome.** The alternative — a table of historical
+record sizes, a host test for it, and a "never reorder these entries" comment
+carried forever — is permanent complexity bought to avoid one afternoon of
+reconfiguration. Decided against.
 
-`sector_valid()` currently tries exactly TWO offsets: the current struct size,
-and "current size minus `sizeof(manual_channel)`". Today those are v2 and v1,
-so both are covered. Make v3 current and those two become v3 and *v3 minus 3
-bytes* — which is **not v2**. Every board's record then fails both checks,
-`config_store_init()` calls `load_defaults()`, calibration is wiped and every
-node returns as `node_id = 1` (all four answering at the same bus address).
+Two things follow that are easy to get wrong:
 
-Note reflashing is NOT the hazard — config lives above the program region and
-survives. The hazard is the new firmware failing to *recognise* what survived.
+- **Erasing the config sectors first is pointless.** A stale record fails CRC
+  and loads defaults; an erased sector loads defaults. Identical end state.
+  There is no wipe procedure — flash, then reconfigure.
+- **Reflashing was never the hazard.** Config lives above the program region
+  and survives a UF2 drop. The hazard is only that the new firmware stops
+  *recognising* what survived.
 
-Fix (~10 lines in `sector_valid()`): replace the single hardcoded fallback
-with a loop over a table of known historical record sizes. The struct only
-ever grows by appending, so size uniquely identifies the layout:
+So `sector_valid_at()` should **lose** its migration fallback in this change
+and check the current length only. Net effect on `config_store.c` is fewer
+lines than it has today.
 
-```c
-// Historical record sizes, newest first. Append one entry whenever a field
-// is added to photon_config_t; never reorder or remove entries.
-static const size_t k_layout_sizes[] = {
-    sizeof(photon_config_t),                                    // v3
-    offsetof(photon_config_t, vel_out_min) + sizeof(uint32_t),  // v2 + crc
-    offsetof(photon_config_t, manual_channel) + sizeof(uint32_t)// v1 + crc
-};
-```
-For each size: read the CRC from `base + size - 4`, verify over the preceding
-`size - 4` bytes, and on a match zero-fill the remainder of the struct so new
-fields take their defaults. Add a host test in `firmware/test/host` that
-builds a v1 and a v2 record and asserts both load with node id and cal_min
-intact.
+### 2b. What the reset costs, and how it comes back
 
-### 2b. Then: the velocity change itself
+| Field | Recovery |
+|---|---|
+| `cal_min[32]` / `cal_max[32]` | Automatic — the event engine tracks running min/max. Play every key through full travel, then `cal save` |
+| `node_id` | `setid N` per board |
+| `global_disabled`, `manual_channel`, midi low/high/channel | Re-enter from the console, only if customised off the defaults |
+
+Calibration is the bulk of the record and the cheapest part to recover: it
+regenerates by playing the instrument, and `cal reset [id]` / `cal save [id]`
+both work remotely from the bridge, so it needs no per-board USB.
+
+The one sharp edge is node identity. Every board returns as `node_id = 1`, all
+answering at the same bus address, and NODECTL `setid` is addressed-only — so
+it cannot be fixed over the wire once they collide. Flashing a UF2 already
+requires physical USB in BOOTSEL, so **run `setid N` in the same session as
+the flash, before the board goes back on the bus.**
+
+Boards self-report: `config_store_init()` sets `g_config_from_flash = false`
+and the console banner prints `(defaults, uncalibrated)`, so a board that got
+missed announces itself the moment you attach. That is the whole guard, and it
+already exists.
+
+### 2c. Then: the velocity change itself
+
+- `vel_out_min` / `vel_out_max` appended to `photon_config_t`, defaults 75/115
+- `midi_map_velocity()` uses the compressed range
+- `velrange <min> <max>` console command, local + NODECTL, persisted
+- `sector_valid_at()` migration fallback removed
+
+## 3. Mode 0 characterisation (benchmarking, not deployment)
+
+Mode 0 lights one emitter at a time, so it is the only mode free of optical
+crosstalk by construction — the reference the other two have to be measured
+against. It is too slow (~390 Hz) and too noisy (~10x mode 2) to play on, and
+stays out of deployed configs.
+
+Before it can serve as that reference its own noise floor has to be explained.
+The open question is whether the old mode 0 / mode 2 discrepancy was a rail
+artefact — mode 0 sagged the shared 3.3 V rail less because it lit one emitter
+instead of four — which the per-board buck should now have removed. Full
+recipe and acceptance criteria in `03-scan-modes.md`.
+
+Do this when the bench is already set up for benchmarking; nothing else
+depends on it.
 
 ## Reference: what the scan rate costs us in velocity resolution
 
