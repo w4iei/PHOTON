@@ -15,13 +15,12 @@ Now that main rev 1D uses a buck, re-measure with a USB power meter at the
 | mode | rate | note |
 |---|---|---|
 | 2 two-phase | 300 Hz | production config — the baseline |
-| 2 two-phase | 600 Hz | does rate matter now the LDO loss is gone? |
+| 2 two-phase | 600 Hz | does rate matter at all? (expect: no) |
 | 1 parallel | 300 Hz | 2x peak emitter current |
 | 1 parallel | 400 Hz | old `full_performance` operating point |
 
 Expected: still dominated by fixed baseline (~2.4 W delivered), with mode/rate
-worth only a few hundred mW. Record in `hardware/README.md` next to the
-LDO-vs-buck table. **Do NOT test mode 0** — quarantined, see 03-plan.
+worth only a few hundred mW. **Do NOT test mode 0** — quarantined, see `03-scan-modes.md`.
 
 Not pursuing further power work. For the record, in case it comes up again:
 core 1 busy-waits (`wait_until_us` -> `busy_wait_us_32`) through its ~76% idle
@@ -111,14 +110,6 @@ builds a v1 and a v2 record and asserts both load with node id and cal_min
 intact.
 
 ### 2b. Then: the velocity change itself
-
-## 3. Rev-bump the second controller board
-
-Bring board 001 (the other main controller) to the rev 1D power system:
-buck instead of NCP1117, and RP2354 instead of RP2350 + external W25Q128.
-See the LDO-vs-buck measurements and the RP2354 migration notes in
-`hardware/README.md`. Firmware needs no change — one UF2 already covers both
-flash sizes.
 
 ## Reference: what the scan rate costs us in velocity resolution
 
