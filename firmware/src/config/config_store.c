@@ -28,23 +28,13 @@ static bool sector_valid_at(uint32_t base, int idx, photon_config_t *out) {
     if (c.magic != PHOTON_CONFIG_MAGIC) {
         return false;
     }
-    uint32_t crc = photon_crc32((const uint8_t *)&c, sizeof c - sizeof c.crc);
-    if (crc == c.crc) {
-        *out = c;
-        return true;
-    }
-    // Layout migration: sectors written before manual_channel[] existed are
-    // shorter, with the CRC directly after vel_curve. Accept them and default
-    // the new field so node id and calibration survive the upgrade.
-    const uint8_t *raw = sector_ptr_at(base, idx);
-    size_t old_size = sizeof c - sizeof c.manual_channel;
-    uint32_t old_crc;
-    memcpy(&old_crc, raw + old_size - sizeof old_crc, sizeof old_crc);
-    if (photon_crc32(raw, old_size - sizeof old_crc) != old_crc) {
+    // Exact current layout only. A record written by a build with a different
+    // photon_config_t fails here and the caller loads defaults — see the
+    // header for why no cross-layout migration is attempted.
+    if (photon_crc32((const uint8_t *)&c, sizeof c - sizeof c.crc) != c.crc) {
         return false;
     }
-    memset(out, 0, sizeof *out);
-    memcpy(out, raw, old_size - sizeof old_crc);
+    *out = c;
     return true;
 }
 
@@ -81,6 +71,8 @@ static void load_defaults(void) {
     g_config.vel_min_ms = PHOTON_VEL_MIN_MS;
     g_config.vel_max_ms = PHOTON_VEL_MAX_MS;
     g_config.vel_curve = PHOTON_VEL_CURVE;
+    g_config.vel_out_min = PHOTON_VEL_OUT_MIN;
+    g_config.vel_out_max = PHOTON_VEL_OUT_MAX;
 }
 
 void config_store_init(void) {

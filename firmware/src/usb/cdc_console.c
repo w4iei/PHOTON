@@ -108,6 +108,8 @@ static void print_help(void) {
     log_printf("  rate <hz>|max [id]   paced sweep rate (saved; bridge: remote)");
     log_printf("  settle <us> [id]     emitter settle for A/B (5-500; NOT saved)");
     log_printf("  localmidi on|off node plays its own USB-MIDI (default off; saved)");
+    log_printf("  velrange <min> <max> MIDI velocity output range (1-127; saved,"
+               " broadcast)");
     log_printf("  disable|enable <idx>  mask a sensor (node: local idx; bridge: global idx)");
     log_printf("  setid <n> | setid <node> <newid>   bus id, local or remote");
     log_printf("  chmap [m] [ch|auto]  per-manual MIDI channel map (bridge; manual 1-%d,"
@@ -135,10 +137,11 @@ void console_print_banner(int banks_found) {
     log_printf("[BOOT] hw id: %s | cfg v%lu%s", uid,
                (unsigned long)g_config.version,
                g_config_from_flash ? "" : " (defaults, uncalibrated)");
-    log_printf("[CFG] RS-485: %.2f Mbaud | scan: %u Hz paced",
+    log_printf("[CFG] RS-485: %.2f Mbaud | scan: %u Hz paced | vel: %u-%u",
                (double)PHOTON_RS485_BAUD / 1e6,
                g_config.scan_rate_hz ? g_config.scan_rate_hz
-                                     : PHOTON_DEFAULT_SCAN_RATE_HZ);
+                                     : PHOTON_DEFAULT_SCAN_RATE_HZ,
+               (unsigned)g_config.vel_out_min, (unsigned)g_config.vel_out_max);
     log_printf(" ");
     print_help();
 }
@@ -581,6 +584,34 @@ static void handle_line(char *line) {
                      g_config.local_midi ? "on" : "off",
                      g_config.local_midi ? "play here when a host is attached"
                                          : "always go to the bus/bridge");
+        }
+    } else if (strcmp(cmd, "velrange") == 0) {
+        // A harpsichord's loudness is independent of touch, so the useful
+        // range is a taste question tuned against a real sample library.
+        if (a1 == NULL || a2 == NULL) {
+            log_note("velrange <min> <max> (1-127, min <= max; now %u-%u)",
+                     (unsigned)g_config.vel_out_min,
+                     (unsigned)g_config.vel_out_max);
+        } else {
+            int lo = atoi(a1), hi = atoi(a2);
+            if (lo < 1 || hi > 127 || lo > hi) {
+                log_note("velrange: 1-127, min <= max");
+            } else {
+                // Applied here AND broadcast: velocity is mapped by whoever
+                // emits MIDI (the bridge normally, a 'localmidi on' node for
+                // itself), and every board holds an identical copy.
+                g_config.vel_out_min = (float)lo;
+                g_config.vel_out_max = (float)hi;
+                config_store_save();
+                if (C.is_bridge) {
+                    send_nodectl(6, (uint16_t)(lo | (hi << 8)),
+                                 PHOTON_ADDR_BROADCAST);
+                }
+                log_info("velocity range -> %d-%d (saved%s)", lo, hi,
+                         C.is_bridge ? "; broadcast, brief node drop-out while"
+                                       " they write flash"
+                                     : "");
+            }
         }
     } else if (strcmp(cmd, "log") == 0 && a1 != NULL) {
         C.log_events = strcmp(a1, "off") != 0;

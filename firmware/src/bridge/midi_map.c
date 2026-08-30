@@ -70,16 +70,23 @@ int16_t midi_map_note(uint8_t node_id, uint8_t local_idx) {
 }
 
 uint8_t midi_map_velocity(uint32_t dt_us) {
+    // The dt curve is unchanged; only its output range is compressed, from
+    // 1..127 to vel_out_min..vel_out_max (see board_config.h).
     float dt_ms = (float)dt_us / 1000.0f;
+    float lo = g_config.vel_out_min;
+    float hi = g_config.vel_out_max;
+    float v;
     if (dt_ms <= g_config.vel_min_ms) {
-        return 127;
+        v = hi;
+    } else if (dt_ms >= g_config.vel_max_ms) {
+        v = lo;
+    } else {
+        float span = g_config.vel_max_ms - g_config.vel_min_ms;
+        float x = (g_config.vel_max_ms - dt_ms) / span;
+        v = lo + (hi - lo) * powf(x, g_config.vel_curve);
     }
-    if (dt_ms >= g_config.vel_max_ms) {
-        return 1;
-    }
-    float span = g_config.vel_max_ms - g_config.vel_min_ms;
-    float x = (g_config.vel_max_ms - dt_ms) / span;
-    float v = 1.0f + 126.0f * powf(x, g_config.vel_curve);
+    // Clamp on every path, the floor especially: a note-on with velocity 0 is
+    // a note-off on the wire, so a zeroed range would silence the instrument.
     if (v < 1.0f) {
         v = 1.0f;
     }

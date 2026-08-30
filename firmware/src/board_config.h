@@ -127,6 +127,14 @@
 #define PHOTON_VEL_MIN_MS        8.0f   // dt <= 8 ms  -> velocity 127
 #define PHOTON_VEL_MAX_MS        100.0f // dt >= 100 ms -> velocity 1
 #define PHOTON_VEL_CURVE         2.54f
+// MIDI velocity output range. A harpsichord plucks the same way regardless of
+// key speed, so loudness is essentially independent of touch; emitting the
+// full 1-127 makes a piano sample library treat soft strikes as "barely sound
+// the note". Compressing the curve's output into a band that always speaks
+// costs nothing: 300 Hz resolves only ~27 distinct dt steps, which is ~1.5
+// velocity units across 75-115 — finer than anyone can hear.
+#define PHOTON_VEL_OUT_MIN       75.0f
+#define PHOTON_VEL_OUT_MAX       115.0f
 #define PHOTON_GLOBAL_SENSORS    (PHOTON_MAX_NODE_ID * PHOTON_MAX_SENSORS)
 // Default disabled global sensor indices (base config: 31, 62, 63 for the
 // historical 2-board setup) live in the config store defaults.

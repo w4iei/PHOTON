@@ -1,6 +1,14 @@
 // Persistent per-node configuration: two 4 KB A/B sectors at the top of
 // flash, version counter + CRC32, newest valid copy wins. Replaces the
 // CIRCUITPY JSON file, /sensor_node_id marker and NVM flag byte.
+//
+// The CRC sits at the end of the record, so APPENDING A FIELD HERE INVALIDATES
+// EVERY STORED CONFIG: boards fall back to compiled defaults and report
+// "(defaults, uncalibrated)" on the console. That is the accepted cost — a
+// table of historical record sizes to migrate across is permanent complexity
+// bought against one reconfiguration pass. Calibration regenerates by playing;
+// node_id must be re-set per board with 'setid'. See
+// docs/architecture/04-next-session-plan.md section 2a.
 #ifndef PHOTON_CONFIG_STORE_H
 #define PHOTON_CONFIG_STORE_H
 
@@ -34,9 +42,13 @@ typedef struct __attribute__((packed)) {
     float vel_max_ms;
     float vel_curve;
     // Per-manual user-facing MIDI channel (1-16), 0 = auto (midi_channel +
-    // manual index). Appended after the original layout; sector_valid()
-    // migrates pre-existing shorter sectors so calibration survives.
+    // manual index).
     uint8_t manual_channel[PHOTON_MAX_MANUALS];
+    // MIDI velocity output range, set by 'velrange'. Held identical on every
+    // board so any node can act as bridge, and so a 'localmidi on' node maps
+    // velocity the same way the bridge would.
+    float vel_out_min;
+    float vel_out_max;
     uint32_t crc;             // CRC32 over all preceding bytes
 } photon_config_t;
 

@@ -371,6 +371,24 @@ static void node_handle_request(const photon_frame_t *f, bool addressed) {
                     }
                     break;
                 }
+                case 6: {    // velocity output range + persist
+                    // arg packs min in the low byte, max in the high byte.
+                    // Nothing on a node uses this unless 'localmidi on' is
+                    // set, but every board keeps an identical copy so any of
+                    // them can act as bridge without changing the feel.
+                    uint8_t lo = (uint8_t)(arg & 0xFF);
+                    uint8_t hi = (uint8_t)(arg >> 8);
+                    uint8_t ok = 0;
+                    if (lo >= 1 && hi <= 127 && lo <= hi) {
+                        g_config.vel_out_min = (float)lo;
+                        g_config.vel_out_max = (float)hi;
+                        ok = config_store_save() ? 1 : 0;
+                    }
+                    if (addressed) {
+                        send_reply(PHOTON_FT_CAL_ACK, f->src, f->seq, &ok, 1, false);
+                    }
+                    break;
+                }
                 default:
                     break;
             }

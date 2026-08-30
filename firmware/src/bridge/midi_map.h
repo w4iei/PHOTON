@@ -21,7 +21,9 @@ uint8_t midi_map_channel_for_manual(uint32_t manual);
 // -1 if the sensor is unmapped/disabled.
 int16_t midi_map_note(uint8_t node_id, uint8_t local_idx);
 
-// dt -> MIDI velocity 1..127 via the configured curve (legacy truncation).
+// dt -> MIDI velocity via the configured curve (legacy truncation), with
+// the output compressed into vel_out_min..vel_out_max. Used for release
+// velocity too, from the release dt.
 uint8_t midi_map_velocity(uint32_t dt_us);
 
 // Full event path: dedup/arbitrate and emit USB-MIDI. Wired as the
