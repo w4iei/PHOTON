@@ -1,5 +1,5 @@
 (sym_lib_table
-  (version 7)
-  (lib (name "PHOTON")(type "KiCad")(uri "${KIPRJMOD}/symbols/PHOTON.kicad_sym")(options "")(descr "PHOTON project parts not shipped with KiCad"))
-  (lib (name "PHOTON_Modified")(type "KiCad")(uri "${KIPRJMOD}/symbols/PHOTON_Modified.kicad_sym")(options "")(descr "Stock KiCad symbols deliberately modified for this project"))
+	(version 7)
+	(lib (name "PHOTON")(type "KiCad")(uri "${KIPRJMOD}/../PHOTON.kicad_sym")(options "")(descr "Shared PHOTON symbols"))
+	(lib (name "PHOTON_Modified")(type "KiCad")(uri "${KIPRJMOD}/../PHOTON_Modified.kicad_sym")(options "")(descr "Shared PHOTON symbols modified from KiCad stock"))
 )

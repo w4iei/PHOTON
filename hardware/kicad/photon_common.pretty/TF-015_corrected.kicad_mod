@@ -3,7 +3,7 @@
 	(generator "pcbnew")
 	(generator_version "9.0")
 	(layer "F.Cu")
-	(property "Reference" "J4"
+	(property "Reference" "REF**"
 		(at 0 0 180)
 		(layer "F.SilkS")
 		(uuid "454d2f4b-07f4-4d01-9a32-fab89e9cb89b")
@@ -11,7 +11,7 @@
 			(font (size 0.5 0.5) (thickness 0.125))
 		)
 	)
-	(property "Value" "Micro_SD_Card"
+	(property "Value" "TF-015_corrected"
 		(at 0 4.75 180)
 		(layer "F.Fab")
 		(uuid "4421e45f-9994-46ef-8f27-5602c6ceb402")

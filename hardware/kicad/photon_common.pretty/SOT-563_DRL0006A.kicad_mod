@@ -5,7 +5,7 @@
 	(layer "F.Cu")
 	(descr "SOT, 6 Pin (https://www.jedec.org/system/files/docs/MO-293B.pdf)")
 	(tags "SOT TO_SOT_SMD JEDEC-MO-293-UAAD Texas-DRL-6")
-	(property "Reference" "U6"
+	(property "Reference" "REF**"
 		(at 0 -1.65 0)
 		(layer "F.SilkS")
 		(hide yes)
@@ -17,7 +17,7 @@
 			)
 		)
 	)
-	(property "Value" "TPS62A0569ADRLR"
+	(property "Value" "SOT-563_DRL0006A"
 		(at 0 1.65 0)
 		(layer "F.Fab")
 		(uuid "003645af-3bf3-48dd-aa4a-1df2f9b347d6")

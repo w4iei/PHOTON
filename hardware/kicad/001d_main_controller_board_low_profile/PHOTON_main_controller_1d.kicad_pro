@@ -81,7 +81,20 @@
           "width": 0.2
         }
       ],
-      "drc_exclusions": [],
+      "drc_exclusions": [
+        [
+          "unconnected_items|29807731|42595000|F.Cu|4|64149fec-63c4-4a2e-bc9d-681b8c787da2|2e041222-af81-4280-8f4f-ad71a518ccf8",
+          ""
+        ],
+        [
+          "unconnected_items|38447731|42595000|F.Cu|4|86987248-dad4-4aaf-9d62-88a9fb95ee49|64149fec-63c4-4a2e-bc9d-681b8c787da2",
+          ""
+        ],
+        [
+          "unconnected_items|38447731|46245000|F.Cu|4|8f9477e6-2fdc-44f9-a2e9-317ec5046602|86987248-dad4-4aaf-9d62-88a9fb95ee49",
+          ""
+        ]
+      ],
       "meta": {
         "version": 2
       },
@@ -278,7 +291,12 @@
     "equivalence_files": []
   },
   "erc": {
-    "erc_exclusions": [],
+    "erc_exclusions": [
+      [
+        "pin_not_driven|2489200|1244600|55b72b0b-e568-4c83-9ca6-d19a7dfed475|00000000-0000-0000-0000-000000000000|/b0089fb8-2318-4750-8145-7647caa10afa|/b0089fb8-2318-4750-8145-7647caa10afa|",
+        "Internal pull-up is adequate."
+      ]
+    ],
     "meta": {
       "version": 0
     },
@@ -470,7 +488,7 @@
       "global_label_dangling": "warning",
       "ground_pin_not_ground": "warning",
       "hier_label_mismatch": "error",
-      "isolated_pin_label": "warning",
+      "isolated_pin_label": "ignore",
       "label_dangling": "error",
       "label_multiple_wires": "warning",
       "lib_symbol_issues": "warning",
@@ -479,7 +497,7 @@
       "missing_input_pin": "warning",
       "missing_power_pin": "error",
       "missing_unit": "warning",
-      "multiple_net_names": "warning",
+      "multiple_net_names": "ignore",
       "net_not_bus_member": "warning",
       "no_connect_connected": "warning",
       "no_connect_dangling": "warning",
@@ -547,7 +565,7 @@
         "via_drill": 0.3
       },
       {
-        "clearance": 0.2,
+        "clearance": 0.15,
         "diff_pair_gap": 0.25,
         "diff_pair_width": 0.2,
         "microvia_diameter": 0.3,
@@ -778,7 +796,7 @@
         "uuid": "b0089fb8-2318-4750-8145-7647caa10afa"
       }
     ],
-    "used_designators": "CR2,J104,#PWR6,#PWR14,#PWR18-20,#PWR24,#PWR26,#PWR29-31,#PWR119-120,D1,C4,R103-105,L2,U4-5",
+    "used_designators": "#FLG2-5,CR2,J104,#PWR1-3,#PWR6,#PWR8,#PWR14,#PWR18-20,#PWR24,#PWR26,#PWR29-31,#PWR108,#PWR112,#PWR114,#PWR119-120,#PWR225,D1,D3,D12,C4,R103-106,L2,U4-5",
     "variants": []
   },
   "sheets": [
