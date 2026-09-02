@@ -31,12 +31,17 @@ add_executable(photon
     src/usb/cdc_console.c
     src/usb/midi_out.c
     src/bridge/midi_map.c
+    src/bridge/recorder.c
+    src/bridge/sd_spi.c
+    src/bridge/smf.c
+    lib/fatfs/ff.c
+    lib/fatfs/ffunicode.c
     src/config/config_store.c
     src/util/crc32.c
     src/util/log.c
 )
 
-target_include_directories(photon PRIVATE src src/usb)
+target_include_directories(photon PRIVATE src src/usb lib/fatfs)
 
 target_compile_options(photon PRIVATE -Wall -Wextra -Wno-unused-parameter)
 

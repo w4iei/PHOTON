@@ -114,9 +114,51 @@ Any node's USB-C gives a console (`screen /dev/tty.usbmodem* 115200`).
 `help` lists commands: `stats`, `nodes`, `data`, `minmax`, `ping`, `trace`,
 `capture`, `burst`, `test` (pseudorandom load), `cal save|reset`, `r`/`s`/`x`
 (calibration), `mode`, `rate`, `localmidi`, `chmap`, `disable`/`enable`,
-`velrange`, `velcurve`, `setid`, `log on|off`, `flashtest`, `reboot`, `bootsel`, `id`.
+`velrange`, `velcurve`, `setid`, `log on|off`, `flashtest`, `sd`, `reboot`,
+`bootsel`, `id`.
 USB-MIDI appears as "PHOTON Node" and emits notes when connected to the
 bridge (main controller) board.
+
+## microSD recorder (bridge)
+
+Put a microSD card in the main controller board's socket and forget about
+it: everything the bridge emits as MIDI is also written to the card as
+Standard MIDI Files, whether or not a host is listening.
+
+```
+0001/            one directory per power-on, created on the first note
+0001/0001.MID    one file per playing episode
+0001/0002.MID    ... opened on the first note, closed after 30 s of silence
+0002/            next power-on
+```
+
+- **Numbering is the only bookkeeping.** At mount the bridge scans the root
+  for the highest `NNNN` directory and continues from there. Directories are
+  created lazily, so idle power cycles leave nothing behind. At 9999
+  (directories or files) the recorder stops; it never wraps or overwrites.
+- **No clock, no dates.** The board has no RTC and USB carries no time, so
+  every file opens with a text meta event `PHOTON power-on +HH:MM:SS.mmm`
+  (time since power-on). Inside a file the delta times are exact
+  milliseconds (SMPTE 25 fps × 40 ticks division), no tempo map.
+- **Power-cut safe.** Every 500 ms the pending events are written and the
+  file is re-terminated (end-of-track plus the real track length), so the
+  card always holds a complete, valid file. A yanked cable loses at most the
+  last half second.
+- **A held key delays the close.** The 30 s silence close waits for every
+  note to be released, capped at 5 minutes.
+- **Cards:** FAT16, FAT32 and exFAT (a 64 GB card as sold). No card, a
+  pulled card, or a card error just means a retry every 2 s; nothing
+  else on the bridge notices.
+- **Latency:** the recorder runs on the bridge's otherwise idle core 1 with
+  its own SPI bus (SPI1: SCK 10, MOSI 11, MISO 12, CS 13), so card stalls
+  never touch the RS-485 poll cycle or USB-MIDI. Core 0 hands over messages
+  through a 512-deep ring (`drops` in the status line counts overflow).
+
+Console: `sd` prints the status line (state, card size and free space,
+current directory/file, counters, last error); `sd test [n]` plays a scale
+through the MIDI output on a bare bridge so the recorder can be exercised
+without sensor boards. A connected terminal also gets one line per state
+change (`[SD] recording 0001/0003.MID`, `[SD] closed ...`, `[SD] no card`).
 
 ## Bench verification (M1–M5): results
 
@@ -154,5 +196,8 @@ cmake -B build -G Ninja && ninja -C build && ctest --test-dir build
 ```
 
 Covers: frame codec (CRC vectors, roundtrip, per-byte corruption rejection,
-streaming fuzz with 100% recovery) and the event engine (dt math,
-hysteresis, range gate, boot-disable) under ASan/UBSan.
+streaming fuzz with 100% recovery), the event engine (dt math, hysteresis,
+range gate, boot-disable), and the microSD recorder (the production
+recorder + FatFs on a RAM disk formatted FAT16/FAT32/exFAT: numbering across
+power cycles, flush validity, silence close, held-note cap, ring overflow,
+card errors, late card insert, the 9999 stop) under ASan/UBSan.

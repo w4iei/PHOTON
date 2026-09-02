@@ -16,6 +16,7 @@
 
 #include "board_config.h"
 #include "bridge/midi_map.h"
+#include "bridge/recorder.h"
 #include "comms/protocol.h"
 #include "comms/transport.h"
 #include "config/config_store.h"
@@ -87,6 +88,14 @@ int main(void) {
                                  : g_config.scan_rate_hz;
         multicore_launch_core1(scan_core1_entry);
         config_store_set_core1_running(true);
+    } else {
+        // Bridge: core 1 is otherwise idle, so it owns the microSD recorder
+        // and every blocking card transfer. The image runs from SRAM, so
+        // core-0 config saves need no park (core1_running stays false).
+        static uint32_t recorder_stack[2048];  // 8 KB: FatFs + SD driver
+        recorder_init();
+        multicore_launch_core1_with_stack(recorder_core1_entry, recorder_stack,
+                                          sizeof recorder_stack);
     }
 
     tud_init(0);

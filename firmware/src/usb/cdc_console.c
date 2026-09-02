@@ -12,13 +12,17 @@
 
 #include "board_config.h"
 #include "bridge/midi_map.h"
+#include "bridge/recorder.h"
 #include "comms/protocol.h"
 #include "comms/transport.h"
 #include "config/config_store.h"
 #include "core1/events.h"
 #include "core1/scan.h"
 #include "ipc/rings.h"
+#include "usb/midi_out.h"
 #include "util/log.h"
+
+#include "ff.h"  // FS_* volume type names for the SD status line
 
 static struct {
     bool is_bridge;
@@ -39,6 +43,9 @@ static struct {
     // legacy-style verbosity: live event lines + 5 s heartbeat ('log on|off')
     bool log_events;
     absolute_time_t next_heartbeat_at;
+    // microSD recorder change reporting (bridge)
+    uint8_t sd_last_state;
+    const char *sd_last_error;
 } C;
 
 void console_init(bool is_bridge, bool sensor_role) {
@@ -48,6 +55,106 @@ void console_init(bool is_bridge, bool sensor_role) {
     C.trace_sensor = PHOTON_TRACE_DEFAULT_SENSOR;
     C.log_events = true;
     C.next_heartbeat_at = make_timeout_time_ms(5000);
+    C.sd_last_state = 0xFF;
+}
+
+// ---------------------------------------------------------------------------
+// microSD recorder (bridge): status line, state-change notes, bench injector
+// ---------------------------------------------------------------------------
+
+static const char *sd_fs_name(uint8_t t) {
+    switch (t) {
+    case FS_FAT12: return "FAT12";
+    case FS_FAT16: return "FAT16";
+    case FS_FAT32: return "FAT32";
+    case FS_EXFAT: return "exFAT";
+    default:       return "-";
+    }
+}
+
+static void print_sd_status(void) {
+    const recorder_status_t *r = &g_recorder;
+    const char *err = r->last_error;
+    log_printf("[SD] %s | card %lu MB %s, %lu MB free | dir %04u file %04u (next dir %04u) | "
+               "files=%lu events=%lu bytes=%lu drops=%lu errors=%lu%s%s",
+               recorder_state_name(r->state), (unsigned long)r->card_mb,
+               sd_fs_name(r->fs_type), (unsigned long)r->free_mb,
+               (unsigned)r->dir_num, (unsigned)r->file_num, (unsigned)r->next_dir,
+               (unsigned long)r->files_closed, (unsigned long)r->events_written,
+               (unsigned long)r->bytes_written, (unsigned long)r->ring_drops,
+               (unsigned long)r->errors, err ? " | " : "", err ? err : "");
+}
+
+// One line per state change, so a terminal left open narrates the card:
+// mounted / recording NNNN/MMMM.MID / closed / no card / stopped.
+static void sd_report_changes(void) {
+    if (!C.is_bridge) {
+        return;
+    }
+    uint8_t st = g_recorder.state;
+    const char *err = g_recorder.last_error;
+    if (st == C.sd_last_state && err == C.sd_last_error) {
+        return;
+    }
+    uint8_t prev = C.sd_last_state;
+    C.sd_last_state = st;
+    C.sd_last_error = err;
+    if (!log_console_connected()) {
+        return;
+    }
+    switch (st) {
+    case REC_STATE_IDLE:
+        if (prev == REC_STATE_RECORDING) {
+            log_info("[SD] closed %04u/%04u.MID (files=%lu events=%lu)",
+                     (unsigned)g_recorder.dir_num, (unsigned)g_recorder.file_num,
+                     (unsigned long)g_recorder.files_closed,
+                     (unsigned long)g_recorder.events_written);
+        } else {
+            log_info("[SD] card mounted: %lu MB %s, %lu MB free; next directory %04u",
+                     (unsigned long)g_recorder.card_mb, sd_fs_name(g_recorder.fs_type),
+                     (unsigned long)g_recorder.free_mb, (unsigned)g_recorder.next_dir);
+        }
+        break;
+    case REC_STATE_RECORDING:
+        log_info("[SD] recording %04u/%04u.MID", (unsigned)g_recorder.dir_num,
+                 (unsigned)g_recorder.file_num);
+        break;
+    case REC_STATE_NO_CARD:
+        log_info("[SD] %s (retrying every %u s)", err ? err : "no card",
+                 (unsigned)(PHOTON_REC_MOUNT_RETRY_MS / 1000));
+        break;
+    case REC_STATE_STOPPED:
+        log_info("[SD] stopped: %s", err ? err : "limit reached");
+        break;
+    default:
+        break;
+    }
+}
+
+static void pump_usb_ms(uint32_t ms) {
+    absolute_time_t deadline = make_timeout_time_ms(ms);
+    while (!time_reached(deadline)) {
+        tud_task();
+    }
+}
+
+// Bench: a bare bridge has no sensor boards, so 'sd test' plays a scale
+// through midi_out itself, exercising the recorder (and USB-MIDI) end to end.
+static void sd_test_notes(int n) {
+    static const uint8_t scale[8] = { 60, 62, 64, 65, 67, 69, 71, 72 };
+    if (n < 1) {
+        n = 8;
+    } else if (n > 1000) {
+        n = 1000;
+    }
+    log_info("sd test: %d synthetic notes through midi_out (60 ms on / 60 ms off)", n);
+    for (int i = 0; i < n; i++) {
+        uint8_t note = scale[i % 8];
+        midi_out_note_on(PHOTON_MIDI_CHANNEL, note, 100);
+        pump_usb_ms(60);
+        midi_out_note_off(PHOTON_MIDI_CHANNEL, note, 64);
+        pump_usb_ms(60);
+    }
 }
 
 static const char *note_name(int16_t note, char *buf, size_t n) {
@@ -118,6 +225,7 @@ static void print_help(void) {
     log_printf("  chmap [m] [ch|auto]  per-manual MIDI channel map (bridge; manual 1-%d,"
                " user channel 1-16)", PHOTON_MAX_MANUALS);
     log_printf("  flashtest        hammer flash while core 1 scans (M1 proof)");
+    log_printf("  sd [test [n]]    microSD recorder status / play n synthetic notes (bridge)");
     log_printf("  reboot|bootsel [id]  restart / UF2 bootloader (bridge: remote node)");
     log_printf("  id               role/version summary");
 }
@@ -151,6 +259,9 @@ void console_print_banner(int banks_found) {
                g_config.scan_rate_hz ? g_config.scan_rate_hz
                                      : PHOTON_DEFAULT_SCAN_RATE_HZ,
                (unsigned)g_config.vel_out_min, (unsigned)g_config.vel_out_max);
+    if (C.is_bridge) {
+        print_sd_status();
+    }
     log_printf(" ");
     print_help();
 }
@@ -759,6 +870,15 @@ static void handle_line(char *line) {
         tud_cdc_write_flush();
         sleep_ms(50);
         reset_usb_boot(0, 0);
+    } else if (strcmp(cmd, "sd") == 0) {
+        if (a1 != NULL && strcmp(a1, "test") == 0) {
+            if (C.is_bridge) {
+                sd_test_notes(a2 != NULL ? atoi(a2) : 8);
+            } else {
+                log_note("sd test: bridge only (the card lives on the main controller board)");
+            }
+        }
+        print_sd_status();
     } else if (strcmp(cmd, "flashtest") == 0) {
         uint32_t before_us = g_scan_ctl.sweep_us;
         uint32_t before_count = g_scan_ctl.sweep_count;
@@ -864,6 +984,7 @@ void console_on_bridge_response(const photon_frame_t *f) {
 // ---------------------------------------------------------------------------
 
 void console_task(void) {
+    sd_report_changes();
     // Input, with live character echo (terminals don't local-echo raw CDC).
     while (tud_cdc_available()) {
         uint8_t ch;

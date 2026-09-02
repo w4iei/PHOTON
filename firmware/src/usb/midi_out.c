@@ -1,8 +1,13 @@
 #include "usb/midi_out.h"
 
+#include "pico/time.h"
 #include "tusb.h"
 
+#include "bridge/recorder.h"
+
 static void send3(uint8_t b0, uint8_t b1, uint8_t b2) {
+    // The card recorder sees every message, host or no host.
+    recorder_push((uint32_t)(time_us_64() / 1000u), b0, b1, b2);
     if (!tud_midi_mounted()) {
         return;
     }

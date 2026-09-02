@@ -168,4 +168,17 @@
 // the flash simply wraps, so the CRC check rejects whatever comes back.
 #define PHOTON_CONFIG_LEGACY_OFFS (16u * 1024u * 1024u - 2u * PHOTON_CONFIG_SECTOR_SIZE)
 
+// ---------------------------------------------------------------------------
+// microSD (bridge boards 001 / 001D): SPI mode on hardware SPI1. The socket's
+// DAT3/CD pin is the chip select, so there is no card-detect switch; presence
+// is discovered by the init handshake (recorder retries every 2 s).
+// ---------------------------------------------------------------------------
+#define PHOTON_SD_SPI            spi1
+#define PHOTON_SD_SCK            10   // CLK
+#define PHOTON_SD_MOSI           11   // CMD
+#define PHOTON_SD_MISO           12   // DAT0
+#define PHOTON_SD_CS             13   // DAT3/CD
+#define PHOTON_SD_BAUD_INIT_HZ   (250 * 1000)         // spec: <= 400 kHz until ready
+#define PHOTON_SD_BAUD_HZ        (12500 * 1000)       // 150 MHz / 12; SPI-mode max is 25
+
 #endif // PHOTON_BOARD_CONFIG_H

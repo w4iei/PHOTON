@@ -19,6 +19,7 @@ PHOTON is a modular, open-source optical sensing platform for high-resolution ke
 - **MCU:** [RP2350](https://www.raspberrypi.com/products/rp2350/) (dual-core Cortex-M33)
 - **Comms:** [THVD1424](https://www.ti.com/product/THVD1424) RS-485 transceivers; firmware-controlled termination on the main board (idle-bus failsafe via the transceiver's internal receiver thresholds on this hardware rev)
 - **I/O:** USB-C (power + USB-MIDI/CDC), QWIIC/I2C expansion
+- **Black box:** a microSD card in the bridge records every performance as Standard MIDI Files, host or no host (see [firmware/README.md](firmware/README.md#microsd-recorder-bridge))
 - **Open:** KiCad 9 hardware, native C firmware (Pico SDK)
 
 ## Performance
@@ -31,6 +32,7 @@ CircuitPython support is gone: it capped the system at a ~250 Hz single-core sca
 - **Core 0** owns everything else: USB (CDC console + USB-MIDI), the RS-485 protocol, calibration and configuration storage.
 - **RS-485:** the main board is the sole bus master and polls each sensor board in turn; nodes never transmit unsolicited, and every event batch is acknowledged before a node releases it — collision-free and lossless by design.
 - **Scanning:** free-runs open-loop at ~1.3 kHz; throttled to a paced 600 Hz (two-phase mode) for production use.
+- **microSD recorder:** a card in the bridge records every performance automatically as Standard MIDI Files, numbered per power-on and per playing episode, with no host, no setup and no clock required.
 
 Legacy CircuitPython sources remain under `software/embedded_software/` as a reference implementation. Build and flash instructions: `firmware/README.md`.
 

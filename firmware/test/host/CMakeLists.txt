@@ -19,3 +19,13 @@ add_test(NAME frame COMMAND test_frame)
 add_executable(test_events test_events.c ${FW}/core1/events.c)
 target_link_libraries(test_events shims)
 add_test(NAME events COMMAND test_events)
+
+# microSD recorder: the real recorder + SMF encoder + FatFs on a RAM disk,
+# driven by a fake clock, formatted FAT16 / FAT32 / exFAT in turn.
+set(FATFS ${CMAKE_CURRENT_LIST_DIR}/../../lib/fatfs)
+add_executable(test_recorder test_recorder.c ${FW}/bridge/recorder.c ${FW}/bridge/smf.c
+               ${FATFS}/ff.c ${FATFS}/ffunicode.c)
+target_include_directories(test_recorder PRIVATE ${FATFS})
+target_compile_definitions(test_recorder PRIVATE PHOTON_HOST_TEST=1)
+target_link_libraries(test_recorder shims)
+add_test(NAME recorder COMMAND test_recorder)
