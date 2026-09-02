@@ -22,7 +22,7 @@ PHOTON is a modular, open-source optical sensing platform for high-resolution ke
 - **Open:** KiCad 9 hardware, native C firmware (Pico SDK)
 
 ## Performance
-- Full 31-sensor board sweep in ~590 µs — over 1.7 kHz open-loop; production runs pace-throttled at 400 Hz (lower emitter duty, cleaner optics) with µs-resolution velocity timing either way
+- Full 31-sensor board sweep in ~770 µs — ~1.3 kHz open-loop; production runs two-phase, pace-throttled at 600 Hz (half the peak emitter current, 1.67 ms velocity quantisation) with µs-resolution velocity timing either way
 - RS-485 bus at 4 Mbaud, bridge-polled: zero collisions by construction, zero event loss across ~500k sequence-accounted bench events, sub-ms worst-case event latency with four boards on the bus
 
 ## Firmware (native C, dual-core)
@@ -30,7 +30,7 @@ CircuitPython support is gone: it capped the system at a ~250 Hz single-core sca
 - **Core 1** owns the sensor array: pipelined TLA2518 scanning, running entirely from SRAM so flash and USB activity can never stall a sweep.
 - **Core 0** owns everything else: USB (CDC console + USB-MIDI), the RS-485 protocol, calibration and configuration storage.
 - **RS-485:** the main board is the sole bus master and polls each sensor board in turn; nodes never transmit unsolicited, and every event batch is acknowledged before a node releases it — collision-free and lossless by design.
-- **Scanning:** free-runs open-loop above 1.7 kHz; throttled to a paced 400 Hz for production use.
+- **Scanning:** free-runs open-loop at ~1.3 kHz; throttled to a paced 600 Hz (two-phase mode) for production use.
 
 Legacy CircuitPython sources remain under `software/embedded_software/` as a reference implementation. Build and flash instructions: `firmware/README.md`.
 

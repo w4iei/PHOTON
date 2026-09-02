@@ -110,7 +110,10 @@ static void print_help(void) {
     log_printf("  localmidi on|off node plays its own USB-MIDI (default off; saved)");
     log_printf("  velrange <min> <max> MIDI velocity output range (1-127; saved,"
                " broadcast)");
-    log_printf("  disable|enable <idx>  mask a sensor (node: local idx; bridge: global idx)");
+    log_printf("  velcurve <min_ms> <max_ms> <gamma>  dt window (log) and skew"
+               " (saved, broadcast)");
+    log_printf("  disable|enable [idx]  mask a sensor (node: local idx; bridge: global idx);"
+               " no idx: list");
     log_printf("  setid <n> | setid <node> <newid>   bus id, local or remote");
     log_printf("  chmap [m] [ch|auto]  per-manual MIDI channel map (bridge; manual 1-%d,"
                " user channel 1-16)", PHOTON_MAX_MANUALS);
@@ -137,6 +140,12 @@ void console_print_banner(int banks_found) {
     log_printf("[BOOT] hw id: %s | cfg v%lu%s", uid,
                (unsigned long)g_config.version,
                g_config_from_flash ? "" : " (defaults, uncalibrated)");
+    if (g_config_migrated_from != 0) {
+        log_printf("[BOOT] cfg migrated from a %lu-byte record of an older build "
+                   "(now %u bytes); new fields at defaults, saved",
+                   (unsigned long)g_config_migrated_from,
+                   (unsigned)sizeof(photon_config_t));
+    }
     log_printf("[CFG] RS-485: %.2f Mbaud | scan: %u Hz paced | vel: %u-%u",
                (double)PHOTON_RS485_BAUD / 1e6,
                g_config.scan_rate_hz ? g_config.scan_rate_hz
@@ -373,11 +382,13 @@ static void handle_line(char *line) {
     } else if (strcmp(cmd, "id") == 0) {
         char serial[2 * PICO_UNIQUE_BOARD_ID_SIZE_BYTES + 1];
         pico_get_unique_board_id_string(serial, sizeof serial);
-        log_printf("PHOTON native fw | role=%s | addr=%u | banks=%s | cfg v%lu | hw %s",
+        log_printf("PHOTON native fw | role=%s | addr=%u | banks=%s | cfg v%lu%s%s | hw %s",
                    C.is_bridge ? "bridge" : "sensor-node",
                    C.is_bridge ? 0 : g_config.node_id,
                    C.sensor_role ? "present" : "none",
-                   (unsigned long)g_config.version, serial);
+                   (unsigned long)g_config.version,
+                   g_config_from_flash ? "" : " (defaults, uncalibrated)",
+                   g_config_migrated_from ? " (migrated this boot)" : "", serial);
     } else if (strcmp(cmd, "stats") == 0) {
         print_local_stats();
         if (C.is_bridge && a1 != NULL) {
@@ -503,6 +514,27 @@ static void handle_line(char *line) {
                 log_info("calibration reset");
             }
         }
+    } else if ((strcmp(cmd, "disable") == 0 || strcmp(cmd, "enable") == 0) && a1 == NULL) {
+        // No argument: list the persisted masks, so they can be checked
+        // after a reflash or before touching them.
+        char buf[240];
+        int off = 0;
+        if (C.is_bridge) {
+            off = snprintf(buf, sizeof buf, "global disabled:");
+            for (uint32_t g = 0; g < PHOTON_GLOBAL_SENSORS && off < (int)sizeof buf - 6; g++) {
+                if ((g_config.global_disabled[g / 8] >> (g % 8)) & 1u) {
+                    off += snprintf(buf + off, sizeof buf - (size_t)off, " %lu", (unsigned long)g);
+                }
+            }
+        } else {
+            off = snprintf(buf, sizeof buf, "local disabled:");
+            for (int i = 0; i < PHOTON_MAX_SENSORS && off < (int)sizeof buf - 6; i++) {
+                if ((g_config.local_disabled_mask >> i) & 1u) {
+                    off += snprintf(buf + off, sizeof buf - (size_t)off, " %d", i);
+                }
+            }
+        }
+        log_printf("%s%s", buf, g_config_from_flash ? "" : " (defaults)");
     } else if ((strcmp(cmd, "disable") == 0 || strcmp(cmd, "enable") == 0) && a1 != NULL) {
         int idx = atoi(a1);
         if (C.is_bridge) {
@@ -611,6 +643,38 @@ static void handle_line(char *line) {
                          C.is_bridge ? "; broadcast, brief node drop-out while"
                                        " they write flash"
                                      : "");
+            }
+        }
+    } else if (strcmp(cmd, "velcurve") == 0) {
+        char *a3 = strtok_r(NULL, " \t", &save);
+        if (a1 == NULL || a2 == NULL || a3 == NULL) {
+            log_note("velcurve <min_ms> <max_ms> <gamma> (now %.1f %.1f %.2f: "
+                     "dt<=min -> %u, dt>=max -> %u, log-spaced between, ^gamma)",
+                     (double)g_config.vel_min_ms, (double)g_config.vel_max_ms,
+                     (double)g_config.vel_curve, (unsigned)g_config.vel_out_max,
+                     (unsigned)g_config.vel_out_min);
+        } else {
+            // Wire units: tenths of a ms for the window, hundredths for gamma
+            // (NODECTL carries one u16 per op: ops 7, 8, 9).
+            int mn10 = (int)(atof(a1) * 10.0 + 0.5);
+            int mx10 = (int)(atof(a2) * 10.0 + 0.5);
+            int g100 = (int)(atof(a3) * 100.0 + 0.5);
+            if (mn10 < 1 || mx10 > 5000 || mn10 >= mx10 || g100 < 10 || g100 > 1000) {
+                log_note("velcurve: 0.1 <= min_ms < max_ms <= 500, gamma 0.1-10");
+            } else {
+                g_config.vel_min_ms = (float)mn10 / 10.0f;
+                g_config.vel_max_ms = (float)mx10 / 10.0f;
+                g_config.vel_curve = (float)g100 / 100.0f;
+                config_store_save();
+                if (C.is_bridge) {
+                    send_nodectl(7, (uint16_t)mn10, PHOTON_ADDR_BROADCAST);
+                    send_nodectl(8, (uint16_t)mx10, PHOTON_ADDR_BROADCAST);
+                    send_nodectl(9, (uint16_t)g100, PHOTON_ADDR_BROADCAST);
+                }
+                log_info("velocity curve -> %.1f-%.1f ms, gamma %.2f (saved%s)",
+                         (double)g_config.vel_min_ms, (double)g_config.vel_max_ms,
+                         (double)g_config.vel_curve,
+                         C.is_bridge ? "; broadcast" : "");
             }
         }
     } else if (strcmp(cmd, "log") == 0 && a1 != NULL) {

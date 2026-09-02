@@ -25,6 +25,8 @@
 #define TLA_REG_GPIO_CONFIG    0x07
 #define TLA_REG_GPIO_DRIVE_CFG 0x09
 #define TLA_REG_GPO_VALUE      0x0B
+#define TLA_REG_GPI_VALUE      0x0D
+#define TLA_GPIO0_BIT          0x01u
 #define TLA_REG_SEQUENCE_CFG   0x10
 #define TLA_REG_CHANNEL_SEL    0x11
 
@@ -53,6 +55,12 @@ void tla2518_reset_all(void);
 
 // 3-byte CS-framed register op.
 void tla2518_write3(const tla2518_t *b, uint8_t op, uint8_t reg, uint8_t val);
+
+// Switch emitters (GPO mask) on or off. GPIO0 is switched through
+// GPO_DRIVE_CFG (push-pull = on, open-drain = off), not GPO_VALUE: on every
+// TLA2518 fitted, GPIO0 in push-pull mode drives high for value 0 as well as
+// 1 (GPIO2/4/6 obey the datasheet). Same cost, one frame per bank per step.
+void tla2518_emitters(const tla2518_t *b, uint8_t mask, bool on);
 // 2-byte CS-framed transfer; returns the 16-bit MSB-first response word.
 uint16_t tla2518_xfer2(const tla2518_t *b);
 // Paired 2-byte transfer on two banks (different SPI buses) concurrently.

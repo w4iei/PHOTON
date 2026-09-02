@@ -87,7 +87,7 @@ static void sweep_sequential(void) {
         for (int slot = 0; slot < PHOTON_SLOTS_PER_BANK; slot++) {
             uint8_t mask = bank_slot_mask[bank][slot];
             if (mask) {
-                tla2518_write3(b, TLA_OP_BIT_SET, TLA_REG_GPO_VALUE, mask);
+                tla2518_emitters(b, mask, true);
             }
             // CHANNEL_SEL under the settle window, matching step_banks(): the
             // ADC mux must sit connected to the new channel while the source
@@ -106,7 +106,7 @@ static void sweep_sequential(void) {
             wait_until_us(settle_done);
             readings[bank * PHOTON_SLOTS_PER_BANK + slot] = read_slot_single(b);
             if (mask) {
-                tla2518_write3(b, TLA_OP_BIT_CLEAR, TLA_REG_GPO_VALUE, mask);
+                tla2518_emitters(b, mask, false);
             }
         }
     }
@@ -125,7 +125,7 @@ static void step_banks(const uint8_t *bank_list, int nbanks, int slot) {
         tla2518_t *b = &g_banks[bank_list[i]];
         uint8_t mask = bank_slot_mask[bank_list[i]][slot];
         if (b->present && mask) {
-            tla2518_write3(b, TLA_OP_BIT_SET, TLA_REG_GPO_VALUE, mask);
+            tla2518_emitters(b, mask, true);
         }
     }
     uint32_t settle_done = time_us_32() + g_scan_ctl.settle_us;
@@ -160,7 +160,7 @@ static void step_banks(const uint8_t *bank_list, int nbanks, int slot) {
         tla2518_t *b = &g_banks[bank_list[i]];
         uint8_t mask = bank_slot_mask[bank_list[i]][slot];
         if (b->present && mask) {
-            tla2518_write3(b, TLA_OP_BIT_CLEAR, TLA_REG_GPO_VALUE, mask);
+            tla2518_emitters(b, mask, false);
         }
     }
 }

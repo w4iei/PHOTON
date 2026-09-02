@@ -40,7 +40,10 @@
 #define PHOTON_BANK_CS_PINS      { 21, 20, 19, 15, 1, 7, 5, 6 }
 #define PHOTON_BANK_ON_BUS_B(b)  ((b) >= 4)
 
-#define PHOTON_SPI_BAUD_HZ       (20 * 1000 * 1000)
+// Validated bus speed (2026-09-02). Faster clocks lost register writes to
+// the ADC nearest the MCU (near-end reflection on the sensor board); see
+// docs/architecture/03-scan-modes.md "SPI bus speed". Mode-2 sweep 969 us.
+#define PHOTON_SPI_BAUD_HZ       (10 * 1000 * 1000)
 // Emitter settle before sampling. Bench-measured 2026-08-13: the reading
 // depends strongly on this value with keys installed (45 us reads 81-91% of
 // 60 us), so the VCNT2025X01 response is still developing well past 30 us.
@@ -121,20 +124,29 @@
 #define PHOTON_CAPTURE_DEFAULT_S    3   // legacy CAPTURE_SECONDS
 
 // Default paced sweep rate (config scan_rate_hz==0 selects this; 0xFFFF in
-// config = unthrottled). Pacing idles the emitters between sweeps (~24%
-// duty at 400 Hz) and keeps traces manageable; 2.5 ms dt quantization.
-#define PHOTON_DEFAULT_SCAN_RATE_HZ 400
-#define PHOTON_VEL_MIN_MS        8.0f   // dt <= 8 ms  -> velocity 127
-#define PHOTON_VEL_MAX_MS        100.0f // dt >= 100 ms -> velocity 1
-#define PHOTON_VEL_CURVE         2.54f
+// config = unthrottled). Production is two-phase at 600 Hz: 1.67 ms dt
+// quantization (55 velocity steps across the 8-100 ms window) for +0.2 W
+// over 300 Hz, measured 2026-09-02 on the buck-regulated rev 1D system.
+// Mode 2's 826 us sweep leaves ~50% idle at this rate.
+#define PHOTON_DEFAULT_SCAN_RATE_HZ 600
+// Velocity curve, fitted 2026-09-02 to 1,587 measured strikes (pp / mf-f /
+// ff medians 24.9 / 9.9 / 3.3 ms — each dynamic ~2.5x the next, so the map
+// is logarithmic in dt, skewed by VEL_CURVE to hold the top end up):
+//   x = log(dt / MIN_MS) / log(MAX_MS / MIN_MS)   (0 at MIN_MS, 1 at MAX_MS)
+//   v = OUT_MAX - (OUT_MAX - OUT_MIN) * x^VEL_CURVE
+// Lands pp / mf-f / ff at 54 / 95 / 119. Runtime: 'velcurve <min_ms> <max_ms>
+// <gamma>'. See docs/architecture/04-next-session-plan.md "Velocity map".
+#define PHOTON_VEL_MIN_MS        2.5f   // dt <= 2.5 ms -> OUT_MAX
+#define PHOTON_VEL_MAX_MS        25.0f  // dt >= 25 ms  -> OUT_MIN
+#define PHOTON_VEL_CURVE         2.0f   // gamma on the log position
 // MIDI velocity output range. A harpsichord plucks the same way regardless of
 // key speed, so loudness is essentially independent of touch; emitting the
 // full 1-127 makes a piano sample library treat soft strikes as "barely sound
 // the note". Compressing the curve's output into a band that always speaks
 // costs nothing: 300 Hz resolves only ~27 distinct dt steps, which is ~1.5
 // velocity units across 75-115 — finer than anyone can hear.
-#define PHOTON_VEL_OUT_MIN       75.0f
-#define PHOTON_VEL_OUT_MAX       115.0f
+#define PHOTON_VEL_OUT_MIN       50.0f  // pp; the instrument's lower bound
+#define PHOTON_VEL_OUT_MAX       120.0f // ff
 #define PHOTON_GLOBAL_SENSORS    (PHOTON_MAX_NODE_ID * PHOTON_MAX_SENSORS)
 // Default disabled global sensor indices (base config: 31, 62, 63 for the
 // historical 2-board setup) live in the config store defaults.

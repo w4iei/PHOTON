@@ -70,8 +70,10 @@ int16_t midi_map_note(uint8_t node_id, uint8_t local_idx) {
 }
 
 uint8_t midi_map_velocity(uint32_t dt_us) {
-    // The dt curve is unchanged; only its output range is compressed, from
-    // 1..127 to vel_out_min..vel_out_max (see board_config.h).
+    // Logarithmic in dt: measured dynamics sit a constant *ratio* apart
+    // (pp/mf/ff medians 24.9/9.9/3.3 ms), so log position is the natural
+    // axis. vel_curve is a gamma on that position (>1 holds the top end up).
+    // Defaults and the fit are documented at PHOTON_VEL_* in board_config.h.
     float dt_ms = (float)dt_us / 1000.0f;
     float lo = g_config.vel_out_min;
     float hi = g_config.vel_out_max;
@@ -81,9 +83,9 @@ uint8_t midi_map_velocity(uint32_t dt_us) {
     } else if (dt_ms >= g_config.vel_max_ms) {
         v = lo;
     } else {
-        float span = g_config.vel_max_ms - g_config.vel_min_ms;
-        float x = (g_config.vel_max_ms - dt_ms) / span;
-        v = lo + (hi - lo) * powf(x, g_config.vel_curve);
+        float x = logf(dt_ms / g_config.vel_min_ms) /
+                  logf(g_config.vel_max_ms / g_config.vel_min_ms);
+        v = hi - (hi - lo) * powf(x, g_config.vel_curve);
     }
     // Clamp on every path, the floor especially: a note-on with velocity 0 is
     // a note-off on the wire, so a zeroed range would silence the instrument.

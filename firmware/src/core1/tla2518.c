@@ -22,6 +22,17 @@ static const uint8_t bank_cs_pins[PHOTON_BANK_COUNT] = PHOTON_BANK_CS_PINS;
 static inline void cs_low(const tla2518_t *b) { gpio_put(b->cs_pin, 0); }
 static inline void cs_high(const tla2518_t *b) { gpio_put(b->cs_pin, 1); }
 
+void tla2518_emitters(const tla2518_t *b, uint8_t mask, bool on) {
+    uint8_t op = on ? TLA_OP_BIT_SET : TLA_OP_BIT_CLEAR;
+    uint8_t value_bits = mask & ~TLA_GPIO0_BIT;
+    if (value_bits) {
+        tla2518_write3(b, op, TLA_REG_GPO_VALUE, value_bits);
+    }
+    if (mask & TLA_GPIO0_BIT) {
+        tla2518_write3(b, op, TLA_REG_GPIO_DRIVE_CFG, TLA_GPIO0_BIT);
+    }
+}
+
 void tla2518_write3(const tla2518_t *b, uint8_t op, uint8_t reg, uint8_t val) {
     uint8_t frame[3] = { op, reg, val };
     cs_low(b);
@@ -98,7 +109,13 @@ void tla2518_reset_and_configure(int bank) {
     tla2518_write3(b, TLA_OP_BIT_CLEAR, TLA_REG_SEQUENCE_CFG, 0x03);      // manual mode
     tla2518_write3(b, TLA_OP_BIT_SET, TLA_REG_PIN_CFG, PHOTON_EMITTER_MASK_ALL);
     tla2518_write3(b, TLA_OP_BIT_SET, TLA_REG_GPIO_CONFIG, PHOTON_EMITTER_MASK_ALL);
-    tla2518_write3(b, TLA_OP_BIT_SET, TLA_REG_GPIO_DRIVE_CFG, PHOTON_EMITTER_MASK_ALL);
+    // Push-pull on every emitter pin except GPIO0, which is switched via its
+    // drive mode instead (see tla2518_emitters): open-drain = off at init.
+    // Push-pull on every emitter pin except GPIO0, which is switched via its
+    // drive mode instead (see tla2518_emitters): open-drain = off at init.
+    tla2518_write3(b, TLA_OP_BIT_SET, TLA_REG_GPIO_DRIVE_CFG,
+                   PHOTON_EMITTER_MASK_ALL & ~TLA_GPIO0_BIT);
+    tla2518_write3(b, TLA_OP_BIT_CLEAR, TLA_REG_GPIO_DRIVE_CFG, TLA_GPIO0_BIT);
     tla2518_write3(b, TLA_OP_BIT_CLEAR, TLA_REG_GPO_VALUE, PHOTON_EMITTER_MASK_ALL);
     tla2518_write3(b, TLA_OP_REGISTER_WRITE, TLA_REG_DATA_CFG, 0x00);
     tla2518_write3(b, TLA_OP_REGISTER_WRITE, TLA_REG_OSR_CONFIG, PHOTON_OSR_MODE & 0x07);

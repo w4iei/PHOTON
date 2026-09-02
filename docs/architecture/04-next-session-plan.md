@@ -2,11 +2,17 @@
 
 Short and ordered.
 
-Step 2 is software-only and testable on the host; it deliberately resets every
-board's stored config once (see 2a), so budget a `setid` + recalibration pass
-with it. Everything else needs the hardware connected.
+Step 2 is software-only and testable on the host. Stored config now survives
+it (see 2a: older records migrate by prefix scan), so no `setid` or
+recalibration pass is needed. Everything else needs the hardware connected.
 
-## 1. Power characterisation + RS-485 sanity (~15 min)
+## 1. Power characterisation + RS-485 sanity (~15 min) — DONE 2026-09-02
+
+Results and interpretation are in `03-scan-modes.md` ("Rev 1D
+re-measurement"). Outcome: floor 3.02 W, mode invisible, rate ~0.1 W per
+100 Hz; transport clean. **Production moved to mode 2 at 600 Hz** (compiled
+default and deployed to all four nodes; existing calibration still brackets
+the rest readings, no recalibration needed). Step 3 remains.
 
 Now that main rev 1D uses a buck, re-measure with a USB power meter at the
 5 V input. Set each config from the bridge console (`mode <m> <id>`,
@@ -73,32 +79,26 @@ node with `localmidi on` maps its own. Neither the frame format nor NODECTL
 (op + u16 arg) changes, so a new-firmware bridge interoperates with
 old-firmware nodes.
 
-### 2a. Config layout: take the one-time reset, do not carry a migration table
+### 2a. Config layout: append-only, migrated by prefix scan (revised)
 
 Appending two floats to `photon_config_t` lengthens the record, and the CRC32
-sits at the end — so the reader must know the exact length to locate it.
-`sector_valid_at()` tries two lengths: the current `sizeof`, and current minus
-`sizeof(manual_channel)`. After appending, those become v3 and *v3 minus 3
-bytes*; the v2 layout every board currently holds matches neither. Every
-record fails and `config_store_init()` calls `load_defaults()`.
+sits at the end. The earlier decision here was to take a one-time reset
+rather than carry a table of historical record sizes. Superseded on
+2026-09-02: the deployed bridge must not lose its masks or channel map on
+*any* reflash, and it turns out no table is needed.
 
-**That is the accepted outcome.** The alternative — a table of historical
-record sizes, a host test for it, and a "never reorder these entries" comment
-carried forever — is permanent complexity bought to avoid one afternoon of
-reconfiguration. Decided against.
+Because fields are only ever appended, a record written by any older build is
+a byte-for-byte prefix of the current struct with its CRC in its last four
+bytes. `config_store_init()` first checks the current length, then scans
+prefix lengths from `PHOTON_CONFIG_MIN_RECORD` up; on a match it overlays that
+prefix on compiled defaults, so the fields the old record lacks take their
+defaults, and saves once in the current layout. Cost: ~130 CRCs over ≤200
+bytes at boot, only on a stale record. Verified on the bridge: a 191-byte v5
+record migrated with masks and `chmap` intact, `velrange` at its 75-115
+default.
 
-Two things follow that are easy to get wrong:
-
-- **Erasing the config sectors first is pointless.** A stale record fails CRC
-  and loads defaults; an erased sector loads defaults. Identical end state.
-  There is no wipe procedure — flash, then reconfigure.
-- **Reflashing was never the hazard.** Config lives above the program region
-  and survives a UF2 drop. The hazard is only that the new firmware stops
-  *recognising* what survived.
-
-So `sector_valid_at()` should **lose** its migration fallback in this change
-and check the current length only. Net effect on `config_store.c` is fewer
-lines than it has today.
+The rule this buys: **append only**, never reorder/resize/remove a field.
+`load_defaults()` remains the single place new fields get their values.
 
 ### 2b. What the reset costs, and how it comes back
 
@@ -123,12 +123,74 @@ and the console banner prints `(defaults, uncalibrated)`, so a board that got
 missed announces itself the moment you attach. That is the whole guard, and it
 already exists.
 
-### 2c. Then: the velocity change itself
+### 2c. Then: the velocity change itself — DONE
 
-- `vel_out_min` / `vel_out_max` appended to `photon_config_t`, defaults 75/115
-- `midi_map_velocity()` uses the compressed range
+- `vel_out_min` / `vel_out_max` appended to `photon_config_t` (now 50/120)
+- `midi_map_velocity()` uses the compressed range — and, since 2d, a log window
 - `velrange <min> <max>` console command, local + NODECTL, persisted
-- `sector_valid_at()` migration fallback removed
+- older config records migrate (2a), nothing is reset
+
+### 2d. Velocity map: plan of record (2026-09-02)
+
+Measured on the instrument at 600 Hz, three passes by the player, note-on dt
+captured from the bridge's `[EVT]` stream (raw data:
+`data/velocity-strikes-2026-09-02.tsv`, 1,587 strikes, both manuals, coupled
+and uncoupled):
+
+| dynamic | strikes | dt p10 | **p50** | p90 | old curve emitted |
+|---|---|---|---|---|---|
+| pp | 24 | 4.9 ms | **24.9** | 56.6 | 100 (29% at 115) |
+| mf-f | 367 | 3.3 | **9.9** | 31.6 | 112 |
+| ff | 1,196 | 1.6 | **3.3** | 8.3 | 115 (85% at 115) |
+
+Two findings. **Each dynamic is ~2.5x the next in dt**, so the natural axis
+is log(dt), not dt. And **the whole playing range sits below 8 ms** — the
+inherited 8-100 ms window started where real playing ends, which is why
+everything read 112-115.
+
+Per key the spread was large (the same pp touch read 3 ms on G4 and 60 ms
+on E4). The fast keys were exactly the slot-3 sensors, whose emitters were
+permanently on (see `03-scan-modes.md`); re-fit after that fix.
+
+**The map** (`midi_map_velocity()`, defaults in `board_config.h`):
+
+    x = log(dt / min_ms) / log(max_ms / min_ms)      clamped to 0..1
+    v = out_max - (out_max - out_min) * x^gamma
+
+with **min 2.5 ms, max 25 ms, gamma 2, output 50-120**. Simulated on the
+captured sets:
+
+| dynamic | median | p10-p90 |
+|---|---|---|
+| pp | 54 | 50-114 |
+| mf-f | 95 | 50-119 |
+| ff | 119 | 101-120 |
+
+Gamma > 1 is the skew that holds mf-f up at 95 (a plain log put it at 78).
+Per scan period at 600 Hz the ladder is 120 120 119 114 107 101 95 89 83
+78 72 68 63 58 54 50 — ~6 velocity units per step through the playing
+range. At 300 Hz it would be 120 114 95 83 72 63 57 52 50: coarser
+everywhere, and anything under 3.3 ms (rather than 1.7) pins at 120.
+That is the only cost of a lower rate.
+
+Known and accepted: 56% of ff strikes cross the 30%-60% window within two
+scans and pin at 119-120, so f and ff are not separated. Sub-period
+interpolation on the node (crossing time between the samples either side of
+each threshold) would recover that without a rate change; not planned
+unless it is wanted musically.
+
+Runtime: `velrange <min> <max>` (output band) and `velcurve <min_ms>
+<max_ms> <gamma>` (window + skew), both persisted on the bridge and
+broadcast (NODECTL ops 6 and 7/8/9) so every board holds the same map.
+Deployed to the bridge and set over the console; the persisted values are
+what runs, the compiled defaults match them for fresh boards.
+
+### 2e. Next session, first
+
+All four nodes run the 2026-09-02 build (GPIO0 emitter fix, 10 MHz SPI; see
+`03-scan-modes.md`). Recalibrate all four boards from the bridge
+(`cal reset <id>`, play, `cal save <id>`), re-capture the pp/mf/ff strike
+sets and re-fit the velocity curve (2d), then step 3.
 
 ## 3. Mode 0 characterisation (benchmarking, not deployment)
 
@@ -153,18 +215,21 @@ quantised to one scan period:
 
 | scan rate | quantisation | distinct dt steps in the 8-100 ms window |
 |---|---|---|
-| **300 Hz (current)** | **3.33 ms** | **27** |
-| 600 Hz | 1.67 ms | 55 |
+| 300 Hz (until 2026-09-02) | 3.33 ms | 27 |
+| **600 Hz (current)** | **1.67 ms** | **55** |
 | 1000 Hz | 1.00 ms | 92 |
 
 Those 27 steps are all the velocity resolution the system can physically
 produce. Mapped onto 1-127 that is ~4.7 velocity units per step (visibly
 coarse); mapped onto **75-115 it is ~1.5 units per step — finer than anyone
 can hear.** So compressing the range does not lose information; it happens to
-match the output range to what 300 Hz can actually resolve.
+match the output range to what 300 Hz could resolve; at 600 Hz the same
+band carries twice the steps.
 
-Also note anything faster than one scan period (3.33 ms) is indistinguishable,
+Also note anything faster than one scan period (1.67 ms at 600 Hz) is
+indistinguishable,
 but the curve already saturates at 8 ms, so fast strikes were never resolved
 anyway. For a harpsichord none of this matters musically. If higher temporal
 resolution is ever wanted for *research* captures, the buck removed the power
-ceiling that made higher scan rates expensive — 600 Hz is now affordable.
+ceiling that made higher scan rates expensive — 600 Hz measured at +0.2 W
+and is now the production rate.

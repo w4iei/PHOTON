@@ -6,9 +6,42 @@ been removed; so has everything about the old shared-rail power system, which
 no longer exists — every board now regulates its own 3.3 V locally from a 5 V
 bus (see `hardware/README.md`).
 
+## Two firmware fixes, 2026-09-02
+
+**TLA2518 GPIO0 emitter drive.** On every TLA2518 fitted, GPIO0 configured
+as a push-pull output drives high for GPO_VALUE bit 0 = 0 as well as 1;
+GPIO2/4/6 obey the datasheet. Slot 3 of every bank is switched through
+GPIO0, so those seven emitters per board had been on continuously since
+bring-up: hot and dim (half the signal at full key travel, a late strike
+point and a compressed velocity window on every fourth key), and lighting
+their neighbours during every read. `tla2518_emitters()` now switches GPIO0
+through GPO_DRIVE_CFG (push-pull = on, open-drain = off, both properly
+driven); init parks it open-drain. Verified per sensor with the emitter
+commanded on and off: slot-3 sensors now swing ~2,700 -> ~65,000 like the
+rest, and B4 on node 4 reads ~30,000 at full travel instead of 12,000.
+Every board needs recalibrating after this fix (slot-3 maxima roughly
+double, rest levels drop a few hundred counts).
+
+**SPI bus speed: 10 MHz (validated).** With slot-3 emitters actually
+switching, node 1 lost ~3% of register writes to the ADC nearest the MCU
+(bank 3, 22 mm) in the mode-2 frame sequence — one-sweep dark reads on its
+slot-3 sensor, ~18 spurious notes per second at rest. Near-end reflection
+on an under-terminated line; a hardware matter (series terminations, stub
+lengths — the latest board revision shortens the inner ICs' stubs). At
+10 MHz: zero such reads in 12,000 sweeps, zero events at rest. Sweep times:
+mode 2 969 us, mode 1 766 us, mode 0 2,475 us; mode 2 idles ~40% at 600 Hz.
+ADC conversion and oversampling are internal and unaffected.
+
+The August mode-0 findings below (~10x noisier, modes not converging,
+idx 28) were measured with seven emitters per board permanently on and
+must be re-measured before any of it is believed.
+
 ## Production configuration
 
-**Mode 2 (two-phase), 300 Hz, 50 us settle.**
+**Mode 2 (two-phase), 600 Hz, 50 us settle.** (Compiled default since
+2026-09-02; was 300 Hz. 600 Hz halves the dt quantisation to 1.67 ms — 55
+velocity steps across the 8-100 ms window instead of 27 — and costs 0.2 W,
+see the rev 1D measurements below.)
 
 Two-phase hits the peak-current goal that originally motivated sequential
 (~108 mA vs parallel's ~216 mA) while keeping 8-key-pitch spacing between
@@ -48,6 +81,34 @@ transceivers.
 
 So set the scan rate for the temporal resolution you want, not to save power.
 Mode choice is a **peak current** and crosstalk decision, not an energy one.
+
+### Rev 1D (per-board buck) re-measurement, 2026-09-02
+
+Whole system (bridge + four nodes + 1 m cable) at a USB power meter on the
+host side, 5.12 V throughout. Meter resolution 10 mA (~50 mW).
+
+| mode | rate | A | W | vs baseline |
+|---|---|---|---|---|
+| 2 two-phase | 300 Hz | 0.59 | 3.02 | baseline |
+| 2 two-phase | **600 Hz** | 0.63 | 3.23 | +0.20 |
+| 1 parallel | 300 Hz | 0.59 | 3.02 | 0 |
+| 1 parallel | 400 Hz | 0.61 | 3.12 | +0.10 |
+| 0 sequential | 300 Hz | 0.59 | 3.02 | 0 |
+
+Same conclusion, now on the buck: the floor is ~3.0 W and mode does not move
+it at all. That is arithmetic, not a stuck setting (the modes were verified
+switching by their distinct rest readings): every emitter is lit for about
+one settle-plus-read window per sweep in every mode, so mode sets the *peak*
+current (27 / 108 / 216 mA) and leaves the per-sweep energy nearly constant.
+Rate is the only scan lever, ~0.1 W per 100 Hz, and doubling it (which also
+doubles ADC/SPI work) cost 40 mA — an upper bound on the whole emitter
+budget at 300 Hz. The LDO-era 3.93 W implies the same ~2.6 W 3.3 V load
+through a fixed 5:3.3 ratio; through an ~88% buck that predicts 2.95 W,
+matching the 3.02 W measured. Nothing on the boards got cheaper; the LDO
+stopped burning a third of the input as heat.
+
+RS-485 on the rev 1D transceiver, same session: 20 s at 100 ev/s/node,
+1,000 polls/s per node, zero gaps/dup/malformed, crc_err=0 hdr_err=0.
 
 Remaining levers, none scan-related: MCU clock (careful — `clk_peri` is pinned
 for the 4 Mbaud UART divisor), core 1 idle (it busy-spins ~24% of the period at

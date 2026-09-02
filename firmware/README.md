@@ -31,7 +31,7 @@ ninja -C build                 # -> build/photon.uf2
 The image is built **copy-to-RAM**: all code executes from SRAM, so core-0
 flash writes (calibration saves) can never stall the core-1 scan loop.
 
-## Flash
+## Flash / update
 
 First time (blank board): hold **USB-BOOT** while connecting USB-C (or short
 the USB-BOOT jumper), then:
@@ -40,10 +40,21 @@ the USB-BOOT jumper), then:
 picotool load -f build/photon.uf2 && picotool reboot
 ```
 
-or copy `photon.uf2` onto the `RP2350` drive. Once this firmware is running,
-the button is never needed again: the console command `bootsel` re-enters the
-UF2 bootloader and `reboot` restarts the firmware — reflash cycles are fully
-USB-driven.
+or copy `photon.uf2` onto the `RP2350` drive.
+
+Updating a running board never needs the button: type `bootsel` on its
+console (or `bootsel <id>` from the bridge for a remote node), then run the
+same `picotool` line. `tools/flash_all.sh` does this for the whole system.
+
+**Everything configured survives a reflash**: node id, calibration, disabled
+masks, channel map, scan mode/rate, velocity range. Config lives in two
+sectors above the program image, which a UF2 drop does not touch, and the
+loader accepts records written by any older build (fields are append-only,
+so an old record is a prefix of the current one; missing fields take
+defaults). A migrated board says so once in its boot banner and `id`, then
+rewrites the record in the current layout. Check with `disable` (no
+argument, lists the masks), `chmap` and `velrange` after flashing. The only
+way to lose settings is `cal reset` / `setid`.
 
 ## Debugging (USB-only)
 
@@ -79,7 +90,7 @@ Any node's USB-C gives a console (`screen /dev/tty.usbmodem* 115200`).
 `help` lists commands: `stats`, `nodes`, `data`, `minmax`, `ping`, `trace`,
 `capture`, `burst`, `test` (pseudorandom load), `cal save|reset`, `r`/`s`/`x`
 (calibration), `mode`, `rate`, `localmidi`, `chmap`, `disable`/`enable`,
-`setid`, `log on|off`, `flashtest`, `reboot`, `bootsel`, `id`.
+`velrange`, `velcurve`, `setid`, `log on|off`, `flashtest`, `reboot`, `bootsel`, `id`.
 USB-MIDI appears as "PHOTON Node" and emits notes when connected to the
 bridge (main controller) board.
 
@@ -90,9 +101,10 @@ All five milestones passed on the real four-board, two-manual system.
 **M1 — SRAM residency.** `flashtest` hammers flash 10× while core 1 scans:
 sweep timing stays flat. Verified.
 
-**M2 — scan rate.** Full 31-sensor sweep measured at 592 µs (~1.7 kHz
-open-loop) in parallel mode (mode 1, the default); production paces the sweep
-at 400 Hz (`rate`), which also sets the calibration operating point. Verified
+**M2 — scan rate.** Full 31-sensor sweep measured at 766 µs in parallel
+mode (mode 1) and 969 µs two-phase (mode 2, the default) at the validated
+10 MHz SPI clock; production paces mode 2 at 600 Hz (`rate`), which also
+sets the calibration operating point. Verified
 (except the `trace`/`capture` host-tool path — unexercised).
 
 **M3 — transport soak.** Bus tuned to 4 Mbaud / 8 µs DE guards / 700 µs poll

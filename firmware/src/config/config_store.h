@@ -2,12 +2,12 @@
 // flash, version counter + CRC32, newest valid copy wins. Replaces the
 // CIRCUITPY JSON file, /sensor_node_id marker and NVM flag byte.
 //
-// The CRC sits at the end of the record, so APPENDING A FIELD HERE INVALIDATES
-// EVERY STORED CONFIG: boards fall back to compiled defaults and report
-// "(defaults, uncalibrated)" on the console. That is the accepted cost — a
-// table of historical record sizes to migrate across is permanent complexity
-// bought against one reconfiguration pass. Calibration regenerates by playing;
-// node_id must be re-set per board with 'setid'. See
+// LAYOUT RULE: only ever APPEND fields to photon_config_t (before crc); never
+// reorder, resize or remove one. Because the CRC is the last word, a record
+// written by any older build is then a prefix of the current struct with its
+// CRC at the prefix's end, and config_store_init() finds it by scanning
+// prefix lengths — node id, calibration, masks and channel map all survive a
+// reflash, and the fields the old record lacks take compiled defaults. See
 // docs/architecture/04-next-session-plan.md section 2a.
 #ifndef PHOTON_CONFIG_STORE_H
 #define PHOTON_CONFIG_STORE_H
@@ -18,6 +18,10 @@
 #include "board_config.h"
 
 #define PHOTON_CONFIG_MAGIC 0x4E544850u  // "PHTN"
+
+// Shortest record the prefix scan will accept: the original layout, up to and
+// including cal_min/cal_max, is longer than this; anything shorter is noise.
+#define PHOTON_CONFIG_MIN_RECORD 64u
 
 typedef struct __attribute__((packed)) {
     uint32_t magic;
@@ -54,6 +58,10 @@ typedef struct __attribute__((packed)) {
 
 extern photon_config_t g_config;
 extern bool g_config_from_flash;  // false = compiled defaults ("uncalibrated")
+// Non-zero after init when the stored record came from an older (shorter)
+// layout: its byte length. Reported on the console, since the boot-time log
+// line is emitted before any host is attached.
+extern uint32_t g_config_migrated_from;
 
 // Load newest valid sector or defaults. Core 0, before core-1 launch.
 void config_store_init(void);

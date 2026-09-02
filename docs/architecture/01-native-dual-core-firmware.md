@@ -103,7 +103,7 @@ GPO bit 6, slot 1 → AIN5 / bit 4, slot 2 → AIN3 / bit 2, slot 3 → AIN1 / b
 **Unchanged, proven per-sensor sequence** (from `photon_sensorscan`): LED on (`BIT_SET
 GPO_VALUE`) → settle 60 µs → `CHANNEL_SEL` write → 1 priming read → 6 OSR dummy reads (OSR = 3,
 8× oversample, 16-bit result) → real read → LED off. TLA2518 stays in **manual mode** (auto-
-sequence cannot interleave per-sensor GPO writes). SPI 20 MHz mode 0, polled FIFO (frames are
+sequence cannot interleave per-sensor GPO writes). SPI 10 MHz mode 0 (the validated bus speed; see 03-scan-modes.md), polled FIFO (frames are
 2–3 B; DMA setup would cost more than the transfer). All v1 hot-path debug instrumentation
 (~2 100 register reads per sweep) is dropped.
 

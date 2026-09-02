@@ -389,6 +389,32 @@ static void node_handle_request(const photon_frame_t *f, bool addressed) {
                     }
                     break;
                 }
+                case 7:      // velocity curve: window min, tenths of a ms
+                case 8:      // velocity curve: window max, tenths of a ms
+                case 9: {    // velocity curve: gamma, hundredths
+                    // Same rationale as op 6: kept identical on every board.
+                    // Each op persists on its own; the bridge sends 7,8,9
+                    // back to back. Validity is checked as a set on use
+                    // (min < max is only guaranteed once all three land).
+                    uint8_t ok = 1;
+                    float v = (float)arg;
+                    if (op == 7 && arg >= 1) {
+                        g_config.vel_min_ms = v / 10.0f;
+                    } else if (op == 8 && arg <= 5000) {
+                        g_config.vel_max_ms = v / 10.0f;
+                    } else if (op == 9 && arg >= 10 && arg <= 1000) {
+                        g_config.vel_curve = v / 100.0f;
+                    } else {
+                        ok = 0;
+                    }
+                    if (ok) {
+                        ok = config_store_save() ? 1 : 0;
+                    }
+                    if (addressed) {
+                        send_reply(PHOTON_FT_CAL_ACK, f->src, f->seq, &ok, 1, false);
+                    }
+                    break;
+                }
                 default:
                     break;
             }
