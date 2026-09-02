@@ -32,6 +32,14 @@ lengths — the latest board revision shortens the inner ICs' stubs). At
 mode 2 969 us, mode 1 766 us, mode 0 2,475 us; mode 2 idles ~40% at 600 Hz.
 ADC conversion and oversampling are internal and unaffected.
 
+**Power.** After the emitter fix the whole system draws 5.16 V x 0.21 A =
+**1.08 W** at production settings (mode 2, 600 Hz), down from 3.02 W the
+same morning. The 28 permanently-on emitters (~25 mA each on the 3.3 V
+rails) were ~1.9 W of it. So the "fixed baseline" in the power sections
+below was mostly those LEDs; the electronics floor is ~1.1 W. The mode/rate
+table measured earlier that day (3.02-3.23 W) and the August figures all
+include the bug and stand only as relative comparisons.
+
 The August mode-0 findings below (~10x noisier, modes not converging,
 idx 28) were measured with seven emitters per board permanently on and
 must be re-measured before any of it is believed.

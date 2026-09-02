@@ -9,8 +9,9 @@ recalibration pass is needed. Everything else needs the hardware connected.
 ## 1. Power characterisation + RS-485 sanity (~15 min) — DONE 2026-09-02
 
 Results and interpretation are in `03-scan-modes.md` ("Rev 1D
-re-measurement"). Outcome: floor 3.02 W, mode invisible, rate ~0.1 W per
-100 Hz; transport clean. **Production moved to mode 2 at 600 Hz** (compiled
+re-measurement"). Outcome that morning: floor 3.02 W, mode invisible, rate
+~0.1 W per 100 Hz; transport clean. Superseded the same day by the emitter
+fix: the system now draws 1.08 W (see `03-scan-modes.md`). **Production moved to mode 2 at 600 Hz** (compiled
 default and deployed to all four nodes; existing calibration still brackets
 the rest readings, no recalibration needed). Step 3 remains.
 
