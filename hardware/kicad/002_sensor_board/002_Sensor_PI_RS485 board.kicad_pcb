@@ -53970,17 +53970,11 @@
 		(path "/d9d9f62b-fc6a-4b3f-aae9-29165a4a93cc")
 		(sheetname "/")
 		(sheetfile "002_Sensor_PI_RS485 board.kicad_sch")
-		(units
-			(unit
-				(name "A")
-				(pins "1" "2")
-			)
-		)
 		(attr smd)
 		(duplicate_pad_numbers_are_jumpers no)
 		(fp_circle
-			(center -0.9 -1.3)
-			(end -0.758579 -1.3)
+			(center -1.529999 0)
+			(end -1.38858 0)
 			(stroke
 				(width 0.1)
 				(type solid)

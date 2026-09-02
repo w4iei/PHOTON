@@ -10587,19 +10587,19 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C1525"
+		(property "Description" ""
 			(at 72.39 236.22 0)
 			(show_name no)
 			(do_not_autoplace no)
-			(hide yes)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Description" ""
+		(property "JLCPCB Part #" "C1525"
 			(at 72.39 236.22 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -11827,19 +11827,19 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C1525"
+		(property "Description" ""
 			(at 106.68 236.22 0)
 			(show_name no)
 			(do_not_autoplace no)
-			(hide yes)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Description" ""
+		(property "JLCPCB Part #" "C1525"
 			(at 106.68 236.22 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -12319,19 +12319,19 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C1525"
+		(property "Description" ""
 			(at 60.96 236.22 0)
 			(show_name no)
 			(do_not_autoplace no)
-			(hide yes)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Description" ""
+		(property "JLCPCB Part #" "C1525"
 			(at 60.96 236.22 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -13116,19 +13116,19 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C1525"
+		(property "Description" ""
 			(at 320.04 29.21 0)
 			(show_name no)
 			(do_not_autoplace no)
-			(hide yes)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Description" ""
+		(property "JLCPCB Part #" "C1525"
 			(at 320.04 29.21 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -13513,19 +13513,19 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C1525"
+		(property "Description" ""
 			(at 83.82 236.22 0)
 			(show_name no)
 			(do_not_autoplace no)
-			(hide yes)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Description" ""
+		(property "JLCPCB Part #" "C1525"
 			(at 83.82 236.22 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -13681,19 +13681,19 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C1525"
+		(property "Description" ""
 			(at 365.76 29.21 0)
 			(show_name no)
 			(do_not_autoplace no)
-			(hide yes)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Description" ""
+		(property "JLCPCB Part #" "C1525"
 			(at 365.76 29.21 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -14171,19 +14171,19 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C23733"
-			(at 0 0 0)
+		(property "Description" ""
+			(at 240.03 29.21 0)
 			(show_name no)
 			(do_not_autoplace no)
-			(hide yes)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Description" ""
-			(at 240.03 29.21 0)
+		(property "JLCPCB Part #" "C23733"
+			(at 0 0 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -14372,19 +14372,19 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C1548"
+		(property "Description" ""
 			(at 332.74 187.96 0)
 			(show_name no)
 			(do_not_autoplace no)
-			(hide yes)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Description" ""
+		(property "JLCPCB Part #" "C1548"
 			(at 332.74 187.96 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -14799,19 +14799,19 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C23733"
-			(at 0 0 0)
+		(property "Description" ""
+			(at 193.04 67.31 0)
 			(show_name no)
 			(do_not_autoplace no)
-			(hide yes)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Description" ""
-			(at 193.04 67.31 0)
+		(property "JLCPCB Part #" "C23733"
+			(at 0 0 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -15588,19 +15588,19 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C1525"
+		(property "Description" ""
 			(at 234.95 245.11 0)
 			(show_name no)
 			(do_not_autoplace no)
-			(hide yes)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Description" ""
+		(property "JLCPCB Part #" "C1525"
 			(at 234.95 245.11 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -15986,19 +15986,19 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C1525"
+		(property "Description" ""
 			(at 354.33 29.21 0)
 			(show_name no)
 			(do_not_autoplace no)
-			(hide yes)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Description" ""
+		(property "JLCPCB Part #" "C1525"
 			(at 354.33 29.21 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -16500,19 +16500,19 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C1525"
+		(property "Description" ""
 			(at 308.61 29.21 0)
 			(show_name no)
 			(do_not_autoplace no)
-			(hide yes)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Description" ""
+		(property "JLCPCB Part #" "C1525"
 			(at 308.61 29.21 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -16822,19 +16822,19 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C1525"
+		(property "Description" ""
 			(at 377.19 29.21 0)
 			(show_name no)
 			(do_not_autoplace no)
-			(hide yes)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Description" ""
+		(property "JLCPCB Part #" "C1525"
 			(at 377.19 29.21 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -16990,19 +16990,19 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C23733"
-			(at 0 0 0)
+		(property "Description" ""
+			(at 238.76 54.61 0)
 			(show_name no)
 			(do_not_autoplace no)
-			(hide yes)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Description" ""
-			(at 238.76 54.61 0)
+		(property "JLCPCB Part #" "C23733"
+			(at 0 0 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -17555,19 +17555,19 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C1525"
+		(property "Description" ""
 			(at 228.6 29.21 0)
 			(show_name no)
 			(do_not_autoplace no)
-			(hide yes)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Description" ""
+		(property "JLCPCB Part #" "C1525"
 			(at 228.6 29.21 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -17722,19 +17722,19 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C1525"
+		(property "Description" ""
 			(at 49.53 236.22 0)
 			(show_name no)
 			(do_not_autoplace no)
-			(hide yes)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Description" ""
+		(property "JLCPCB Part #" "C1525"
 			(at 49.53 236.22 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -17890,19 +17890,19 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C1525"
+		(property "Description" ""
 			(at 342.9 29.21 0)
 			(show_name no)
 			(do_not_autoplace no)
-			(hide yes)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Description" ""
+		(property "JLCPCB Part #" "C1525"
 			(at 342.9 29.21 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -18236,19 +18236,19 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C52923"
+		(property "Description" ""
 			(at 247.65 245.11 0)
 			(show_name no)
 			(do_not_autoplace no)
-			(hide yes)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Description" ""
+		(property "JLCPCB Part #" "C52923"
 			(at 247.65 245.11 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -18405,19 +18405,19 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C1525"
+		(property "Description" ""
 			(at 95.25 236.22 0)
 			(show_name no)
 			(do_not_autoplace no)
-			(hide yes)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Description" ""
+		(property "JLCPCB Part #" "C1525"
 			(at 95.25 236.22 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -18648,19 +18648,19 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C1525"
+		(property "Description" ""
 			(at 251.46 29.21 0)
 			(show_name no)
 			(do_not_autoplace no)
-			(hide yes)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Description" ""
+		(property "JLCPCB Part #" "C1525"
 			(at 251.46 29.21 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -19630,19 +19630,19 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C1525"
+		(property "Description" ""
 			(at 331.47 29.21 0)
 			(show_name no)
 			(do_not_autoplace no)
-			(hide yes)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Description" ""
+		(property "JLCPCB Part #" "C1525"
 			(at 331.47 29.21 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -20148,19 +20148,19 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C1548"
+		(property "Description" ""
 			(at 332.74 177.8 0)
 			(show_name no)
 			(do_not_autoplace no)
-			(hide yes)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Description" ""
+		(property "JLCPCB Part #" "C1548"
 			(at 332.74 177.8 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -20713,19 +20713,19 @@
 				)
 			)
 		)
-		(property "JLCPCB Part #" "C23733"
-			(at 0 0 0)
+		(property "Description" ""
+			(at 204.47 67.31 0)
 			(show_name no)
 			(do_not_autoplace no)
-			(hide yes)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Description" ""
-			(at 204.47 67.31 0)
+		(property "JLCPCB Part #" "C23733"
+			(at 0 0 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
