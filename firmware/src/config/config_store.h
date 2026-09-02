@@ -7,8 +7,7 @@
 // written by any older build is then a prefix of the current struct with its
 // CRC at the prefix's end, and config_store_init() finds it by scanning
 // prefix lengths — node id, calibration, masks and channel map all survive a
-// reflash, and the fields the old record lacks take compiled defaults. See
-// docs/architecture/04-next-session-plan.md section 2a.
+// reflash, and the fields the old record lacks take compiled defaults.
 #ifndef PHOTON_CONFIG_STORE_H
 #define PHOTON_CONFIG_STORE_H
 

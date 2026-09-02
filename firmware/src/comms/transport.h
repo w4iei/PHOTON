@@ -2,7 +2,7 @@
 // bus (rs485_bus.c, bridge-mastered polling). The planned RS-422 mesh
 // revision replaces the implementation (per-port link + ARQ + router) while
 // everything above this interface — protocol handlers, bridge role, scan
-// core — stays unchanged. See docs/architecture/02-rs422-mesh-hardware-rev.md.
+// core — stays unchanged. (An RS-422 mesh variant was considered and not pursued.)
 #ifndef PHOTON_TRANSPORT_H
 #define PHOTON_TRANSPORT_H
 

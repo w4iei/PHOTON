@@ -79,10 +79,12 @@ system at a time.
 
 ### Budget
 
-A 31-sensor board draws **150-200 mA at 3.3 V** while scanning — mostly the
-RP2354 at 150 MHz and eight always-on TLA2518s. Emitters are only ~5% of
-system power: one to four are lit at any instant, at ~27 mA each, so peak
-current depends on scan mode (~108 mA extra in two-phase, ~216 mA parallel).
+The whole four-board system draws **~210 mA at 5 V (1.08 W)** while
+scanning at the production settings, i.e. roughly 60 mA at 3.3 V per board:
+the RP2350 at 150 MHz and eight always-on TLA2518s. Emitters are pulsed at a
+few percent duty and cost ~0.1 W per 100 Hz of scan rate; peak current
+depends on scan mode (up to four lit at once in two-phase, ~27 mA each, or
+eight in parallel).
 
 COUT is **22 uF**, the value the TPS62A0569A datasheet rates highest with a
 1 uH inductor. Do not add distributed bulk on +3V3 to "help" — it parallels

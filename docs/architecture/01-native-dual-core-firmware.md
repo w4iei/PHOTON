@@ -103,7 +103,7 @@ GPO bit 6, slot 1 → AIN5 / bit 4, slot 2 → AIN3 / bit 2, slot 3 → AIN1 / b
 **Unchanged, proven per-sensor sequence** (from `photon_sensorscan`): LED on (`BIT_SET
 GPO_VALUE`) → settle 60 µs → `CHANNEL_SEL` write → 1 priming read → 6 OSR dummy reads (OSR = 3,
 8× oversample, 16-bit result) → real read → LED off. TLA2518 stays in **manual mode** (auto-
-sequence cannot interleave per-sensor GPO writes). SPI 10 MHz mode 0 (the validated bus speed; see 03-scan-modes.md), polled FIFO (frames are
+sequence cannot interleave per-sensor GPO writes). SPI 10 MHz mode 0 (the validated bus speed; see firmware/README.md), polled FIFO (frames are
 2–3 B; DMA setup would cost more than the transfer). All v1 hot-path debug instrumentation
 (~2 100 register reads per sweep) is dropped.
 
@@ -263,16 +263,9 @@ firmware/
 Not ported: `polling_mode.py`, `display.py` (dead), `nvm_flags.py`, marker-file boot logic.
 `software/embedded_software/` remains untouched as the parity reference.
 
-## 13. Milestones & verification
+## 13. Verification
 
-| M | Deliverable | Pass criteria |
-|---|---|---|
-| **M1** | Dual-core skeleton | CDC console shows core-1 counter advancing through `event_ring`; core-0 flash-erase loop does **not** perturb a core-1-toggled GPIO on the scope (proves SRAM residency); `picotool info` shows IMAGE_DEF. |
-| **M2** | Scan parity + rate | Unmodified `listen_for_single_sensor_high_res.py` captures a key press identically on CP vs native; sweep ≥1 kHz on a logic analyzer (CS lines); crosstalk experiment run → parallel vs 2-phase decided and recorded here. |
-| **M3** | Transport soak | 2 sensor boards + main board; `burst`-driven saturation for hours: STATS seq-accounting shows **zero** event loss; CRC/retry counters behave under cable wiggle. |
-| **M4** | End-to-end MIDI | Notes in a DAW; calibration save/load through console; hot data/minmax views. |
-| **M5** | **Motivating-bug regression** | Scripted `burst n=32` on all nodes simultaneously × 10⁴: 0 lost (seq-accounted), p99 event→MIDI < 5 ms; then real two-hand block chords vs audio recording — every note present. |
-
-Host-built tests (run on macOS, no hardware): deframer fuzz (noise + embedded frames → 100 %
-recovery, O(n) time), ring/seqlock stress, `events.c` replayed against recorded CircuitPython
-scan traces → identical ON/OFF/dt decisions, poll-cycle simulator → zero loss at saturation.
+Bench results for the five bring-up milestones (SRAM residency, scan rate,
+transport soak, end-to-end MIDI, chord-burst regression) and the validated
+production settings are recorded in `firmware/README.md`. Host-built tests
+(frame codec fuzz, event engine) live in `firmware/test/host`.

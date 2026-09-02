@@ -74,7 +74,7 @@ static void fill_defaults(photon_config_t *c) {
     c->magic = PHOTON_CONFIG_MAGIC;
     c->version = 0;
     c->node_id = 1;
-    c->scan_mode = 2;  // PHOTON_SCAN_TWO_PHASE: production mode, see 03-scan-modes.md
+    c->scan_mode = 2;  // PHOTON_SCAN_TWO_PHASE: production mode (firmware/README.md)
     c->midi_low = PHOTON_MIDI_LOW;
     c->midi_high = PHOTON_MIDI_HIGH;
     c->midi_channel = PHOTON_MIDI_CHANNEL;

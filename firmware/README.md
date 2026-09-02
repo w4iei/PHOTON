@@ -56,12 +56,36 @@ rewrites the record in the current layout. Check with `disable` (no
 argument, lists the masks), `chmap` and `velrange` after flashing. The only
 way to lose settings is `cal reset` / `setid`.
 
+## Validated settings
+
+These are the compiled defaults, measured on the four-board two-manual
+instrument (2026-09-02). Every one is also a runtime knob, persisted in
+flash.
+
+| setting | value | why |
+|---|---|---|
+| scan mode | 2, two-phase (`mode`) | half the peak emitter current of parallel, 8-key spacing between lit emitters |
+| scan rate | 600 Hz (`rate`) | 1.67 ms velocity quantisation, 55 steps across the playing range; sweep 969 µs so ~40% idle |
+| emitter settle | 50 µs (`settle`) | more changes nothing measurable |
+| SPI bus | 10 MHz | faster clocks lose register writes to the ADC nearest the MCU (near-end reflection on the 414 mm board) |
+| velocity map | log in dt, 2.5–25 ms → 50–120, gamma 2 (`velcurve`, `velrange`) | pp / mf-f / ff strikes measure 24.9 / 9.9 / 3.3 ms median, a constant ratio apart; lands them at 54 / 95 / 119 |
+| system power | 1.08 W at 5 V, all four boards | measured at the USB meter; mode and rate move it by ~0.1 W per 100 Hz only |
+
+Mode 0 (sequential, ~390 Hz ceiling) lights one emitter at a time and is
+kept only as a crosstalk-free benchmarking reference.
+
+One hardware quirk the driver works around: on every TLA2518 fitted, GPIO0
+in push-pull mode drives high regardless of GPO_VALUE, so the slot-3
+emitter of each bank is switched through its drive-mode bit instead
+(`tla2518_emitters()`). Any board flashed with an older build had those
+seven emitters on continuously and must be recalibrated after updating.
+
 ## Debugging (USB-only)
 
 The current boards have no SWD connector populated, so **the USB console is
 the debugging interface**: `stats` (rates, counters, error tallies), `data`/
-`minmax` (live sensor state), `trace`/`capture` (waveforms; the one console
-path not exercised during bring-up — treat as unverified), `flashtest`
+`minmax` (live sensor state), `trace`/`capture` (per-sweep waveforms, local
+or via the bridge with `trace <sensor> <node>`), `flashtest`
 (core-1 independence proof), plus the `# LOG`/`# NOTE` diagnostic stream. A
 sensor node whose array reads all-zero at boot deliberately *suppresses* its
 auto-reboot recovery while a console is attached, so the fault can be
@@ -104,8 +128,7 @@ sweep timing stays flat. Verified.
 **M2 — scan rate.** Full 31-sensor sweep measured at 766 µs in parallel
 mode (mode 1) and 969 µs two-phase (mode 2, the default) at the validated
 10 MHz SPI clock; production paces mode 2 at 600 Hz (`rate`), which also
-sets the calibration operating point. Verified
-(except the `trace`/`capture` host-tool path — unexercised).
+sets the calibration operating point. Verified.
 
 **M3 — transport soak.** Bus tuned to 4 Mbaud / 8 µs DE guards / 700 µs poll
 timeout: 3,694 polls/s per node (2 nodes), ~1,540/s (4 nodes). 21-minute soak

@@ -42,7 +42,7 @@
 
 // Validated bus speed (2026-09-02). Faster clocks lost register writes to
 // the ADC nearest the MCU (near-end reflection on the sensor board); see
-// docs/architecture/03-scan-modes.md "SPI bus speed". Mode-2 sweep 969 us.
+// firmware/README.md "Validated settings". Mode-2 sweep 969 us.
 #define PHOTON_SPI_BAUD_HZ       (10 * 1000 * 1000)
 // Emitter settle before sampling. Bench-measured 2026-08-13: the reading
 // depends strongly on this value with keys installed (45 us reads 81-91% of
@@ -135,7 +135,7 @@
 //   x = log(dt / MIN_MS) / log(MAX_MS / MIN_MS)   (0 at MIN_MS, 1 at MAX_MS)
 //   v = OUT_MAX - (OUT_MAX - OUT_MIN) * x^VEL_CURVE
 // Lands pp / mf-f / ff at 54 / 95 / 119. Runtime: 'velcurve <min_ms> <max_ms>
-// <gamma>'. See docs/architecture/04-next-session-plan.md "Velocity map".
+// <gamma>'. See firmware/README.md "Validated settings".
 #define PHOTON_VEL_MIN_MS        2.5f   // dt <= 2.5 ms -> OUT_MAX
 #define PHOTON_VEL_MAX_MS        25.0f  // dt >= 25 ms  -> OUT_MIN
 #define PHOTON_VEL_CURVE         2.0f   // gamma on the log position
