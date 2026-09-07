@@ -215,7 +215,7 @@ polls the write pointer (no per-byte IRQs at 4 Mbaud).
 | `DATA_REQ`/`DATA_RESP` | Addressed; node returns latest sweep snapshot (31 × {value u16, std/min-max}) from the seqlock buffer. |
 | `MINMAX_REQ`/`RESP` | Addressed, chunked; feeds calibration display. (v1's host/node `max_payload` mismatch that silently truncated sensors 30–31 is gone — one shared constant.) |
 | `STATS_REQ`/`RESP` | Sweep rate (Hz ×10), event/poll counters, CRC-fail, retries, ring high-water marks. |
-| `TRACE_START` / `TRACE_DATA` | Node streams a chosen sensor at full sweep rate in bulk-priority chunks; bridge relays to CDC in the **unchanged** `BEGIN_TRACE …` / `t,adc` / `END_TRACE` ASCII contract, so `software/host_code/listen_for_single_sensor_high_res.py` works unmodified (now at ≥1 kHz). |
+| `TRACE_START` / `TRACE_DATA` | Node streams a chosen sensor at full sweep rate in bulk-priority chunks; bridge relays to CDC in the **unchanged** `BEGIN_TRACE …` / `t,adc` / `END_TRACE` ASCII contract, so `firmware/tools/listen_for_single_sensor_high_res.py` works unmodified (now at ≥1 kHz). |
 | `CAL_SET` / `CAL_COMMIT` / `CAL_ACK` | Broadcast or addressed; values applied to core 1 via mailbox; COMMIT triggers the §8 flash sequence. |
 | `TEST_BURST` | Node injects n synthetic events through the full path — the regression instrument for the motivating bug (M3/M5). |
 
@@ -261,7 +261,7 @@ firmware/
 | `rs485_system_config.py` | `board_config.h` + config defaults | per-node overrides die |
 
 Not ported: `polling_mode.py`, `display.py` (dead), `nvm_flags.py`, marker-file boot logic.
-`software/embedded_software/` remains untouched as the parity reference.
+The CircuitPython implementation this replaced is preserved at the `last_circuitpython` git tag.
 
 ## 13. Verification
 

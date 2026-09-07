@@ -43,6 +43,27 @@ add_executable(photon
 
 target_include_directories(photon PRIVATE src src/usb lib/fatfs)
 
+# Build identity. cmake/build_id.cmake regenerates build/generated/build_id.h
+# on every build with the git short hash ("-dirty" if firmware/ has
+# uncommitted changes) and the build time. The console banner and `id` print
+# it, and cdc_console.c stores it as picotool binary info, so
+# `picotool info -a photon.uf2` (or a board sitting in BOOTSEL) names the
+# commit without booting. Only cdc_console.c includes the header, so a
+# rebuild recompiles just that file.
+set(PHOTON_BUILD_ID_H ${CMAKE_CURRENT_BINARY_DIR}/generated/build_id.h)
+add_custom_target(photon_build_id
+    COMMAND ${CMAKE_COMMAND} -DSRC_DIR=${CMAKE_CURRENT_LIST_DIR}
+            -DOUT=${PHOTON_BUILD_ID_H}
+            -P ${CMAKE_CURRENT_LIST_DIR}/cmake/build_id.cmake
+    BYPRODUCTS ${PHOTON_BUILD_ID_H}
+    COMMENT "Generating build_id.h"
+    VERBATIM)
+add_dependencies(photon photon_build_id)
+target_include_directories(photon PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/generated)
+# The SDK would stamp the __DATE__ of its own first compile in this build
+# directory; the date from build_id.h replaces it.
+target_compile_definitions(photon PRIVATE PICO_NO_BI_PROGRAM_BUILD_DATE=1)
+
 target_compile_options(photon PRIVATE -Wall -Wextra -Wno-unused-parameter)
 
 target_link_libraries(photon

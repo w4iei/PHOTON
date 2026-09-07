@@ -1,13 +1,12 @@
 # PHOTON Native Firmware
 
-Bare-metal C (Pico SDK) firmware for all PHOTON boards — replaces the
-CircuitPython stack. One UF2 for every board: at boot the firmware probes the
+Bare-metal C (Pico SDK) firmware for all PHOTON boards. One UF2 for every
+board: at boot the firmware probes the
 TLA2518 banks; a board with sensors becomes a **sensor node** (core 1 runs the
 SRAM-resident scan/event loop), a board without (the main controller board)
 becomes the **bus master/bridge** (RS-485 poll cycle + USB-MIDI + console).
 
 Design details: [docs/architecture/01-native-dual-core-firmware.md](../docs/architecture/01-native-dual-core-firmware.md).
-Legacy CircuitPython stack (kept as parity reference): `../software/embedded_software/`.
 
 ## Build
 
@@ -85,7 +84,8 @@ seven emitters on continuously and must be recalibrated after updating.
 The current boards have no SWD connector populated, so **the USB console is
 the debugging interface**: `stats` (rates, counters, error tallies), `data`/
 `minmax` (live sensor state), `trace`/`capture` (per-sweep waveforms, local
-or via the bridge with `trace <sensor> <node>`), `flashtest`
+or via the bridge with `trace <sensor> <node>`; `tools/listen_for_single_sensor_high_res.py`
+captures and plots them on the host), `flashtest`
 (core-1 independence proof), plus the `# LOG`/`# NOTE` diagnostic stream. A
 sensor node whose array reads all-zero at boot deliberately *suppresses* its
 auto-reboot recovery while a console is attached, so the fault can be
@@ -95,18 +95,21 @@ target/rp2350.cfg`.)
 
 ## First-time setup per sensor node
 
-Each sensor node needs a bus id once (replaces the CIRCUITPY
-`/sensor_node_id` file). Connect USB to the node and in a serial terminal
-(115200, any rate — CDC):
+Each sensor node needs a bus id once. Connect USB to the node and in a
+serial terminal (115200, any rate — CDC):
 
 ```
 setid 1        # 1..6, unique per node
 ```
 
 then calibrate at the operating scan rate: `r`, play every key once at normal
-force, `s`. Id and calibration persist in flash. On the bridge, `chmap <manual>
-<channel>` maps each manual (board pair) to its MIDI channel and `disable
-<global idx>` masks unpopulated slots on remote boards.
+force, `s`. The same can be done for the whole bus from the bridge console:
+`cal reset` clears every node and starts learning, play every key on every
+manual, `cal save` stores each node's table; `cal reset <id>` / `cal save
+<id>` target one node and leave the others alone. Id and calibration persist
+in flash. On the bridge, `chmap <manual> <channel>` maps each manual (board
+pair) to its MIDI channel and `disable <global idx>` masks unpopulated slots
+on remote boards.
 
 ## Console
 
@@ -116,6 +119,11 @@ Any node's USB-C gives a console (`screen /dev/tty.usbmodem* 115200`).
 (calibration), `mode`, `rate`, `localmidi`, `chmap`, `disable`/`enable`,
 `velrange`, `velcurve`, `setid`, `log on|off`, `flashtest`, `sd`, `reboot`,
 `bootsel`, `id`.
+The banner and `id` name the build: git short hash (`-dirty` when `firmware/`
+had uncommitted changes) and build time, from a `build_id.h` that CMake
+regenerates on every build. `picotool info -a build/photon.uf2`, or a board
+sitting in BOOTSEL, shows the same as *version* / *build date*, next to the
+repository and klavecimbel.com.
 USB-MIDI appears as "PHOTON Node" and emits notes when connected to the
 bridge (main controller) board.
 

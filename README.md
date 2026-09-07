@@ -34,7 +34,7 @@ CircuitPython support is gone: it capped the system at a ~250 Hz single-core sca
 - **Scanning:** free-runs open-loop at ~1.3 kHz; throttled to a paced 600 Hz (two-phase mode) for production use.
 - **microSD recorder:** a card in the bridge records every performance automatically as Standard MIDI Files, numbered per power-on and per playing episode, with no host, no setup and no clock required.
 
-Legacy CircuitPython sources remain under `software/embedded_software/` as a reference implementation. Build and flash instructions: `firmware/README.md`.
+Build and flash instructions: `firmware/README.md`.
 
 ## Architecture (Short)
 - Sensor boards: VCNT2025X01 array -> TLA2518 SPI ADCs -> RP2350
@@ -48,7 +48,7 @@ See `hardware/README.md` for board-specific notes and layout sources.
 **Hardware**
 - PHOTON module(s)
 - USB-C cable
-- JST-SH 4-pin cables (1.0 mm pitch, reverse/opposite direction; QWIIC-compatible)
+- JST-SH 4-pin cables (1.0 mm pitch, "reverse double head" type as used by Qwiic; see `hardware/README.md`)
 
 **Software**
 - PHOTON firmware UF2 (build from `firmware/`, see `firmware/README.md`)
@@ -57,8 +57,13 @@ See `hardware/README.md` for board-specific notes and layout sources.
 
 ## Build & Flash
 1. Hold **USB-BOOT** (or short the USB-BOOT jumper) and connect via USB-C; copy `photon.uf2` to the mounted `RP2350` drive. The same image runs every board.
-2. On each sensor board, set its bus id once via the USB console (`setid N`), then calibrate (`r`, play every key, `s`). Calibration and configuration persist in flash.
-3. Boards already running PHOTON reflash over USB alone: the `bootsel` console command enters the bootloader without touching the button.
+2. On each sensor board, set its bus id once via the USB console (`setid N`).
+3. Calibrate. Two ways:
+   - **One board, on its own USB console:** `r` clears that board's table and starts learning; play every key it covers once, one at a time, with a normal full stroke; `s` freezes the table and saves it (`x` aborts without saving).
+   - **The whole instrument, from the bridge console:** `cal reset` clears every sensor board and starts learning on all of them; play every key on every manual; `cal save` then stores each board's table in its own flash. To redo a single board without disturbing the others, give its bus id: `cal reset <id>`, play that board's keys, `cal save <id>`.
+
+   Calibration and configuration persist in flash and survive reflashing; only `cal reset`, `r` and `setid` clear them.
+4. Boards already running PHOTON reflash over USB alone: the `bootsel` console command enters the bootloader without touching the button.
 
 ## Notes
 - **Double-manual harpsichords** run on a single bus: each manual is a pair of sensor boards mapped to its own MIDI channel (`chmap` console command). The polled protocol eliminates inter-board collisions, so simultaneous playing on both manuals loses nothing.

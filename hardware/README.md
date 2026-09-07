@@ -10,6 +10,15 @@ library (`photon_common.pretty`) at the top of `hardware/kicad/`.
 | `001d_..._low_profile` | 54.0 x 41.7 mm | Bridge, low cost / low profile |
 | `001_main_controller_board` | 69.0 x 49.9 mm | Bridge, full size, touchscreen |
 
+### Datasheets
+
+- [VCNT2025X01](https://www.vishay.com/docs/84895/vcnt2025x01.pdf) — reflective optical sensor (Vishay)
+- [TLA2518](https://www.ti.com/lit/ds/symlink/tla2518.pdf) — 8-channel SPI ADC (TI)
+- [RP2350 / RP2354](https://datasheets.raspberrypi.com/rp2350/rp2350-datasheet.pdf) — microcontroller (Raspberry Pi); the RP2354 is the RP2350 with 2 MB of flash in the package, same datasheet
+- [THVD1424](https://www.ti.com/lit/ds/symlink/thvd1424.pdf) — RS-485 transceiver (TI)
+- [TPS62A0569A](https://www.ti.com/lit/gpn/tps62a0569a) — buck regulator (TI)
+- [Waveshare 2.8" capacitive touch LCD](https://www.waveshare.com/wiki/2.8inch_Capacitive_Touch_LCD) — ST7789T3 display controller, CST328 touch controller; the reference panel for the 001 bridge
+
 ## 002 — Sensor node
 
 31 VCNT2025X01 reflective sensors on a **13.3 mm pitch**, read by eight
@@ -50,6 +59,14 @@ host is a complete system. The bridge exists for installations that want the
 host connection somewhere other than at a sensor board, or that want a
 touchscreen.
 
+In practice a bridge is often the easier build. Once the sensor boards are
+mounted under the keys or jacks, their USB-C receptacles tend to end up
+somewhere a USB-C plug cannot reach or cannot exit the case from. The
+inter-board lead is a thin 4-pin JST-SH cable that bends around anything, so
+the bridge — and with it the USB-C socket and the microSD slot — can sit
+wherever the host connection is convenient. The cable type is specified under
+[Power](#power).
+
 ## Power
 
 **The RS-485 cable carries 5 V.** Every board — sensor node and bridge alike —
@@ -64,6 +81,11 @@ Inter-board cable, 4-pin JST-SH:
 | 2 | +5V |
 | 3 | RS485_P |
 | 4 | RS485_N |
+
+Use a 4-pin JST-SH (1.0 mm pitch) **"reverse double head"** cable — the same
+lead Qwiic uses. Check it before plugging in: hold both plugs facing you in
+the same orientation and the top-left wire colour must be the same on both.
+[Example listing](https://nl.aliexpress.com/item/1005011775162638.html).
 
 Feedback divider is 0.6 V x (1 + 450k/100k) = 3.3 V.
 
@@ -132,6 +154,10 @@ instrument is moved.
 Mounting holes use `photon_common:MountingHole_2.7mm_M2.5_Keepout`, which
 carries a 7 mm copper keepout so a screw head cannot bridge the top pour to
 the bottom pour.
+
+Recommended screws: **M2.3 x 5 mm pan head**
+([example listing](https://nl.aliexpress.com/item/33043885403.html)). They
+pass through the 2.7 mm holes with clearance.
 
 ## Disclaimer
 

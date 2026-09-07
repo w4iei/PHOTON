@@ -18,8 +18,8 @@ uint32_t g_config_migrated_from = 0;
 static bool core1_running = false;
 static int active_sector = -1;  // sector index (0 or 1) holding the loaded copy
 
-static const uint8_t *sector_ptr_at(uint32_t base, int idx) {
-    return (const uint8_t *)(XIP_BASE + base +
+static const uint8_t *sector_ptr(int idx) {
+    return (const uint8_t *)(XIP_BASE + PHOTON_CONFIG_FLASH_OFFS +
                              (uint32_t)idx * PHOTON_CONFIG_SECTOR_SIZE);
 }
 
@@ -27,11 +27,10 @@ static void fill_defaults(photon_config_t *c);
 
 // *len receives the byte length of the accepted record: sizeof(photon_config_t)
 // for the current layout, shorter for a migrated one.
-static bool sector_valid_len(uint32_t base, int idx, photon_config_t *out,
-                             uint32_t *len_out) {
+static bool sector_valid_len(int idx, photon_config_t *out, uint32_t *len_out) {
     photon_config_t c;
     *len_out = 0;
-    const uint8_t *raw = sector_ptr_at(base, idx);
+    const uint8_t *raw = sector_ptr(idx);
     memcpy(&c, raw, sizeof c);
     if (c.magic != PHOTON_CONFIG_MAGIC) {
         return false;
@@ -60,13 +59,9 @@ static bool sector_valid_len(uint32_t base, int idx, photon_config_t *out,
     return false;
 }
 
-static bool sector_valid_at(uint32_t base, int idx, photon_config_t *out) {
-    uint32_t len;
-    return sector_valid_len(base, idx, out, &len);
-}
-
 static bool sector_valid(int idx, photon_config_t *out) {
-    return sector_valid_at(PHOTON_CONFIG_FLASH_OFFS, idx, out);
+    uint32_t len;
+    return sector_valid_len(idx, out, &len);
 }
 
 static void fill_defaults(photon_config_t *c) {
@@ -109,8 +104,8 @@ static void load_defaults(void) {
 void config_store_init(void) {
     photon_config_t a, b;
     uint32_t la = 0, lb = 0, chosen_len = 0;
-    bool va = sector_valid_len(PHOTON_CONFIG_FLASH_OFFS, 0, &a, &la);
-    bool vb = sector_valid_len(PHOTON_CONFIG_FLASH_OFFS, 1, &b, &lb);
+    bool va = sector_valid_len(0, &a, &la);
+    bool vb = sector_valid_len(1, &b, &lb);
     if (va && vb) {
         active_sector = (int32_t)(a.version - b.version) >= 0 ? 0 : 1;
         g_config = active_sector == 0 ? a : b;
@@ -121,19 +116,6 @@ void config_store_init(void) {
         g_config = va ? a : b;
         chosen_len = va ? la : lb;
         g_config_from_flash = true;
-    } else if (sector_valid_len(PHOTON_CONFIG_LEGACY_OFFS, 0, &a, &la) |
-               sector_valid_len(PHOTON_CONFIG_LEGACY_OFFS, 1, &b, &lb)) {
-        // Flash-size migration: this board was previously flashed by a build
-        // that anchored the config to the top of a 16 MB part. Adopt it so
-        // node id and calibration survive; the next save writes it to the
-        // flash-size-agnostic location and the old copy is simply orphaned.
-        bool use_a = la && (!lb || (int32_t)(a.version - b.version) >= 0);
-        g_config = use_a ? a : b;
-        chosen_len = use_a ? la : lb;
-        active_sector = -1;          // force the next save onto the new base
-        g_config_from_flash = true;
-        log_info("config migrated from the 16 MB location (v%lu); "
-                 "it moves on the next save", (unsigned long)g_config.version);
     } else {
         active_sector = -1;
         load_defaults();

@@ -19,9 +19,7 @@
 // The firmware image is ~82 kB, so 2 MB is ample; the only size-dependent
 // item is the config store, which anchors to the top of flash (see
 // PHOTON_CONFIG_FLASH_OFFS) and therefore must live inside 2 MB to be valid
-// on both. config_store.c additionally reads the old 16 MB location so that
-// boards previously flashed with a 16 MB build keep their node id and
-// calibration across the upgrade.
+// on both.
 #define PICO_FLASH_SIZE_BYTES (2 * 1024 * 1024)
 #define PICO_FLASH_SPI_CLKDIV 2
 

@@ -50,10 +50,3 @@ fp-info-cache
 
 # macOS Finder droppings (repo-wide)
 .DS_Store
-
-# Embedded software generated files
-software/embedded_software/**/__pycache__/
-software/embedded_software/**/*.py[cod]
-software/embedded_software/.ruff_cache/
-software/embedded_software/**/*.tmp
-software/embedded_software/**/*.temp

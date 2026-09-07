@@ -12,7 +12,7 @@ END_MARK = "END_TRACE"
 
 def parse_args():
     p = argparse.ArgumentParser(
-        description="Read oscilloscope trace from CircuitPython over USB serial and plot."
+        description="Capture a PHOTON sensor trace (console `trace` command) over USB serial and plot it."
     )
     p.add_argument("--port", required=True, help="Serial port, e.g. /dev/cu.usbmodem101")
     p.add_argument("--baud", type=int, default=115200)

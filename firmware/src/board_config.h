@@ -1,6 +1,7 @@
 // Single source of truth for pins, peripherals, timing and detection
-// constants. Values migrated from software/embedded_software/src/app/
-// rs485_system_config.py and the sensor board 002 Rev D schematic.
+// constants. Values carried over from the retired CircuitPython
+// configuration (git tag last_circuitpython) and the sensor board 002 Rev D
+// schematic.
 #ifndef PHOTON_BOARD_CONFIG_H
 #define PHOTON_BOARD_CONFIG_H
 
@@ -152,21 +153,22 @@
 // historical 2-board setup) live in the config store defaults.
 
 // ---------------------------------------------------------------------------
-// USB identity
+// Identity: console banner and picotool binary info. The build id and date
+// come from the generated build_id.h (see CMakeLists.txt). The web sites are
+// the contact points; no personal address goes into the image or this repo.
 // ---------------------------------------------------------------------------
+#define PHOTON_CREATOR           "Noah Jaffe"
+#define PHOTON_CREATOR_URL       "https://klavecimbel.com"
+#define PHOTON_PROJECT_URL       "https://github.com/w4iei/photon"
 #define PHOTON_USB_VID           0x1B4F
 #define PHOTON_USB_PID           0x0039  // native stack (CircuitPython builds use 0x0038)
 
 // ---------------------------------------------------------------------------
-// Config store: two 4 KB sectors at the top of the 16 MB flash
+// Config store: two 4 KB sectors at the top of flash (2 MB on both parts,
+// see boards/photon_rp2350.h)
 // ---------------------------------------------------------------------------
 #define PHOTON_CONFIG_SECTOR_SIZE 4096u
 #define PHOTON_CONFIG_FLASH_OFFS  (PICO_FLASH_SIZE_BYTES - 2u * PHOTON_CONFIG_SECTOR_SIZE)
-// Where the config lived when the firmware was built for a 16 MB part. Read
-// only, for one-way migration onto the flash-size-agnostic location above.
-// Harmless on a 2 MB device: the address is inside the 16 MB XIP window, and
-// the flash simply wraps, so the CRC check rejects whatever comes back.
-#define PHOTON_CONFIG_LEGACY_OFFS (16u * 1024u * 1024u - 2u * PHOTON_CONFIG_SECTOR_SIZE)
 
 // ---------------------------------------------------------------------------
 // microSD (bridge boards 001 / 001D): SPI mode on hardware SPI1. The socket's

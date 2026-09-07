@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "hardware/watchdog.h"
+#include "pico/binary_info.h"
 #include "pico/bootrom.h"
 #include "pico/time.h"
 #include "pico/unique_id.h"
@@ -21,6 +22,8 @@
 #include "ipc/rings.h"
 #include "usb/midi_out.h"
 #include "util/log.h"
+
+#include "build_id.h"  // generated every build: PHOTON_BUILD_ID, PHOTON_BUILD_DATE
 
 #include "ff.h"  // FS_* volume type names for the SD status line
 
@@ -227,20 +230,31 @@ static void print_help(void) {
     log_printf("  flashtest        hammer flash while core 1 scans (M1 proof)");
     log_printf("  sd [test [n]]    microSD recorder status / play n synthetic notes (bridge)");
     log_printf("  reboot|bootsel [id]  restart / UF2 bootloader (bridge: remote node)");
-    log_printf("  id               role/version summary");
+    log_printf("  id               build id, role, config summary");
 }
+
+// Binary info: `picotool info` reads these from the UF2 or from a board in
+// BOOTSEL, so a bare board can still say which commit and whose it is.
+bi_decl(bi_program_version_string(PHOTON_BUILD_ID));
+bi_decl(bi_program_build_date_string(PHOTON_BUILD_DATE));
+bi_decl(bi_program_description("PHOTON optical key tracking - " PHOTON_CREATOR
+                               " - " PHOTON_CREATOR_URL));
+bi_decl(bi_program_url(PHOTON_PROJECT_URL));
 
 void console_print_banner(int banks_found) {
     // Printed on every console attach (legacy sensor-node boot banner, native
-    // edition): who we are, where the project lives, and what you can type.
+    // edition): who we are, which build this is, where the project lives,
+    // and what you can type.
     char uid[2 * PICO_UNIQUE_BOARD_ID_SIZE_BYTES + 1];
     pico_get_unique_board_id_string(uid, sizeof uid);
     log_printf(".*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*");
     log_printf(".*.*.*  PHOTON  --  native firmware  *.*.*");
-    log_printf(".*.   https://github.com/w4iei/photon   .*");
+    log_printf(".*.   " PHOTON_PROJECT_URL "   .*");
     log_printf(".*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*");
-    log_printf("Creator: Noah Jaffe");
+    log_printf("Creator: " PHOTON_CREATOR " -- " PHOTON_CREATOR_URL);
+    log_printf("Source:  " PHOTON_PROJECT_URL);
     log_printf(" ");
+    log_printf("[BOOT] fw: " PHOTON_BUILD_ID " built " PHOTON_BUILD_DATE);
     log_printf("[BOOT] role: %s%s | banks=%d | bus addr=%u",
                C.is_bridge ? "bridge/MIDI host" : "sensor node",
                C.sensor_role ? "" : " (no sensor array)", banks_found,
@@ -396,7 +410,7 @@ static void cal_freeze(bool save) {
 }
 
 static void trace_begin_header(void) {
-    // Exact contract expected by host_code/listen_for_single_sensor_high_res.py
+    // Exact contract expected by tools/listen_for_single_sensor_high_res.py
     log_printf("BEGIN_TRACE sensor=%u midi=None note=None polarity=NOR thr_on=0 thr_off=0",
                C.trace_sensor);
     C.trace_started = true;
@@ -444,7 +458,7 @@ static void trace_stop(void) {
 }
 
 // Duration-bound local trace: the wire contract of the legacy trace mode
-// that software/host_code/listen_for_single_sensor_high_res.py triggers
+// that tools/listen_for_single_sensor_high_res.py triggers
 // with "capture <seconds>".
 static void capture_start(float seconds) {
     if (!C.sensor_role) {
@@ -493,7 +507,8 @@ static void handle_line(char *line) {
     } else if (strcmp(cmd, "id") == 0) {
         char serial[2 * PICO_UNIQUE_BOARD_ID_SIZE_BYTES + 1];
         pico_get_unique_board_id_string(serial, sizeof serial);
-        log_printf("PHOTON native fw | role=%s | addr=%u | banks=%s | cfg v%lu%s%s | hw %s",
+        log_printf("PHOTON native fw " PHOTON_BUILD_ID " (" PHOTON_BUILD_DATE
+                   ") | role=%s | addr=%u | banks=%s | cfg v%lu%s%s | hw %s",
                    C.is_bridge ? "bridge" : "sensor-node",
                    C.is_bridge ? 0 : g_config.node_id,
                    C.sensor_role ? "present" : "none",
