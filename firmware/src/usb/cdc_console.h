@@ -16,6 +16,9 @@ void console_task(void);
 // Full attach banner: identity, project link, config summary, command help.
 // Printed by main on every console (DTR) connect edge.
 void console_print_banner(int banks_found);
+// A 'master on' sensor board just claimed the bus: switch to bridge-form
+// command handling (poll table, remote targets, global masks).
+void console_set_bus_master(bool on);
 
 // Bridge-side: responses to console-issued bulk requests arrive here.
 void console_on_bridge_response(const photon_frame_t *f);

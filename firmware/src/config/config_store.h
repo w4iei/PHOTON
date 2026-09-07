@@ -52,6 +52,14 @@ typedef struct __attribute__((packed)) {
     // velocity the same way the bridge would.
     float vel_out_min;
     float vel_out_max;
+    // 'master on': this sensor board claims the bus-master role (poll cycle,
+    // USB-MIDI, console — exactly what the main controller board does) as
+    // soon as a USB host has enumerated it and the wire has been silent for
+    // PHOTON_MASTER_QUIET_MS, while still scanning its own keys. Set on every
+    // board of an instrument built without a main controller board: whichever
+    // carries the USB cable runs the bus. 0 (and every config saved before
+    // the field existed) = plain node.
+    uint8_t bus_master;
     uint32_t crc;             // CRC32 over all preceding bytes
 } photon_config_t;
 

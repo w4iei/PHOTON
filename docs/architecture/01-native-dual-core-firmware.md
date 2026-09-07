@@ -45,9 +45,14 @@ pinned to 150 MHz for stable UART/SPI dividers.
   the 8 bank CS lines. ≥1 bank answers → **sensor role** (core 1 launched). 0 banks → **bridge
   role** (core 1 never launched). The current main controller board therefore runs the same image
   and becomes the bus master/bridge — it is, functionally, the "endpoint node" of the next
-  hardware revision one board-rev early.
-- **Bus-master role is probe-derived and permanent for the session** (the board with no sensors
-  masters the shared bus whether or not USB is attached, keeping the bus alive). USB attachment
+  hardware revision one board-rev early. A sensor board with `master on` saved claims the same
+  role at runtime, once a USB host has enumerated it and the wire has stayed silent (nodes
+  never transmit unsolicited, so silence means no master): it re-addresses itself to 0, polls
+  the others, and its own scanner feeds the MIDI mapper directly under its node id. For
+  instruments built from sensor boards alone, the role thus follows the USB cable.
+- **Bus-master role is probe-derived (or claimed by `master on`) and permanent for the
+  session** (the master board runs the shared bus whether or not USB is attached, keeping
+  the bus alive). USB attachment
   gates only the host-facing surfaces: MIDI emission checks `tud_midi_mounted()` and the console
   streams only while a CDC terminal is connected — so a charger enables nothing.
 - **Identity**: each sensor node stores a `node_id` (1–6) in its flash config block, set once via

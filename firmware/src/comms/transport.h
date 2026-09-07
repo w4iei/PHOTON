@@ -25,6 +25,11 @@ typedef struct {
 void transport_init(bool use_host_pinout, bool terminate, uint8_t own_addr,
                     transport_rx_cb_t on_rx);
 
+// Change the protocol address at runtime (a 'master on' sensor board that
+// claims the bus moves from its node id to 0). Frames already queued keep
+// the address they were stamped with.
+void transport_set_own_addr(uint8_t own_addr);
+
 // Queue a frame. prio=true uses the event-priority queue (poll replies,
 // polls); false is bulk (data/trace/cal). Returns false if the queue is full.
 bool transport_send(const photon_frame_t *f, bool prio);

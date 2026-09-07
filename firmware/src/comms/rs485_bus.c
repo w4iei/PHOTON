@@ -147,6 +147,8 @@ void transport_init(bool use_host_pinout, bool terminate, uint8_t own_addr,
     bus.tx_dma = dma_claim_unused_channel(true);
 }
 
+void transport_set_own_addr(uint8_t own_addr) { bus.own_addr = own_addr; }
+
 bool transport_send(const photon_frame_t *f, bool prio) {
     photon_frame_t frame = *f;
     frame.src = bus.own_addr;

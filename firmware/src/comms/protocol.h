@@ -1,6 +1,7 @@
 // Protocol logic for both roles over the transport seam.
 //
-// Bridge role: sole bus master. Continuous EVT_POLL cycle over alive nodes
+// Bridge role (the main controller board, or a sensor board with 'master
+// on'): sole bus master. Continuous EVT_POLL cycle over alive nodes
 // (events arrive as EVT_BATCH replies), one interleaved bulk
 // request/response slot between cycles, PING discovery for silent ids.
 //
@@ -65,6 +66,15 @@ void protocol_set_event_sink(protocol_event_sink_t sink);
 // Node role: true while a USB MIDI host is mounted — this board's events
 // then go to the local sink instead of waiting for bus polls.
 void protocol_set_local_delivery(bool enabled);
+// Bridge role on a sensor board ('master on'): the board's own scanner feeds
+// the sink under this node id — the slot a bridge would give it — and
+// discovery never pings the id. Call after protocol_init(). 0 = no scanner.
+void protocol_set_self_node_id(uint8_t node_id);
+// Bridge role: frames received from bus address 0. A master never hears its
+// own transmissions (receiver off while driving), so any count means a
+// second master shares the wire — a 'master on' board next to a main
+// controller board — and the two poll cycles collide.
+uint32_t protocol_foreign_master_frames(void);
 void protocol_set_response_sink(protocol_response_sink_t sink);
 void protocol_set_node_down_cb(protocol_node_down_cb_t cb);
 

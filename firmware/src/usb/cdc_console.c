@@ -61,6 +61,26 @@ void console_init(bool is_bridge, bool sensor_role) {
     C.sd_last_state = 0xFF;
 }
 
+void console_set_bus_master(bool on) { C.is_bridge = on; }
+
+// The microSD socket exists on the main controller board only.
+static bool has_recorder(void) { return C.is_bridge && !C.sensor_role; }
+
+// 'master on': a sensor board running the bus. Its own scanner is not on the
+// bus, so bridge-form commands treat its node id as "local", and the
+// bus-wide form (no id) reaches the local scanner as well as every node.
+static bool master_node(void) { return C.is_bridge && C.sensor_role; }
+static bool target_is_local(const char *arg) {
+    return C.sensor_role && (arg == NULL || atoi(arg) == g_config.node_id);
+}
+// Bus-wide commands: does the request go on the wire / to the local scanner?
+static bool bus_form(const char *arg) {
+    return C.is_bridge && !(arg != NULL && target_is_local(arg));
+}
+static bool local_form(const char *arg) {
+    return C.sensor_role && (!C.is_bridge || target_is_local(arg));
+}
+
 // ---------------------------------------------------------------------------
 // microSD recorder (bridge): status line, state-change notes, bench injector
 // ---------------------------------------------------------------------------
@@ -91,7 +111,7 @@ static void print_sd_status(void) {
 // One line per state change, so a terminal left open narrates the card:
 // mounted / recording NNNN/MMMM.MID / closed / no card / stopped.
 static void sd_report_changes(void) {
-    if (!C.is_bridge) {
+    if (!has_recorder()) {
         return;
     }
     uint8_t st = g_recorder.state;
@@ -218,11 +238,13 @@ static void print_help(void) {
     log_printf("  rate <hz>|max [id]   paced sweep rate (saved; bridge: remote)");
     log_printf("  settle <us> [id]     emitter settle for A/B (5-500; NOT saved)");
     log_printf("  localmidi on|off node plays its own USB-MIDI (default off; saved)");
+    log_printf("  master on|off    claim the bus when this board has the USB host"
+               " (no main board; saved)");
     log_printf("  velrange <min> <max> MIDI velocity output range (1-127; saved,"
                " broadcast)");
     log_printf("  velcurve <min_ms> <max_ms> <gamma>  dt window (log) and skew"
                " (saved, broadcast)");
-    log_printf("  disable|enable [idx]  mask a sensor (node: local idx; bridge: global idx);"
+    log_printf("  disable|enable [idx]  mask a sensor (node: local idx; bridge/master: global idx);"
                " no idx: list");
     log_printf("  setid <n> | setid <node> <newid>   bus id, local or remote");
     log_printf("  chmap [m] [ch|auto]  per-manual MIDI channel map (bridge; manual 1-%d,"
@@ -255,10 +277,12 @@ void console_print_banner(int banks_found) {
     log_printf("Source:  " PHOTON_PROJECT_URL);
     log_printf(" ");
     log_printf("[BOOT] fw: " PHOTON_BUILD_ID " built " PHOTON_BUILD_DATE);
-    log_printf("[BOOT] role: %s%s | banks=%d | bus addr=%u",
-               C.is_bridge ? "bridge/MIDI host" : "sensor node",
-               C.sensor_role ? "" : " (no sensor array)", banks_found,
-               C.is_bridge ? 0 : g_config.node_id);
+    log_printf("[BOOT] role: %s | banks=%d | bus addr=%u | node id %u%s",
+               master_node()  ? "bus master + sensor node ('master on')"
+               : C.is_bridge  ? "bridge/MIDI host (no sensor array)"
+                              : "sensor node",
+               banks_found, C.is_bridge ? 0 : g_config.node_id, g_config.node_id,
+               C.sensor_role ? "" : " (unused)");
     log_printf("[BOOT] hw id: %s | cfg v%lu%s", uid,
                (unsigned long)g_config.version,
                g_config_from_flash ? "" : " (defaults, uncalibrated)");
@@ -273,7 +297,7 @@ void console_print_banner(int banks_found) {
                g_config.scan_rate_hz ? g_config.scan_rate_hz
                                      : PHOTON_DEFAULT_SCAN_RATE_HZ,
                (unsigned)g_config.vel_out_min, (unsigned)g_config.vel_out_max);
-    if (C.is_bridge) {
+    if (has_recorder()) {
         print_sd_status();
     }
     log_printf(" ");
@@ -293,7 +317,7 @@ static void print_local_stats(void) {
     const transport_stats_t *ts = transport_stats();
     const frame_parse_stats_t *ps = transport_parse_stats();
     log_printf("[STAT] role=%s addr=%u cfg_v%lu%s",
-               C.is_bridge ? "bridge" : "node",
+               master_node() ? "master+node" : C.is_bridge ? "bridge" : "node",
                C.is_bridge ? 0 : g_config.node_id,
                (unsigned long)g_config.version,
                g_config_from_flash ? "" : " (defaults, uncalibrated)");
@@ -316,10 +340,11 @@ static void print_local_stats(void) {
                (unsigned long)g_cmd_mailbox.drops,
                (unsigned long)log_dropped_bytes);
     if (C.is_bridge) {
-        log_printf("[STAT] poll_cycles=%lu midi_on=%lu midi_off=%lu",
+        log_printf("[STAT] poll_cycles=%lu midi_on=%lu midi_off=%lu other_master_frames=%lu",
                    (unsigned long)protocol_poll_cycles(),
                    (unsigned long)midi_map_notes_on_sent(),
-                   (unsigned long)midi_map_notes_off_sent());
+                   (unsigned long)midi_map_notes_off_sent(),
+                   (unsigned long)protocol_foreign_master_frames());
     } else {
         // Sensor node: MIDI counters advance in standalone-over-USB mode.
         log_printf("[STAT] midi_on=%lu midi_off=%lu (standalone when unpolled)",
@@ -330,6 +355,10 @@ static void print_local_stats(void) {
 
 static void print_nodes(void) {
     const photon_node_slot_t *t = protocol_node_table();
+    if (master_node()) {
+        log_printf("node %u: this board (own scanner; not on the bus, never polled)",
+                   g_config.node_id);
+    }
     for (int id = 1; id <= PHOTON_MAX_NODE_ID; id++) {
         const photon_node_slot_t *s = &t[id];
         if (!s->alive && s->polls == 0) {
@@ -386,6 +415,9 @@ static void print_table(void) {
         log_printf("%3d | %5u | %5u | %5u | %5u | %4u | %d", i, snap.value[i],
                    mn == 0xFFFF ? 0 : mn, mx, rng, isqrt32(snap.var[i]),
                    g_events.note_on[i] ? 1 : 0);
+    }
+    if (C.is_bridge) {
+        print_nodes();
     }
 }
 
@@ -508,9 +540,9 @@ static void handle_line(char *line) {
         char serial[2 * PICO_UNIQUE_BOARD_ID_SIZE_BYTES + 1];
         pico_get_unique_board_id_string(serial, sizeof serial);
         log_printf("PHOTON native fw " PHOTON_BUILD_ID " (" PHOTON_BUILD_DATE
-                   ") | role=%s | addr=%u | banks=%s | cfg v%lu%s%s | hw %s",
-                   C.is_bridge ? "bridge" : "sensor-node",
-                   C.is_bridge ? 0 : g_config.node_id,
+                   ") | role=%s | addr=%u | node id %u | banks=%s | cfg v%lu%s%s | hw %s",
+                   master_node() ? "master+node" : C.is_bridge ? "bridge" : "sensor-node",
+                   C.is_bridge ? 0 : g_config.node_id, g_config.node_id,
                    C.sensor_role ? "present" : "none",
                    (unsigned long)g_config.version,
                    g_config_from_flash ? "" : " (defaults, uncalibrated)",
@@ -523,22 +555,22 @@ static void handle_line(char *line) {
     } else if (strcmp(cmd, "nodes") == 0) {
         print_nodes();
     } else if (strcmp(cmd, "data") == 0) {
-        if (C.sensor_role) {
+        if (C.is_bridge && !target_is_local(a1)) {
+            protocol_bridge_request(PHOTON_FT_DATA_REQ, a1 ? (uint8_t)atoi(a1) : 1, NULL, 0);
+        } else if (C.sensor_role) {
             photon_snapshot_t snap;
             snapshot_read(&snap);
             print_values_row("[DATA]", snap.value, PHOTON_ACTIVE_SENSORS);
-        } else if (C.is_bridge) {
-            protocol_bridge_request(PHOTON_FT_DATA_REQ, a1 ? (uint8_t)atoi(a1) : 1, NULL, 0);
         }
     } else if (strcmp(cmd, "minmax") == 0) {
-        if (C.sensor_role) {
+        if (C.is_bridge && !target_is_local(a1)) {
+            uint8_t p[2] = { 0, PHOTON_ACTIVE_SENSORS };
+            protocol_bridge_request(PHOTON_FT_MINMAX_REQ, a1 ? (uint8_t)atoi(a1) : 1, p, 2);
+        } else if (C.sensor_role) {
             photon_snapshot_t snap;
             snapshot_read(&snap);
             print_values_row("[MIN] ", snap.min, PHOTON_ACTIVE_SENSORS);
             print_values_row("[MAX] ", snap.max, PHOTON_ACTIVE_SENSORS);
-        } else if (C.is_bridge) {
-            uint8_t p[2] = { 0, PHOTON_ACTIVE_SENSORS };
-            protocol_bridge_request(PHOTON_FT_MINMAX_REQ, a1 ? (uint8_t)atoi(a1) : 1, p, 2);
         }
     } else if (strcmp(cmd, "ping") == 0 && a1 != NULL) {
         if (C.is_bridge) {
@@ -554,7 +586,7 @@ static void handle_line(char *line) {
             C.trace_sensor = (uint8_t)atoi(a1);
             C.trace_active = true;
             C.trace_started = false;
-            if (C.is_bridge && !C.sensor_role) {
+            if (C.is_bridge && !target_is_local(a2)) {
                 C.trace_remote = true;
                 C.trace_node = a2 ? (uint8_t)atoi(a2) : 1;
                 uint8_t p[2] = { C.trace_sensor, 1 };
@@ -574,28 +606,32 @@ static void handle_line(char *line) {
         uint16_t rate = strcmp(a1, "stop") == 0 ? 0 : (uint16_t)atoi(a1);
         if (rate > 5000) {
             log_note("test: max 5000 ev/s");
-        } else if (C.is_bridge) {
-            uint8_t p[3];
-            memcpy(p, &rate, 2);
-            p[2] = 1;  // kind: continuous rate
-            uint8_t dst = a2 ? (uint8_t)atoi(a2) : PHOTON_ADDR_BROADCAST;
-            protocol_bridge_request(PHOTON_FT_TEST_BURST, dst, p, 3);
-            log_info("test load %u ev/s -> %u (watch 'nodes': gaps/malformed must stay 0)",
-                     rate, dst);
-        } else if (C.sensor_role) {
-            photon_cmd_t cmdm = { .op = PHOTON_CMD_TEST_RATE, .a = rate };
-            push_core1_cmd(&cmdm);
-            log_info("local test load %u ev/s", rate);
+        } else {
+            if (bus_form(a2)) {
+                uint8_t p[3];
+                memcpy(p, &rate, 2);
+                p[2] = 1;  // kind: continuous rate
+                uint8_t dst = a2 ? (uint8_t)atoi(a2) : PHOTON_ADDR_BROADCAST;
+                protocol_bridge_request(PHOTON_FT_TEST_BURST, dst, p, 3);
+                log_info("test load %u ev/s -> %u (watch 'nodes': gaps/malformed must stay 0)",
+                         rate, dst);
+            }
+            if (local_form(a2)) {
+                photon_cmd_t cmdm = { .op = PHOTON_CMD_TEST_RATE, .a = rate };
+                push_core1_cmd(&cmdm);
+                log_info("local test load %u ev/s", rate);
+            }
         }
     } else if (strcmp(cmd, "burst") == 0 && a1 != NULL) {
         uint16_t n = (uint16_t)atoi(a1);
-        if (C.is_bridge) {
+        if (bus_form(a2)) {
             uint8_t p[2];
             memcpy(p, &n, 2);
             uint8_t dst = a2 ? (uint8_t)atoi(a2) : PHOTON_ADDR_BROADCAST;
             protocol_bridge_request(PHOTON_FT_TEST_BURST, dst, p, 2);
             log_info("burst %u -> %u queued", n, dst);
-        } else if (C.sensor_role) {
+        }
+        if (local_form(a2)) {
             photon_cmd_t cmdm = { .op = PHOTON_CMD_TEST_BURST, .a = n };
             push_core1_cmd(&cmdm);
         }
@@ -603,7 +639,7 @@ static void handle_line(char *line) {
         if (strcmp(a1, "start") == 0 && C.sensor_role) {
             cal_enter();
         } else if (strcmp(a1, "save") == 0) {
-            if (C.is_bridge) {
+            if (bus_form(a2)) {
                 // Optional node id: commit one board instead of the whole
                 // bus, so a single miscalibrated board can be redone without
                 // disturbing calibrations that are already good.
@@ -624,17 +660,19 @@ static void handle_line(char *line) {
                 }
                 log_info("CAL_COMMIT queued to %d node(s)%s", queued,
                          dropped ? " — QUEUE FULL, retry cal save" : "");
-            } else {
+            }
+            if (local_form(a2)) {
                 cal_freeze(true);
             }
         } else if (strcmp(a1, "reset") == 0) {
-            if (C.is_bridge) {
+            if (bus_form(a2)) {
                 uint8_t p[5] = { PHOTON_CAL_IDX_ALL, 0, 0, 0, 0 };
                 uint8_t dst = a2 ? (uint8_t)atoi(a2) : PHOTON_ADDR_BROADCAST;
                 protocol_bridge_request(PHOTON_FT_CAL_SET, dst, p, 5);
                 log_info("calibration reset -> %s (learning ON there)",
                          a2 ? a2 : "ALL nodes");
-            } else if (C.sensor_role) {
+            }
+            if (local_form(a2)) {
                 photon_cmd_t cmdm = { .op = PHOTON_CMD_RESET_CAL };
                 push_core1_cmd(&cmdm);
                 log_info("calibration reset");
@@ -652,15 +690,17 @@ static void handle_line(char *line) {
                     off += snprintf(buf + off, sizeof buf - (size_t)off, " %lu", (unsigned long)g);
                 }
             }
-        } else {
+            log_printf("%s%s", buf, g_config_from_flash ? "" : " (defaults)");
+        }
+        if (C.sensor_role) {
             off = snprintf(buf, sizeof buf, "local disabled:");
             for (int i = 0; i < PHOTON_MAX_SENSORS && off < (int)sizeof buf - 6; i++) {
                 if ((g_config.local_disabled_mask >> i) & 1u) {
                     off += snprintf(buf + off, sizeof buf - (size_t)off, " %d", i);
                 }
             }
+            log_printf("%s%s", buf, g_config_from_flash ? "" : " (defaults)");
         }
-        log_printf("%s%s", buf, g_config_from_flash ? "" : " (defaults)");
     } else if ((strcmp(cmd, "disable") == 0 || strcmp(cmd, "enable") == 0) && a1 != NULL) {
         int idx = atoi(a1);
         if (C.is_bridge) {
@@ -701,19 +741,20 @@ static void handle_line(char *line) {
         }
         if (hz == 0) {
             log_note("rate: 50-2000 or 'max'");
-        } else if (C.is_bridge) {
-            uint8_t dst = a2 ? (uint8_t)atoi(a2) : PHOTON_ADDR_BROADCAST;
-            send_nodectl(3, (uint16_t)hz, dst);
-            log_info("scan rate %s -> node %u (persisted there; brief drop-out"
-                     " while it writes flash)", a1, dst);
-        } else if (!C.sensor_role) {
-            log_note("rate: no scanner on this board");
         } else {
-            photon_cmd_t cmdm = { .op = PHOTON_CMD_SCAN_RATE, .a = hz };
-            push_core1_cmd(&cmdm);
-            g_config.scan_rate_hz = (uint16_t)hz;
-            config_store_save();
-            log_info("scan rate -> %s (saved)", hz == 0xFFFF ? "max" : a1);
+            if (bus_form(a2)) {
+                uint8_t dst = a2 ? (uint8_t)atoi(a2) : PHOTON_ADDR_BROADCAST;
+                send_nodectl(3, (uint16_t)hz, dst);
+                log_info("scan rate %s -> node %u (persisted there; brief drop-out"
+                         " while it writes flash)", a1, dst);
+            }
+            if (local_form(a2)) {
+                photon_cmd_t cmdm = { .op = PHOTON_CMD_SCAN_RATE, .a = hz };
+                push_core1_cmd(&cmdm);
+                g_config.scan_rate_hz = (uint16_t)hz;
+                config_store_save();
+                log_info("scan rate -> %s (saved)", hz == 0xFFFF ? "max" : a1);
+            }
         }
     } else if (strcmp(cmd, "settle") == 0 && a1 != NULL) {
         // Bench A/B knob: emitter settle dominates emitter on-time and caps
@@ -722,15 +763,18 @@ static void handle_line(char *line) {
         int us = atoi(a1);
         if (us < 5 || us > 500) {
             log_note("settle: 5-500 us");
-        } else if (C.is_bridge) {
-            uint8_t dst = a2 ? (uint8_t)atoi(a2) : PHOTON_ADDR_BROADCAST;
-            send_nodectl(5, (uint16_t)us, dst);
-            log_info("settle %d us -> node %u (not persisted; reboot restores %d)",
-                     us, dst, PHOTON_SETTLE_US);
-        } else if (C.sensor_role) {
-            photon_cmd_t cmdm = { .op = PHOTON_CMD_SETTLE, .a = (uint32_t)us };
-            push_core1_cmd(&cmdm);
-            log_info("settle -> %d us (not persisted)", us);
+        } else {
+            if (bus_form(a2)) {
+                uint8_t dst = a2 ? (uint8_t)atoi(a2) : PHOTON_ADDR_BROADCAST;
+                send_nodectl(5, (uint16_t)us, dst);
+                log_info("settle %d us -> node %u (not persisted; reboot restores %d)",
+                         us, dst, PHOTON_SETTLE_US);
+            }
+            if (local_form(a2)) {
+                photon_cmd_t cmdm = { .op = PHOTON_CMD_SETTLE, .a = (uint32_t)us };
+                push_core1_cmd(&cmdm);
+                log_info("settle -> %d us (not persisted)", us);
+            }
         }
     } else if (strcmp(cmd, "localmidi") == 0 && a1 != NULL) {
         if (!C.sensor_role) {
@@ -738,10 +782,13 @@ static void handle_line(char *line) {
         } else {
             g_config.local_midi = strcmp(a1, "on") == 0 ? 1 : 0;
             config_store_save();
-            log_info("local USB-MIDI %s (saved) — events %s",
+            log_info("local USB-MIDI %s (saved) — events %s%s",
                      g_config.local_midi ? "on" : "off",
                      g_config.local_midi ? "play here when a host is attached"
-                                         : "always go to the bus/bridge");
+                                         : "always go to the bus/bridge",
+                     master_node() ? "; moot while 'master on' (a master always owns"
+                                     " its MIDI)"
+                                   : "");
         }
     } else if (strcmp(cmd, "velrange") == 0) {
         // A harpsichord's loudness is independent of touch, so the useful
@@ -808,19 +855,20 @@ static void handle_line(char *line) {
         log_info("event log + heartbeat %s", C.log_events ? "on" : "off");
     } else if (strcmp(cmd, "mode") == 0 && a1 != NULL) {
         uint8_t m = (uint8_t)atoi(a1);
-        if (C.is_bridge) {
-            if (m > PHOTON_SCAN_TWO_PHASE) {
-                log_note("mode: 0=seq 1=parallel 2=two-phase");
-            } else {
+        if (m > PHOTON_SCAN_TWO_PHASE) {
+            log_note("mode: 0=seq 1=parallel 2=two-phase");
+        } else {
+            if (bus_form(a2)) {
                 uint8_t dst = a2 ? (uint8_t)atoi(a2) : PHOTON_ADDR_BROADCAST;
                 send_nodectl(4, m, dst);
                 log_info("scan mode %u -> node %u (persisted there)", m, dst);
             }
-        } else if (C.sensor_role && m <= PHOTON_SCAN_TWO_PHASE) {
-            photon_cmd_t cmdm = { .op = PHOTON_CMD_SCAN_MODE, .arg8 = m };
-            push_core1_cmd(&cmdm);
-            g_config.scan_mode = m;
-            log_info("scan mode -> %u", m);
+            if (local_form(a2)) {
+                photon_cmd_t cmdm = { .op = PHOTON_CMD_SCAN_MODE, .arg8 = m };
+                push_core1_cmd(&cmdm);
+                g_config.scan_mode = m;
+                log_info("scan mode -> %u", m);
+            }
         }
     } else if (strcmp(cmd, "setid") == 0 && a1 != NULL) {
         int id = atoi(a1);
@@ -837,6 +885,32 @@ static void handle_line(char *line) {
             g_config.node_id = (uint8_t)id;
             config_store_save();
             log_info("node id -> %d (takes effect on reboot)", id);
+        }
+    } else if (strcmp(cmd, "master") == 0) {
+        // Instruments built without a main controller board: set on every
+        // sensor board; the one carrying the USB cable claims the bus-master
+        // role (poll cycle, USB-MIDI, console) once its host has enumerated
+        // it and the wire is silent — main.c does the claiming — and keeps
+        // scanning its own keys.
+        if (!C.sensor_role) {
+            log_note("master: the main controller board is always the bus master");
+        } else if (a1 == NULL) {
+            log_printf("bus master: %s (saved) — %s", g_config.bus_master ? "on" : "off",
+                       C.is_bridge ? "this board runs the bus"
+                       : g_config.bus_master
+                           ? "claims the bus once a USB host is attached and no master is heard"
+                           : "plain node");
+        } else {
+            g_config.bus_master = strcmp(a1, "on") == 0 ? 1 : 0;
+            config_store_save();
+            log_info("bus master %s (saved) — %s",
+                     g_config.bus_master ? "on" : "off",
+                     g_config.bus_master
+                         ? "this board runs the bus whenever it carries the USB host and"
+                           " hears no other master; set it on every board of a bridgeless"
+                           " instrument, never together with a main controller board"
+                         : C.is_bridge ? "this board steps down at the next power-up"
+                                       : "plain node");
         }
     } else if (strcmp(cmd, "chmap") == 0) {
         // Deployment shape (single vs double manual) is pure runtime config:
@@ -866,10 +940,10 @@ static void handle_line(char *line) {
                 log_note("chmap: manual 1-%d, channel 1-16 or auto", PHOTON_MAX_MANUALS);
             }
         }
-    } else if (strcmp(cmd, "reboot") == 0 && a1 != NULL && C.is_bridge) {
+    } else if (strcmp(cmd, "reboot") == 0 && a1 != NULL && bus_form(a1)) {
         send_nodectl(0, 0, (uint8_t)atoi(a1));
         log_info("reboot -> node %s", a1);
-    } else if (strcmp(cmd, "bootsel") == 0 && a1 != NULL && C.is_bridge) {
+    } else if (strcmp(cmd, "bootsel") == 0 && a1 != NULL && bus_form(a1)) {
         send_nodectl(1, 0, (uint8_t)atoi(a1));
         log_info("bootsel -> node %s (it will drop off the bus until reflashed)",
                  a1);
@@ -886,14 +960,14 @@ static void handle_line(char *line) {
         sleep_ms(50);
         reset_usb_boot(0, 0);
     } else if (strcmp(cmd, "sd") == 0) {
-        if (a1 != NULL && strcmp(a1, "test") == 0) {
-            if (C.is_bridge) {
+        if (!has_recorder()) {
+            log_note("sd: the microSD socket is on the main controller board only");
+        } else {
+            if (a1 != NULL && strcmp(a1, "test") == 0) {
                 sd_test_notes(a2 != NULL ? atoi(a2) : 8);
-            } else {
-                log_note("sd test: bridge only (the card lives on the main controller board)");
             }
+            print_sd_status();
         }
-        print_sd_status();
     } else if (strcmp(cmd, "flashtest") == 0) {
         uint32_t before_us = g_scan_ctl.sweep_us;
         uint32_t before_count = g_scan_ctl.sweep_count;
@@ -1059,13 +1133,22 @@ void console_task(void) {
         C.next_heartbeat_at = make_timeout_time_ms(5000);
         if (C.sensor_role) {
             uint32_t hz10 = g_scan_ctl.period_us ? 10000000u / g_scan_ctl.period_us : 0;
-            log_printf("[STAT] %lu.%lu Hz | evt on/off %lu/%lu | cal %s | midi %lu/%lu",
+            char nodes[24] = "";
+            if (C.is_bridge) {
+                const photon_node_slot_t *t = protocol_node_table();
+                int alive = 0;
+                for (int id = 1; id <= PHOTON_MAX_NODE_ID; id++) {
+                    alive += t[id].alive ? 1 : 0;
+                }
+                snprintf(nodes, sizeof nodes, " | nodes=%d", alive);
+            }
+            log_printf("[STAT] %lu.%lu Hz | evt on/off %lu/%lu | cal %s | midi %lu/%lu%s",
                        (unsigned long)(hz10 / 10), (unsigned long)(hz10 % 10),
                        (unsigned long)g_events.events_on,
                        (unsigned long)g_events.events_off,
                        g_events.learning ? "LEARNING" : "frozen",
                        (unsigned long)midi_map_notes_on_sent(),
-                       (unsigned long)midi_map_notes_off_sent());
+                       (unsigned long)midi_map_notes_off_sent(), nodes);
         } else {
             const photon_node_slot_t *t = protocol_node_table();
             int alive = 0;

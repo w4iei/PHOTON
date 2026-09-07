@@ -93,7 +93,10 @@ Feedback divider is 0.6 V x (1 + 450k/100k) = 3.3 V.
 
 Every board's USB-C VBUS sits on the same `+5V` net as its RS-485 connectors,
 so the whole chain shares one 5 V rail. Powering any single board over USB
-powers every board on the bus — which is what makes the bridgeless setup work.
+powers every board on the bus — which is what makes an instrument without a
+main controller board work (`master on` on every sensor board; the one with
+the USB cable runs the bus, see
+[firmware/README.md](../firmware/README.md#without-a-main-controller-board)).
 
 **Do not plug two boards into two different computers at once.** That ties both
 hosts' 5 V supplies together through the cable. One USB connection to the

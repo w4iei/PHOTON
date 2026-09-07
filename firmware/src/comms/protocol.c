@@ -34,6 +34,10 @@ static struct {
     // events go to the local sink; otherwise they wait for bus polls.
     // main.c refreshes this each loop from tud_midi_mounted().
     bool local_delivery;
+    // Bridge role on a sensor board ('master on'): own events go to the
+    // sink under this id, discovery skips it. 0 = no local scanner.
+    uint8_t self_node_id;
+    uint32_t foreign_master_frames;
 
     // Bridge role.
     photon_node_slot_t nodes[PHOTON_MAX_NODE_ID + 1];
@@ -75,6 +79,8 @@ void protocol_init(bool is_bridge, uint8_t own_addr) {
 
 void protocol_set_event_sink(protocol_event_sink_t sink) { P.sink = sink; }
 void protocol_set_local_delivery(bool enabled) { P.local_delivery = enabled; }
+void protocol_set_self_node_id(uint8_t node_id) { P.self_node_id = node_id; }
+uint32_t protocol_foreign_master_frames(void) { return P.foreign_master_frames; }
 void protocol_set_response_sink(protocol_response_sink_t sink) { P.resp_sink = sink; }
 void protocol_set_node_down_cb(protocol_node_down_cb_t cb) { P.node_down_cb = cb; }
 
@@ -595,7 +601,7 @@ static bool bridge_maybe_ping(void) {
     P.next_ping_at = make_timeout_time_us(PHOTON_PING_INTERVAL_MS * 1000);
     for (int k = 0; k < PHOTON_MAX_NODE_ID; k++) {
         uint8_t id = (uint8_t)(((P.next_ping_id - 1 + k) % PHOTON_MAX_NODE_ID) + 1);
-        if (!P.nodes[id].alive) {
+        if (!P.nodes[id].alive && id != P.self_node_id) {
             P.next_ping_id = (uint8_t)((id % PHOTON_MAX_NODE_ID) + 1);
             photon_frame_t f = { 0 };
             f.type = PHOTON_FT_PING;
@@ -714,7 +720,18 @@ void protocol_on_frame(const photon_frame_t *f) {
     }
 
     // Bridge side.
-    if (f->src > PHOTON_MAX_NODE_ID || f->src == 0) {
+    if (f->src == PHOTON_ADDR_BRIDGE) {
+        // Not an echo — the receiver is off while this board drives — so a
+        // frame from address 0 is a second master on the wire: a 'master
+        // on' sensor board sharing the bus with a main controller board.
+        if (P.foreign_master_frames++ == 0) {
+            log_note("another bus master heard on the wire (address 0): poll cycles "
+                     "collide — 'master off' on the sensor board, or remove the main "
+                     "controller board");
+        }
+        return;
+    }
+    if (f->src > PHOTON_MAX_NODE_ID) {
         return;
     }
     photon_node_slot_t *slot = &P.nodes[f->src];
@@ -762,6 +779,16 @@ void protocol_on_frame(const photon_frame_t *f) {
 void protocol_task(void) {
     if (P.is_bridge) {
         bridge_task();
+        // 'master on' sensor board: its own scanner is not on the bus, so
+        // its events go straight to the sink, under its node id, and the
+        // note map places them exactly where a bridge would.
+        if (P.self_node_id != 0 && P.sink != NULL) {
+            photon_event_t ev;
+            while (event_ring_peek(&ev, 1) == 1) {
+                P.sink(P.self_node_id, &ev);
+                event_ring_release(1);
+            }
+        }
         return;
     }
     // Deferred NODECTL self-reset: fires only after the ack has had time to

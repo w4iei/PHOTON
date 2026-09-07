@@ -5,6 +5,9 @@ board: at boot the firmware probes the
 TLA2518 banks; a board with sensors becomes a **sensor node** (core 1 runs the
 SRAM-resident scan/event loop), a board without (the main controller board)
 becomes the **bus master/bridge** (RS-485 poll cycle + USB-MIDI + console).
+An instrument can also be built from sensor boards alone: with `master on`
+(saved) on each board, whichever carries the USB cable runs the bus as well,
+see [Without a main controller board](#without-a-main-controller-board).
 
 Design details: [docs/architecture/01-native-dual-core-firmware.md](../docs/architecture/01-native-dual-core-firmware.md).
 
@@ -111,21 +114,56 @@ in flash. On the bridge, `chmap <manual> <channel>` maps each manual (board
 pair) to its MIDI channel and `disable <global idx>` masks unpopulated slots
 on remote boards.
 
+## Without a main controller board
+
+Two sensor boards make a whole single-manual instrument on their own. Cable
+them together on RS-485 (termination switches on at both ends), give them
+ids 1 and 2, and on each board's console once:
+
+```
+master on      # saved
+```
+
+From then on whichever board carries the USB cable runs the bus: about a
+second after the host has enumerated it, having heard nothing on the wire,
+it starts polling the other board and owns USB-MIDI and the console exactly
+as the main controller board would (`id` says `role=master+node`). Its own
+keys stay in the note map under its node id, so node 1 is always the low
+half of the manual and node 2 the high half, whichever of them has the
+cable. The chain is powered through that cable, so moving it power-cycles
+both boards and the roles follow it. A `master on` board that does hear a
+master (the other board already running the bus, or a main controller board)
+stays a plain node. Every bridge-form command works from the master. `data`, `minmax` and `trace` read
+the local scanner when the id is omitted or is the board's own, and a remote
+node otherwise; the bus-wide forms of `cal`, `mode`, `rate`, `settle`,
+`burst` and `test` (no id) reach every node and the local scanner alike;
+`disable`/`enable` take global sensor indexes, as on the bridge. `nodes`
+lists the board itself first. A sensor board has no microSD socket, so
+nothing is recorded in this configuration.
+
+Never put `master on` boards on the same bus as a main controller board: a
+board with a USB host would claim the bus while the main board is still
+booting, and two masters collide. A master that hears frames from bus
+address 0 logs a warning once and counts them in `stats`
+(`other_master_frames`). `master off` returns a board to a plain node at
+the next power-up.
+
 ## Console
 
 Any node's USB-C gives a console (`screen /dev/tty.usbmodem* 115200`).
 `help` lists commands: `stats`, `nodes`, `data`, `minmax`, `ping`, `trace`,
 `capture`, `burst`, `test` (pseudorandom load), `cal save|reset`, `r`/`s`/`x`
-(calibration), `mode`, `rate`, `localmidi`, `chmap`, `disable`/`enable`,
-`velrange`, `velcurve`, `setid`, `log on|off`, `flashtest`, `sd`, `reboot`,
-`bootsel`, `id`.
+(calibration), `mode`, `rate`, `localmidi`, `master`, `chmap`,
+`disable`/`enable`, `velrange`, `velcurve`, `setid`, `log on|off`,
+`flashtest`, `sd`, `reboot`, `bootsel`, `id`.
 The banner and `id` name the build: git short hash (`-dirty` when `firmware/`
 had uncommitted changes) and build time, from a `build_id.h` that CMake
 regenerates on every build. `picotool info -a build/photon.uf2`, or a board
 sitting in BOOTSEL, shows the same as *version* / *build date*, next to the
 repository and klavecimbel.com.
 USB-MIDI appears as "PHOTON Node" and emits notes when connected to the
-bridge (main controller) board.
+board that runs the bus (the main controller board, or a `master on` sensor
+board).
 
 ## microSD recorder (bridge)
 

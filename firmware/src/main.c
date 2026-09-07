@@ -4,6 +4,10 @@
 // runs the SRAM-resident scan/event loop, core 0 answers the bus. Zero
 // banks => this is the main controller (or future endpoint) board: core 0
 // becomes the bus master/bridge (poll cycle + USB-MIDI), core 1 stays off.
+// A sensor board with 'master on' saved takes the bus-master role as well
+// (instruments built without a main controller board) once a USB host has
+// enumerated it and the wire has stayed silent: core 0 then polls the other
+// boards and owns USB-MIDI while core 1 keeps scanning its own keys.
 //
 // The whole binary runs copy-to-RAM (see CMakeLists), so no code fetch ever
 // touches flash/XIP at runtime — the scan loop cannot be stalled by core-0
@@ -27,6 +31,22 @@
 #include "usb/cdc_console.h"
 #include "util/log.h"
 
+// 'master on' sensor board claiming the bus at runtime: same wiring as the
+// main controller board's boot path, minus the pinout/termination/recorder
+// (board identity does not change), plus its own scanner in the note map.
+static void become_bus_master(void) {
+    transport_set_own_addr(PHOTON_ADDR_BRIDGE);
+    protocol_init(true, PHOTON_ADDR_BRIDGE);
+    protocol_set_self_node_id(g_config.node_id);
+    protocol_set_event_sink(midi_map_handle_event);
+    protocol_set_node_down_cb(midi_map_release_node);
+    protocol_set_response_sink(console_on_bridge_response);
+    midi_map_init();
+    console_set_bus_master(true);
+    log_note("USB host attached and no bus master heard: this board now runs the bus "
+             "(node id %u keeps its place in the note map)", g_config.node_id);
+}
+
 int main(void) {
     // Deterministic peripheral clock: UART/SPI dividers derive from 150 MHz.
     clock_configure(clk_peri, 0, CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLK_SYS,
@@ -44,12 +64,16 @@ int main(void) {
         banks_found = tla2518_init_and_probe();
     }
     bool sensor_role = banks_found > 0;
-    // Today board identity follows capability: no banks => main controller
-    // board pinout, bus-master role, terminated endpoint.
-    bool is_bridge = !sensor_role;
+    // Board identity follows capability: no banks => main controller board
+    // pinout, terminated endpoint, microSD socket, bus master from boot. A
+    // sensor board with 'master on' boots as a node and claims the master
+    // role from the main loop once a USB host has enumerated it and the
+    // wire has been silent (become_bus_master).
+    bool main_board = !sensor_role;
+    bool is_bridge = main_board;
     uint8_t own_addr = is_bridge ? PHOTON_ADDR_BRIDGE : g_config.node_id;
 
-    transport_init(/*use_host_pinout=*/is_bridge, /*terminate=*/is_bridge,
+    transport_init(/*use_host_pinout=*/main_board, /*terminate=*/main_board,
                    own_addr, protocol_on_frame);
     protocol_init(is_bridge, own_addr);
     midi_map_init();
@@ -102,14 +126,36 @@ int main(void) {
 
     bool announced = false;
     bool zero_fault_handled = false;
+    uint32_t quiet_rx = 0;
+    absolute_time_t quiet_since = get_absolute_time();
     for (;;) {
         tud_task();
-        if (sensor_role) {
+        if (sensor_role && !is_bridge) {
+            // A host is truly present only when mounted and not suspended
+            // (a pulled cable is a *suspend*, not an unmount — mounted state
+            // survives cable removal).
+            bool host = tud_midi_mounted() && !tud_suspended();
             // Local USB-MIDI only when the config flag allows it AND a host
-            // is truly present (a pulled cable is a *suspend*, not an
-            // unmount — mounted state survives cable removal).
-            protocol_set_local_delivery(g_config.local_midi != 0 &&
-                                        tud_midi_mounted() && !tud_suspended());
+            // is present. A master owns its MIDI unconditionally instead.
+            protocol_set_local_delivery(g_config.local_midi != 0 && host);
+            // 'master on': claim the bus once this board has the host and
+            // the wire has been silent for PHOTON_MASTER_QUIET_MS. Nodes
+            // never transmit unsolicited, so any received frame means a
+            // master is already running and this board stays a node — the
+            // board without the USB cable in a bridgeless pair, or any
+            // board next to a main controller board.
+            if (g_config.bus_master != 0) {
+                uint32_t rx = transport_stats()->rx_frames;
+                absolute_time_t now = get_absolute_time();
+                if (!host || rx != quiet_rx) {
+                    quiet_rx = rx;
+                    quiet_since = now;
+                } else if (absolute_time_diff_us(quiet_since, now) >=
+                           (int64_t)PHOTON_MASTER_QUIET_MS * 1000) {
+                    become_bus_master();
+                    is_bridge = true;
+                }
+            }
         }
         transport_task();
         protocol_task();
