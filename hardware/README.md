@@ -55,9 +55,13 @@ bench work. Use this only if the application wants a local display.
 
 **Neither bridge board is required.** A sensor node has its own USB-C
 receptacle, so running a USB-C cable from one sensor board straight to the
-host is a complete system. The bridge exists for installations that want the
-host connection somewhere other than at a sensor board, or that want a
-touchscreen.
+host is a complete system. Several sensor boards work the same way once each
+has `master on` saved: the board carrying the USB cable runs the bus for the
+others (see
+[firmware/README.md](../firmware/README.md#without-a-main-controller-board)).
+The bridge exists for installations that want the host connection somewhere
+other than at a sensor board, or that want a touchscreen and the microSD
+recorder.
 
 In practice a bridge is often the easier build. Once the sensor boards are
 mounted under the keys or jacks, their USB-C receptacles tend to end up

@@ -30,7 +30,7 @@ PHOTON is a modular, open-source optical sensing platform for high-resolution ke
 CircuitPython support is gone: it capped the system at a ~250 Hz single-core scan loop and could not prevent bus collisions, so it was retired for performance. The native Pico-SDK firmware ships as **one UF2 for every board** — each board probes its own hardware at boot and becomes a sensor node or the main bridge automatically:
 - **Core 1** owns the sensor array: pipelined TLA2518 scanning, running entirely from SRAM so flash and USB activity can never stall a sweep.
 - **Core 0** owns everything else: USB (CDC console + USB-MIDI), the RS-485 protocol, calibration and configuration storage.
-- **RS-485:** the main board is the sole bus master and polls each sensor board in turn; nodes never transmit unsolicited, and every event batch is acknowledged before a node releases it — collision-free and lossless by design.
+- **RS-485:** one board is the sole bus master — the main board, or with `master on` the sensor board that carries the USB cable — and polls each sensor board in turn; nodes never transmit unsolicited, and every event batch is acknowledged before a node releases it — collision-free and lossless by design.
 - **Scanning:** free-runs open-loop at ~1.3 kHz; throttled to a paced 600 Hz (two-phase mode) for production use.
 - **microSD recorder:** a card in the bridge records every performance automatically as Standard MIDI Files, numbered per power-on and per playing episode, with no host, no setup and no clock required.
 
@@ -49,6 +49,7 @@ See `hardware/README.md` for board-specific notes and layout sources.
 - PHOTON module(s)
 - USB-C cable
 - JST-SH 4-pin cables (1.0 mm pitch, "reverse double head" type as used by Qwiic; see `hardware/README.md`)
+- Mounting screws: **M2.3 x 5 mm pan head**, through the boards' 2.7 mm (M2.5) holes; at least three per board over 250 mm long, one at each end and one near the middle (see [hardware/README.md](hardware/README.md#design-recommendations))
 
 **Software**
 - PHOTON firmware UF2 (build from `firmware/`, see `firmware/README.md`)
@@ -57,7 +58,7 @@ See `hardware/README.md` for board-specific notes and layout sources.
 
 ## Build & Flash
 1. Hold **USB-BOOT** (or short the USB-BOOT jumper) and connect via USB-C; copy `photon.uf2` to the mounted `RP2350` drive. The same image runs every board.
-2. On each sensor board, set its bus id once via the USB console (`setid N`).
+2. On each sensor board, set its bus id once via the USB console (`setid N`); in an instrument without a main board, also `master on` on each (see `firmware/README.md`).
 3. Calibrate. Two ways:
    - **One board, on its own USB console:** `r` clears that board's table and starts learning; play every key it covers once, one at a time, with a normal full stroke; `s` freezes the table and saves it (`x` aborts without saving).
    - **The whole instrument, from the bridge console:** `cal reset` clears every sensor board and starts learning on all of them; play every key on every manual; `cal save` then stores each board's table in its own flash. To redo a single board without disturbing the others, give its bus id: `cal reset <id>`, play that board's keys, `cal save <id>`.
