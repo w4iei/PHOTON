@@ -147,6 +147,14 @@ polarity support. Deployed constants carry over: `strike_pct 60`, `release_pct 4
 `velocity_window_pct 20`, `strike_window_pct 30`, `min_event_range 170`
 (×8 at OSR 3 → 1360), `settle_us 60`, `osr_mode 3`.
 
+**Per-key strike threshold (2026-09-23):** `strike_pct` is per key when knee calibration found
+the key's pluck (`g_events.strike_pct[i]`, 0 = the global 60 %); the velocity window slides
+with it (arm at `strike − 30`), release keeps the global ladder. While learning, core 1 also
+records every key's swing into its own buffer (`core1/calcap.c`); core 0 finds the knee in each
+finished swing (`cal/knee.c`, `cal/cal_session.c`) and on save hands the table to core 1 through
+a staged copy (`g_strike_stage` + `PHOTON_CMD_SET_STRIKES`). See firmware/README.md
+"Calibration".
+
 **Timebase upgrade:** `supervisor_ticks_ms32()` (1 ms) → `time_us_64()` (1 µs). `dt` widens to
 u32 µs in the event record; clamping moves to the mapping stage.
 

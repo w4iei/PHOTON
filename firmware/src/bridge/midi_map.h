@@ -9,6 +9,7 @@
 #ifndef PHOTON_MIDI_MAP_H
 #define PHOTON_MIDI_MAP_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "ipc/rings.h"
@@ -33,6 +34,14 @@ void midi_map_handle_event(uint8_t node_id, const photon_event_t *ev);
 // A node left the bus (silent/rebooted): release every note it holds.
 // Wired as the protocol node-down callback on the bridge.
 void midi_map_release_node(uint8_t node_id);
+
+// Coupler evidence, per manual and note: set when a note went down while
+// the same note was already held on another manual (a coupled double moves
+// the other manual's key with it), cleared by that note's next press alone.
+// The calibration view marks such keys; a coupler-status register would
+// build on the same signal.
+bool midi_map_coupled(uint32_t manual, uint8_t note);
+void midi_map_clear_coupled(void);
 
 // Counters for the console.
 uint32_t midi_map_notes_on_sent(void);

@@ -5,6 +5,7 @@
 #include "pico/time.h"
 
 #include "board_config.h"
+#include "core1/calcap.h"
 #include "core1/events.h"
 #include "core1/tla2518.h"
 #include "ipc/rings.h"
@@ -304,6 +305,11 @@ static void drain_mailbox(void) {
                     }
                 }
                 break;
+            case PHOTON_CMD_SET_STRIKES:
+                for (uint8_t i = 0; i < PHOTON_MAX_SENSORS; i++) {
+                    events_set_strike(i, g_strike_stage[i] > 100 ? 0 : g_strike_stage[i]);
+                }
+                break;
             case PHOTON_CMD_SET_DISABLED:
                 g_events.disabled_mask = cmd.a;
                 break;
@@ -380,6 +386,7 @@ void scan_core1_entry(void) {
         prev_t0 = t0;
         sweep();
         events_process(readings, t0);
+        calcap_sweep(readings, t0, g_events.learning);
         if (g_scan_ctl.trace_enabled) {
             uint8_t ti = g_scan_ctl.trace_idx;
             if (ti < PHOTON_MAX_SENSORS) {

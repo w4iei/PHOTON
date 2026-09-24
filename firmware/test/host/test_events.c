@@ -148,6 +148,57 @@ static void test_drift_below_frozen_min(void) {
     CHECK(!g_events.note_on[0]);
 }
 
+static void test_per_key_strike(void) {
+    // Knee calibration put this key's pluck at 67%: strike at 70% of range
+    // (value 2400), velocity window 40..70% (arms at value 1800). The global
+    // 60% (value 2200) no longer fires it.
+    setup();
+    events_set_strike(0, 70);
+    feed(1000, 0);
+    feed(1700, 1000);       // press 700 < 800: idle
+    feed(1850, 2000);       // press 850: arms, t=2000
+    feed(2300, 3000);       // past the global 60%, below 70%: nothing yet
+    CHECK(ring_count() == 0);
+    feed(2450, 4000);       // press 1450 >= 1400: ON, dt = 4000-2000
+    CHECK(ring_count() == 1);
+    photon_event_t ev = pop();
+    CHECK(ev.state == 1 && ev.dt_us == 2000);
+    // Release keeps the global ladder: arm at 80%, off at 40%.
+    feed(2900, 5000);
+    feed(2500, 6000);       // press 1500 <= 1600: arms
+    feed(1700, 7000);       // press 700 <= 800: OFF
+    CHECK(ring_count() == 1);
+    ev = pop();
+    CHECK(ev.state == 0 && ev.dt_us == 1000);
+    events_set_strike(0, 0);  // back to the global threshold
+    feed(1000, 8000);
+    feed(1700, 9000);       // arms at 30%
+    feed(2250, 10000);      // >= 60%: ON
+    CHECK(ring_count() == 1);
+}
+
+static void test_low_strike_windows(void) {
+    // A pluck found low (strike 40%): the velocity window narrows to half the
+    // threshold (arms at 20%) and the release point to two thirds (26%), so
+    // there is still an arming point above rest and hysteresis below.
+    // Range 1000..3000: arm at 1400, strike at 1800, release at 1520.
+    setup();
+    events_set_strike(0, 40);
+    feed(1000, 0);
+    feed(1300, 1000);       // press 300 < 400: idle
+    feed(1450, 2000);       // press 450: arms, t=2000
+    feed(1850, 3000);       // press 850 >= 800: ON, dt 1000
+    CHECK(ring_count() == 1);
+    photon_event_t ev = pop();
+    CHECK(ev.state == 1 && ev.dt_us == 1000);
+    feed(2900, 4000);
+    feed(2500, 5000);       // press 1500 <= 1600 (80%): release arms
+    feed(1600, 6000);       // press 600 > 520: still on
+    CHECK(ring_count() == 0);
+    feed(1500, 7000);       // press 500 <= 520: OFF
+    CHECK(ring_count() == 1);
+}
+
 int main(void) {
     test_drift_below_frozen_min();
     test_strike_release_dt();
@@ -156,6 +207,8 @@ int main(void) {
     test_frozen_empty_cal_inert();
     test_zero_reading_ignored();
     test_disabled_mask();
+    test_per_key_strike();
+    test_low_strike_windows();
     printf("test_events OK (%d checks)\n", checks);
     return 0;
 }

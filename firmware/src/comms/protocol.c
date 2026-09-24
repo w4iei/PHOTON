@@ -7,6 +7,7 @@
 #include "pico/time.h"
 
 #include "board_config.h"
+#include "cal/cal_session.h"
 #include "comms/transport.h"
 #include "config/config_store.h"
 #include "core1/events.h"
@@ -279,11 +280,62 @@ static void node_handle_request(const photon_frame_t *f, bool addressed) {
                 break;  // never park+flash every node at once off a broadcast
             }
             // Freeze learning before persisting — remote mirror of 's'.
+            // The per-key strike thresholds come from this session's knees;
+            // a board that was not calibrating keeps its own.
             photon_cmd_t learn = { .op = PHOTON_CMD_CAL_LEARN, .a = 0 };
             cmd_mailbox_push(&learn);
+            cal_session_commit();
             bool ok = config_store_save();
             uint8_t status = ok ? 1 : 0;
             send_reply(PHOTON_FT_CAL_ACK, f->src, f->seq, &status, 1, false);
+            break;
+        }
+        case PHOTON_FT_CAL_STATUS_REQ: {
+            if (!addressed) {
+                break;
+            }
+            uint8_t payload[PHOTON_FRAME_MAX_PAYLOAD];
+            uint8_t len = cal_session_build_status(payload);
+            send_reply(PHOTON_FT_CAL_STATUS_RESP, f->src, f->seq, payload, len, false);
+            break;
+        }
+        case PHOTON_FT_CAL_INFO_REQ: {
+            if (!addressed) {
+                break;
+            }
+            uint8_t start = f->len >= 1 ? f->payload[0] : 0;
+            uint8_t count = f->len >= 2 ? f->payload[1] : CAL_INFO_PER_FRAME;
+            uint8_t payload[PHOTON_FRAME_MAX_PAYLOAD];
+            uint8_t len = cal_session_build_info(start, count, payload);
+            send_reply(PHOTON_FT_CAL_INFO_RESP, f->src, f->seq, payload, len, false);
+            break;
+        }
+        case PHOTON_FT_CAL_RULES: {
+            // 'cal rules' from the bridge: saved, and a calibration in
+            // progress is judged again under them straight away.
+            uint8_t ok = 0;
+            if (f->len >= 4 && cal_rules_valid(f->payload)) {
+                g_config.knee_window_pct = f->payload[0];
+                g_config.knee_ratio_x10 = f->payload[1];
+                g_config.knee_jump_pct = f->payload[2];
+                g_config.knee_margin_pct = f->payload[3];
+                ok = config_store_save() ? 1 : 0;
+                cal_session_reanalyse();
+            }
+            if (addressed) {
+                send_reply(PHOTON_FT_CAL_ACK, f->src, f->seq, &ok, 1, false);
+            }
+            break;
+        }
+        case PHOTON_FT_CAL_SWING_REQ: {
+            if (!addressed || f->len < 3) {
+                break;
+            }
+            uint16_t offset;
+            memcpy(&offset, &f->payload[1], 2);
+            uint8_t payload[PHOTON_FRAME_MAX_PAYLOAD];
+            uint8_t len = cal_session_build_swing(f->payload[0], offset, payload);
+            send_reply(PHOTON_FT_CAL_SWING_RESP, f->src, f->seq, payload, len, false);
             break;
         }
         case PHOTON_FT_TEST_BURST: {
@@ -415,6 +467,18 @@ static void node_handle_request(const photon_frame_t *f, bool addressed) {
                     }
                     if (ok) {
                         ok = config_store_save() ? 1 : 0;
+                    }
+                    if (addressed) {
+                        send_reply(PHOTON_FT_CAL_ACK, f->src, f->seq, &ok, 1, false);
+                    }
+                    break;
+                }
+                case 10: {   // strike mode + persist: 0 knee, 1 global
+                    uint8_t ok = 0;
+                    if (arg <= PHOTON_STRIKE_MODE_GLOBAL) {
+                        g_config.strike_mode = (uint8_t)arg;
+                        ok = config_store_save() ? 1 : 0;
+                        cal_session_apply_mode();
                     }
                     if (addressed) {
                         send_reply(PHOTON_FT_CAL_ACK, f->src, f->seq, &ok, 1, false);
@@ -555,6 +619,9 @@ static uint8_t expected_reply_type(uint8_t req) {
         case PHOTON_FT_MINMAX_REQ: return PHOTON_FT_MINMAX_RESP;
         case PHOTON_FT_STATS_REQ: return PHOTON_FT_STATS_RESP;
         case PHOTON_FT_TRACE_DATA: return PHOTON_FT_TRACE_DATA;
+        case PHOTON_FT_CAL_STATUS_REQ: return PHOTON_FT_CAL_STATUS_RESP;
+        case PHOTON_FT_CAL_INFO_REQ: return PHOTON_FT_CAL_INFO_RESP;
+        case PHOTON_FT_CAL_SWING_REQ: return PHOTON_FT_CAL_SWING_RESP;
         default: return PHOTON_FT_CAL_ACK;
     }
 }

@@ -136,6 +136,7 @@ typedef enum {
     PHOTON_CMD_SCAN_RATE,      // a = Hz (0 = default, 0xFFFF = unthrottled)
     PHOTON_CMD_TEST_RATE,      // a = pseudorandom events/sec (0 = stop)
     PHOTON_CMD_SETTLE,         // a = emitter settle us (bench A/B; not saved)
+    PHOTON_CMD_SET_STRIKES,    // adopt g_strike_stage as the per-key strike table
 } photon_cmd_op_t;
 
 typedef struct {
@@ -156,6 +157,11 @@ typedef struct {
 } photon_cmd_mailbox_t;
 
 extern photon_cmd_mailbox_t g_cmd_mailbox;
+
+// Per-key strike thresholds (% of range, 0 = global) staged by core 0 for
+// PHOTON_CMD_SET_STRIKES: too big for a mailbox slot, so core 1 copies it
+// when the command arrives. Core 0 writes it only before pushing.
+extern uint8_t g_strike_stage[PHOTON_MAX_SENSORS];
 
 // Core 0.
 bool cmd_mailbox_push(const photon_cmd_t *cmd);

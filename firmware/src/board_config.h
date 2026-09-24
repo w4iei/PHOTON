@@ -68,6 +68,31 @@
 #define PHOTON_MIN_EVENT_RANGE       170  // scaled by << osr_mode at runtime (1360 @ OSR 3)
 
 // ---------------------------------------------------------------------------
+// Knee calibration: a strike threshold per key, set at the key's pluck
+// ---------------------------------------------------------------------------
+// While calibrating, every key's swing is captured and the pluck located:
+// the plectrum loads the string as the key goes down (a creep of 0.2-1 s on
+// a slow press), and when it lets go the key snaps down — a knee in the
+// position trace. The knee (last sample before the snap) is searched within
+// STRIKE_PCT +/- KNEE_WINDOW_PCT of the swing's range; the snap (measured
+// over 8 ms, see cal/knee.c) must be KNEE_RATIO_X10/10 times steeper than
+// the approach and carry KNEE_JUMP_PCT of the range. The key's strike threshold is saved KNEE_MARGIN_PCT above
+// the knee, so the creep cannot cross it early. Keys without a knee keep
+// STRIKE_PCT. All four are runtime knobs ('cal rules', saved per board).
+// Found on 2026-09-23 against a recorded MIDI+audio corpus: the global 60% fired
+// 8-60 ms before the pluck on slow presses. See firmware/README.md.
+#define PHOTON_KNEE_WINDOW_PCT       20   // 40-80%: the test instrument's upper manual plucks from 41%
+#define PHOTON_KNEE_RATIO_X10        25   // 2.5x: 32/34 real upper-manual swings,
+                                          // none in the January disengaged action
+#define PHOTON_KNEE_JUMP_PCT         8
+#define PHOTON_KNEE_MARGIN_PCT       3
+#define PHOTON_CAL_CAP_SAMPLES       2048  // per key and swing: 3.4 s at 600 Hz
+#define PHOTON_CAL_PRE_SAMPLES       32    // pre-roll kept ahead of a swing (53 ms)
+#define PHOTON_CAL_SWING_START       300   // counts above rest that start a swing (noise ~62)
+#define PHOTON_CAL_SWING_END_MS      60    // back near rest this long ends it
+#define PHOTON_CAL_MAX_KNEES         4     // good swings per key kept; the median is used
+
+// ---------------------------------------------------------------------------
 // RS-485 transport (current hardware, Plan 1)
 // ---------------------------------------------------------------------------
 #define PHOTON_RS485_UART        uart1

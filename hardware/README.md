@@ -166,6 +166,12 @@ Recommended screws: **M2.3 x 5 mm pan head**
 ([example listing](https://nl.aliexpress.com/item/33043885403.html)). They
 pass through the 2.7 mm holes with clearance.
 
+## TODO (nice to have, next 001D / 001 spin)
+
+- **Temperature and humidity sensor** (e.g. Sensirion SHT45 or TI HDC3022),
+  logged to the microSD card alongside the MIDI files and readable from the
+  console.
+
 ## Disclaimer
 
 No warranty is provided. Users create circuit boards at their own risk.

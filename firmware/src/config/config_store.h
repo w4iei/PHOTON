@@ -18,6 +18,9 @@
 
 #define PHOTON_CONFIG_MAGIC 0x4E544850u  // "PHTN"
 
+#define PHOTON_STRIKE_MODE_KNEE   0
+#define PHOTON_STRIKE_MODE_GLOBAL 1
+
 // Shortest record the prefix scan will accept: the original layout, up to and
 // including cal_min/cal_max, is longer than this; anything shorter is noise.
 #define PHOTON_CONFIG_MIN_RECORD 64u
@@ -60,6 +63,21 @@ typedef struct __attribute__((packed)) {
     // carries the USB cable runs the bus. 0 (and every config saved before
     // the field existed) = plain node.
     uint8_t bus_master;
+    // Per-key strike threshold in % of the calibrated range, set by knee
+    // calibration at the key's pluck. 0 (and every config saved before the
+    // field existed) = the global PHOTON_STRIKE_PCT.
+    uint8_t strike_pct[PHOTON_MAX_SENSORS];
+    // 'strike knee|global'. 0 = the per-key thresholds above (keys without
+    // one use PHOTON_STRIKE_PCT); 1 = PHOTON_STRIKE_PCT for every key, and
+    // calibration does not ask for knees: instruments without a pluck (an
+    // organ, say). The per-key table is kept either way.
+    uint8_t strike_mode;
+    // 'cal rules' (0 = compiled default): knee search half-window %, snap vs
+    // approach slope x10, snap size %, threshold margin above the knee %.
+    uint8_t knee_window_pct;
+    uint8_t knee_ratio_x10;
+    uint8_t knee_jump_pct;
+    uint8_t knee_margin_pct;
     uint32_t crc;             // CRC32 over all preceding bytes
 } photon_config_t;
 

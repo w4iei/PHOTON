@@ -27,6 +27,9 @@ typedef struct {
     uint32_t disabled_mask;
     uint32_t last_now_us;   // timestamp of the current sweep (for synthesized OFFs)      // bit per local sensor
     uint32_t polarity_mask;      // bit set = inverted (pressed = lower value)
+    // Per-key strike threshold, % of range, from knee calibration
+    // (0 = PHOTON_STRIKE_PCT). The velocity window ends at it.
+    uint8_t  strike_pct[PHOTON_MAX_SENSORS];
     bool     note_on[PHOTON_MAX_SENSORS];
     // strike/release arming state
     bool     strike_pending[PHOTON_MAX_SENSORS];
@@ -46,6 +49,10 @@ void events_init(uint32_t disabled_mask);
 // only in the sense that min/max keep expanding from these seeds.
 void events_seed_cal(uint8_t idx, uint16_t mn, uint16_t mx);
 void events_reset_cal(void);
+
+// Per-key strike threshold in % of range (0 = PHOTON_STRIKE_PCT). Core 0
+// before core 1 starts (boot seeding), core 1 afterwards (mailbox).
+void events_set_strike(uint8_t idx, uint8_t pct);
 
 // Run once per sweep over the fresh readings; pushes note events into
 // g_event_ring stamped with now_us.

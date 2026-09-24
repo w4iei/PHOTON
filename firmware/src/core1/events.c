@@ -36,6 +36,12 @@ static inline void clear_sensor_state(photon_events_t *e, int i) {
     e->release_pending[i] = false;
 }
 
+void events_set_strike(uint8_t idx, uint8_t pct) {
+    if (idx < PHOTON_MAX_SENSORS) {
+        g_events.strike_pct[idx] = pct;
+    }
+}
+
 void events_reset_cal(void) {
     for (int i = 0; i < PHOTON_MAX_SENSORS; i++) {
         g_events.min[i] = 0xFFFF;
@@ -91,16 +97,24 @@ void events_process(const uint16_t *readings, uint32_t now_us) {
 
         // Threshold ladder (integer, percent of range). "Up" direction =
         // key press for normal polarity; inverted sensors mirror around max.
-        uint32_t vel_start_pct = PHOTON_STRIKE_PCT > PHOTON_STRIKE_WINDOW_PCT
-                                     ? (uint32_t)(PHOTON_STRIKE_PCT - PHOTON_STRIKE_WINDOW_PCT)
-                                     : 0;                                     // 30
+        // The strike threshold is per key when knee calibration found the
+        // key's pluck; the velocity window slides with it. Release keeps
+        // the global ladder.
+        // Below 60% both windows narrow with the threshold: the velocity
+        // window to half of it, the release point to two thirds of it, so a
+        // low threshold keeps an arming point above rest and its hysteresis.
+        uint32_t strike_pct = e->strike_pct[i] ? e->strike_pct[i] : PHOTON_STRIKE_PCT;
+        uint32_t vel_window = PHOTON_STRIKE_WINDOW_PCT < strike_pct / 2
+                                  ? PHOTON_STRIKE_WINDOW_PCT
+                                  : strike_pct / 2;
+        uint32_t vel_start_pct = strike_pct - vel_window;                      // 30
         uint32_t rel_vel_pct = PHOTON_STRIKE_PCT + PHOTON_VELOCITY_WINDOW_PCT; // 80
         if (rel_vel_pct > 100) {
             rel_vel_pct = 100;
         }
-        uint32_t rel_pct = PHOTON_RELEASE_PCT < PHOTON_STRIKE_PCT
+        uint32_t rel_pct = PHOTON_RELEASE_PCT < strike_pct * 2 / 3
                                ? PHOTON_RELEASE_PCT
-                               : PHOTON_STRIKE_PCT;                            // 40
+                               : strike_pct * 2 / 3;                           // 40
 
         // How far into the range the key currently is, clamped to 0..rng.
         // The clamp matters with frozen calibration: thermal/duty drift can
@@ -116,7 +130,7 @@ void events_process(const uint16_t *readings, uint32_t now_us) {
             press = rng;
         }
         uint32_t vel_start_thr = rng * vel_start_pct / 100;
-        uint32_t strike_thr = rng * PHOTON_STRIKE_PCT / 100;
+        uint32_t strike_thr = rng * strike_pct / 100;
         uint32_t rel_vel_thr = rng * rel_vel_pct / 100;
         uint32_t rel_thr = rng * rel_pct / 100;
 

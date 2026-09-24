@@ -20,6 +20,19 @@ add_executable(test_events test_events.c ${FW}/core1/events.c)
 target_link_libraries(test_events shims)
 add_test(NAME events COMMAND test_events)
 
+add_executable(test_knee test_knee.c ${FW}/cal/knee.c)
+target_link_libraries(test_knee shims)
+add_test(NAME knee COMMAND test_knee)
+
+add_executable(test_calcap test_calcap.c ${FW}/core1/calcap.c ${FW}/core1/events.c)
+target_link_libraries(test_calcap shims)
+add_test(NAME calcap COMMAND test_calcap)
+
+add_executable(test_cal_session test_cal_session.c ${FW}/cal/cal_session.c ${FW}/cal/knee.c
+               ${FW}/core1/calcap.c ${FW}/core1/events.c)
+target_link_libraries(test_cal_session shims)
+add_test(NAME cal_session COMMAND test_cal_session)
+
 # microSD recorder: the real recorder + SMF encoder + FatFs on a RAM disk,
 # driven by a fake clock, formatted FAT16 / FAT32 / exFAT in turn.
 set(FATFS ${CMAKE_CURRENT_LIST_DIR}/../../lib/fatfs)

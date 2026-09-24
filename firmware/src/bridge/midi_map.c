@@ -15,6 +15,7 @@ static uint8_t group_refcount[PHOTON_MAX_MANUALS][128];
 // Which sensors each node currently holds ON (dedup + dropout release).
 static uint32_t node_notes_on[PHOTON_MAX_NODE_ID + 1];
 static uint32_t notes_on_sent, notes_off_sent;
+static uint8_t coupled[PHOTON_MAX_MANUALS][128];
 
 static inline bool global_disabled(uint32_t g) {
     return (g_config.global_disabled[g / 8] >> (g % 8)) & 1u;
@@ -123,6 +124,14 @@ void midi_map_handle_event(uint8_t node_id, const photon_event_t *ev) {
             return;  // duplicate ON (node rebooted mid-note, etc.)
         }
         node_notes_on[node_id] |= bit;
+        bool other_held = false;
+        for (uint32_t m = 0; m < PHOTON_MAX_MANUALS; m++) {
+            if (m != manual && group_refcount[m][note] > 0) {
+                other_held = true;
+                coupled[m][note] = 1;
+            }
+        }
+        coupled[manual][note] = other_held ? 1 : 0;
         if (group_refcount[manual][note]++ == 0) {
             midi_out_note_on(channel, (uint8_t)note, velocity);
             notes_on_sent++;
@@ -155,6 +164,14 @@ void midi_map_release_node(uint8_t node_id) {
         group_off(g / PHOTON_SENSORS_PER_MANUAL, channel_for_global[g],
                   (uint8_t)note, 64);
     }
+}
+
+bool midi_map_coupled(uint32_t manual, uint8_t note) {
+    return manual < PHOTON_MAX_MANUALS && note < 128 && coupled[manual][note] != 0;
+}
+
+void midi_map_clear_coupled(void) {
+    memset(coupled, 0, sizeof coupled);
 }
 
 uint32_t midi_map_notes_on_sent(void) { return notes_on_sent; }

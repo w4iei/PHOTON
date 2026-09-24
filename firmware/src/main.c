@@ -21,6 +21,7 @@
 #include "board_config.h"
 #include "bridge/midi_map.h"
 #include "bridge/recorder.h"
+#include "cal/cal_session.h"
 #include "comms/protocol.h"
 #include "comms/transport.h"
 #include "config/config_store.h"
@@ -96,6 +97,10 @@ int main(void) {
                 events_seed_cal((uint8_t)i, g_config.cal_min[i], g_config.cal_max[i]);
                 have_cal = true;
             }
+            bool knee = g_config.strike_mode == PHOTON_STRIKE_MODE_KNEE;
+            events_set_strike((uint8_t)i, knee && g_config.strike_pct[i] <= 100
+                                              ? g_config.strike_pct[i]
+                                              : 0);
         }
         // Saved calibration => frozen thresholds for performance (continuous
         // learning is polluted by adjacent-key cross-illumination). No saved
@@ -159,6 +164,9 @@ int main(void) {
         }
         transport_task();
         protocol_task();
+        if (sensor_role) {
+            cal_session_task();
+        }
         console_task();
 
         // Startup zero-fault escalation (legacy microcontroller.reset()
