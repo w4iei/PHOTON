@@ -21,6 +21,7 @@
 #include "board_config.h"
 #include "bridge/midi_map.h"
 #include "bridge/recorder.h"
+#include "bridge/setup_log.h"
 #include "cal/cal_session.h"
 #include "comms/protocol.h"
 #include "comms/transport.h"
@@ -125,6 +126,7 @@ int main(void) {
         recorder_init();
         multicore_launch_core1_with_stack(recorder_core1_entry, recorder_stack,
                                           sizeof recorder_stack);
+        setup_log_init();  // SETUP.TXT: this power-on's settings, next to its recordings
     }
 
     tud_init(0);
@@ -166,6 +168,8 @@ int main(void) {
         protocol_task();
         if (sensor_role) {
             cal_session_task();
+        } else {
+            setup_log_task();
         }
         console_task();
 

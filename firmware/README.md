@@ -267,6 +267,7 @@ Standard MIDI Files, whether or not a host is listening.
 0001/            one directory per power-on, created on the first note
 0001/0001.MID    one file per playing episode
 0001/0002.MID    ... opened on the first note, closed after 30 s of silence
+0001/SETUP.TXT   the settings and calibration this power-on played with
 0002/            next power-on
 ```
 
@@ -284,6 +285,12 @@ Standard MIDI Files, whether or not a host is listening.
   last half second.
 - **A held key delays the close.** The 30 s silence close waits for every
   note to be released, capped at 5 minutes.
+- **SETUP.TXT: what the recordings were played with.** Three seconds after
+  power-on the bridge reads every board's calibration table (the one
+  `cal compare` shows: min, max and strike threshold per key, strike mode)
+  and adds its own build, serial, channel map and velocity settings. The
+  text goes into the power-on's directory once it exists. It is read once
+  per power-on: a change made later shows up in the next power-on's file.
 - **Cards:** FAT16, FAT32 and exFAT (a 64 GB card as sold). No card, a
   pulled card, or a card error just means a retry every 2 s; nothing
   else on the bridge notices.
@@ -296,7 +303,8 @@ Console: `sd` prints the status line (state, card size and free space,
 current directory/file, counters, last error); `sd test [n]` plays a scale
 through the MIDI output on a bare bridge so the recorder can be exercised
 without sensor boards. A connected terminal also gets one line per state
-change (`[SD] recording 0001/0003.MID`, `[SD] closed ...`, `[SD] no card`).
+change (`[SD] recording 0001/0003.MID`, `[SD] closed ...`, `[SD] no card`,
+`[SD] saved 0001/SETUP.TXT`).
 
 ## Bench verification (M1–M5): results
 

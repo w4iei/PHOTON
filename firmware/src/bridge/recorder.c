@@ -37,6 +37,9 @@ static uint32_t data_end;          // track bytes on disk, excluding EOT
 static uint32_t last_flush_ms, last_event_ms, last_t_ms;
 static uint32_t held[16][4];       // per channel, 128 note bits
 static uint32_t held_count;
+static FIL setup_fil;
+static const char *volatile setup_text;  // core 0 publishes, once
+static volatile uint32_t setup_len;      // 0 until then
 
 // ---------------------------------------------------------------------------
 // Ring (core 0 producer, core 1 consumer)
@@ -170,6 +173,7 @@ static void try_mount(uint32_t now_ms) {
     g_recorder.next_dir = (uint16_t)(next_dir > 0xFFFF ? 0xFFFF : next_dir);
     g_recorder.dir_num = 0;
     g_recorder.file_num = 0;
+    g_recorder.setup_dir = 0;
 
     DWORD free_clusters;
     FATFS *pfs;
@@ -283,6 +287,29 @@ static bool open_file(uint32_t now_ms, uint32_t first_t_ms) {
     return true;
 }
 
+// SETUP.TXT, once per directory. Its own file handle, opened and closed
+// here, so the recording is never touched: a failed write costs only this
+// file, and is not retried.
+static void write_setup(void) {
+    uint32_t len = setup_len;
+    if (len == 0 || g_recorder.dir_num == 0 || g_recorder.setup_dir == g_recorder.dir_num) {
+        return;
+    }
+    __dmb();
+    char path[16];
+    snprintf(path, sizeof path, "%04u/SETUP.TXT", (unsigned)g_recorder.dir_num);
+    UINT bw = 0;
+    FRESULT fr = f_open(&setup_fil, path, FA_WRITE | FA_CREATE_ALWAYS);
+    if (fr == FR_OK) {
+        fr = f_write(&setup_fil, setup_text, len, &bw);
+        FRESULT fc = f_close(&setup_fil);
+        fr = fr != FR_OK ? fr : fc;
+    }
+    g_recorder.setup_ok = fr == FR_OK && bw == len;
+    __dmb();
+    g_recorder.setup_dir = g_recorder.dir_num;
+}
+
 static void close_file(uint32_t now_ms) {
     if (!flush(now_ms)) {
         return;  // fail()/stop() already moved the state
@@ -373,6 +400,15 @@ void recorder_poll(uint32_t now_ms) {
         drain();
         break;
     }
+    if (g_recorder.state == REC_STATE_IDLE || g_recorder.state == REC_STATE_RECORDING) {
+        write_setup();
+    }
+}
+
+void recorder_set_setup(const char *text, uint32_t len) {
+    setup_text = text;
+    __dmb();
+    setup_len = len;
 }
 
 void recorder_init(void) {
@@ -387,6 +423,8 @@ void recorder_init(void) {
     }
     ring.head = 0;
     ring.tail = 0;
+    setup_len = 0;
+    setup_text = NULL;
     mount_tried = false;
     next_dir = 0;
     data_end = 0;

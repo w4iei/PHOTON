@@ -14,6 +14,7 @@
 #include "board_config.h"
 #include "bridge/midi_map.h"
 #include "bridge/recorder.h"
+#include "bridge/setup_log.h"
 #include "cal/cal_session.h"
 #include "comms/protocol.h"
 #include "comms/transport.h"
@@ -51,6 +52,7 @@ static struct {
     // microSD recorder change reporting (bridge)
     uint8_t sd_last_state;
     const char *sd_last_error;
+    uint16_t sd_last_setup_dir;
 } C;
 
 void console_init(bool is_bridge, bool sensor_role) {
@@ -104,14 +106,20 @@ static const char *sd_fs_name(uint8_t t) {
 static void print_sd_status(void) {
     const recorder_status_t *r = &g_recorder;
     const char *err = r->last_error;
+    uint16_t sdir = r->setup_dir;
+    char setup[32] = "setup -";
+    if (sdir) {
+        snprintf(setup, sizeof setup, "setup %04u/SETUP.TXT%s", (unsigned)sdir,
+                 r->setup_ok ? "" : " FAILED");
+    }
     log_printf("[SD] %s | card %lu MB %s, %lu MB free | dir %04u file %04u (next dir %04u) | "
-               "files=%lu events=%lu bytes=%lu drops=%lu errors=%lu%s%s",
+               "files=%lu events=%lu bytes=%lu drops=%lu errors=%lu | %s%s%s",
                recorder_state_name(r->state), (unsigned long)r->card_mb,
                sd_fs_name(r->fs_type), (unsigned long)r->free_mb,
                (unsigned)r->dir_num, (unsigned)r->file_num, (unsigned)r->next_dir,
                (unsigned long)r->files_closed, (unsigned long)r->events_written,
                (unsigned long)r->bytes_written, (unsigned long)r->ring_drops,
-               (unsigned long)r->errors, err ? " | " : "", err ? err : "");
+               (unsigned long)r->errors, setup, err ? " | " : "", err ? err : "");
 }
 
 // One line per state change, so a terminal left open narrates the card:
@@ -119,6 +127,14 @@ static void print_sd_status(void) {
 static void sd_report_changes(void) {
     if (!has_recorder()) {
         return;
+    }
+    uint16_t sdir = g_recorder.setup_dir;
+    if (sdir != C.sd_last_setup_dir) {
+        C.sd_last_setup_dir = sdir;
+        if (sdir && log_console_connected()) {
+            log_info("[SD] %s %04u/SETUP.TXT", g_recorder.setup_ok ? "saved" : "could not write",
+                     (unsigned)sdir);
+        }
     }
     uint8_t st = g_recorder.state;
     const char *err = g_recorder.last_error;
@@ -1216,7 +1232,7 @@ static void handle_line(char *line) {
 // ---------------------------------------------------------------------------
 
 void console_on_bridge_response(const photon_frame_t *f) {
-    if (calview_on_response(f)) {
+    if (setup_log_on_response(f) || calview_on_response(f)) {
         return;
     }
     switch (f->type) {

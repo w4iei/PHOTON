@@ -37,6 +37,8 @@ add_executable(photon
     src/bridge/midi_map.c
     src/bridge/recorder.c
     src/bridge/sd_spi.c
+    src/bridge/setup_log.c
+    src/bridge/setup_text.c
     src/bridge/smf.c
     lib/fatfs/ff.c
     lib/fatfs/ffunicode.c

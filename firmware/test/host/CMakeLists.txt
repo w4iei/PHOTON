@@ -42,3 +42,8 @@ target_include_directories(test_recorder PRIVATE ${FATFS})
 target_compile_definitions(test_recorder PRIVATE PHOTON_HOST_TEST=1)
 target_link_libraries(test_recorder shims)
 add_test(NAME recorder COMMAND test_recorder)
+
+# SETUP.TXT text (the bus side, bridge/setup_log.c, is checked on hardware).
+add_executable(test_setup_text test_setup_text.c ${FW}/bridge/setup_text.c)
+target_link_libraries(test_setup_text shims)
+add_test(NAME setup_text COMMAND test_setup_text)

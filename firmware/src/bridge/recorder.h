@@ -5,6 +5,8 @@
 //                   (never at boot, so idle power cycles leave no trace)
 //   NNNN/MMMM.MID   one file per playing episode: opened on the first note,
 //                   closed after PHOTON_REC_SILENCE_MS with no key held
+//   NNNN/SETUP.TXT  the settings and calibration this power-on played with
+//                   (bridge/setup_log.c), written once both exist
 //
 // Numbers run 0001-9999 and the recorder simply stops at 9999 (no wrap, no
 // overwrite). The board has no clock, so instead of a date each file opens
@@ -54,6 +56,8 @@ typedef struct {
     volatile uint32_t errors;      // card errors that forced a remount
     volatile uint32_t card_mb;
     volatile uint32_t free_mb;     // at mount time
+    volatile uint16_t setup_dir;   // directory this power-on's SETUP.TXT went to
+    volatile uint8_t setup_ok;     // ... and whether it was written whole
     const char *volatile last_error;  // string literal or NULL
 } recorder_status_t;
 
@@ -65,6 +69,11 @@ void recorder_init(void);
 // Core 0: called for every emitted MIDI channel message. No-op until
 // recorder_init(); drops (counted) if core 1 falls behind by 512 messages.
 bool recorder_push(uint32_t t_ms, uint8_t status, uint8_t d1, uint8_t d2);
+
+// Core 0, once: the text of NNNN/SETUP.TXT. Saved in this power-on's
+// directory as soon as it exists (again in a new one after a remount); the
+// buffer must stay untouched from here on.
+void recorder_set_setup(const char *text, uint32_t len);
 
 // Core 1 (or a host test): one step of the state machine at time now_ms.
 void recorder_poll(uint32_t now_ms);

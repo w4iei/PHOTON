@@ -3,8 +3,8 @@
 // and file numbering across simulated power cycles, the lazy directory
 // create, flush-leaves-a-valid-file, the 30 s silence close and the
 // held-note cap, ring overflow accounting, card errors -> remount, no card
-// at boot -> late insert, and the 9999 stop. Each suite runs on FAT16,
-// FAT32 and exFAT images.
+// at boot -> late insert, the 9999 stop, and SETUP.TXT once per directory.
+// Each suite runs on FAT16, FAT32 and exFAT images.
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -332,6 +332,131 @@ static void run_suite(BYTE fmt, uint8_t expect_fs) {
     recorder_init();  // unmount cleanly before the next format
 }
 
+// SETUP.TXT: written once per directory, whichever comes first, the text or
+// the directory; again in the fresh directory after a remount; a failed
+// write leaves the recording alone and is not retried.
+static const char SETUP_A[] = "PHOTON setup A\nline two\n";
+
+static bool file_is(const char *path, const char *want) {
+    size_t len = read_file(path);
+    return len == strlen(want) && memcmp(filebuf, want, len) == 0;
+}
+
+static void run_setup_suite(BYTE fmt) {
+    format_disk(fmt);
+    card_present = true;
+    write_fail = false;
+
+    // Text first: nothing on the card until the first note makes the directory.
+    boot(0);
+    recorder_set_setup(SETUP_A, (uint32_t)strlen(SETUP_A));
+    recorder_poll(3000);
+    CHECK(!exists("0001", true) && g_recorder.setup_dir == 0);
+    CHECK(recorder_push(5000, 0x90, 60, 100));
+    recorder_poll(5000);
+    CHECK(g_recorder.state == REC_STATE_RECORDING);
+    CHECK(g_recorder.setup_dir == 1 && g_recorder.setup_ok);
+    CHECK(file_is("0001/SETUP.TXT", SETUP_A));
+    // Once: removed, it is not written again in this directory.
+    CHECK(f_unlink("0001/SETUP.TXT") == FR_OK);
+    CHECK(recorder_push(5100, 0x80, 60, 0));
+    recorder_poll(5100);
+    recorder_poll(35100);
+    CHECK(g_recorder.state == REC_STATE_IDLE);
+    CHECK(recorder_push(40000, 0x90, 62, 90));
+    recorder_poll(40000);
+    CHECK(exists("0001/0002.MID", false) && !exists("0001/SETUP.TXT", false));
+    CHECK(recorder_push(40100, 0x80, 62, 0));
+    recorder_poll(40100);
+    recorder_poll(70100);
+    CHECK(count_channel_events("0001/0002.MID", evs, 2048, NULL) == 2);
+
+    // Directory first (a note right after power-on), text while recording.
+    boot(0);
+    CHECK(recorder_push(200, 0x90, 60, 100));
+    recorder_poll(200);
+    CHECK(g_recorder.dir_num == 2 && !exists("0002/SETUP.TXT", false));
+    recorder_poll(1000);
+    CHECK(!exists("0002/SETUP.TXT", false));
+    recorder_set_setup(SETUP_A, (uint32_t)strlen(SETUP_A));
+    CHECK(recorder_push(3000, 0x80, 60, 0));
+    recorder_poll(3000);
+    CHECK(g_recorder.state == REC_STATE_RECORDING && g_recorder.setup_dir == 2);
+    CHECK(file_is("0002/SETUP.TXT", SETUP_A));
+    recorder_poll(33000);
+    CHECK(g_recorder.state == REC_STATE_IDLE);
+    CHECK(count_channel_events("0002/0001.MID", evs, 2048, NULL) == 2);
+
+    // Text after the first episode closed: written while idle.
+    boot(0);
+    CHECK(recorder_push(200, 0x90, 60, 100));
+    recorder_poll(200);
+    CHECK(recorder_push(300, 0x80, 60, 0));
+    recorder_poll(300);
+    recorder_poll(30300);
+    CHECK(g_recorder.state == REC_STATE_IDLE && g_recorder.dir_num == 3);
+    recorder_set_setup(SETUP_A, (uint32_t)strlen(SETUP_A));
+    recorder_poll(31000);
+    CHECK(g_recorder.setup_dir == 3 && file_is("0003/SETUP.TXT", SETUP_A));
+
+    // Card error -> remount -> fresh directory gets its own copy.
+    CHECK(recorder_push(40000, 0x90, 61, 100));
+    recorder_poll(40000);
+    write_fail = true;
+    CHECK(recorder_push(40100, 0x80, 61, 0));
+    recorder_poll(40100);
+    recorder_poll(40600);
+    CHECK(g_recorder.state == REC_STATE_NO_CARD && g_recorder.setup_dir == 3);
+    write_fail = false;
+    recorder_poll(42600);
+    CHECK(g_recorder.state == REC_STATE_IDLE && g_recorder.next_dir == 4);
+    CHECK(g_recorder.setup_dir == 0);
+    recorder_poll(43000);
+    CHECK(!exists("0004", true));  // still no note, still no directory
+    CHECK(recorder_push(50000, 0x90, 60, 100));
+    recorder_poll(50000);
+    CHECK(g_recorder.setup_dir == 4 && file_is("0004/SETUP.TXT", SETUP_A));
+    CHECK(recorder_push(50100, 0x80, 60, 0));
+    recorder_poll(50100);
+    recorder_poll(80100);
+    CHECK(g_recorder.state == REC_STATE_IDLE);
+
+    // A failed SETUP.TXT: reported, not retried, recording goes on.
+    boot(0);
+    CHECK(recorder_push(200, 0x90, 60, 100));
+    recorder_poll(200);
+    CHECK(recorder_push(300, 0x80, 60, 0));
+    recorder_poll(300);
+    recorder_poll(30300);
+    CHECK(g_recorder.state == REC_STATE_IDLE && g_recorder.dir_num == 5);
+    uint32_t errors = g_recorder.errors;
+    write_fail = true;
+    recorder_set_setup(SETUP_A, (uint32_t)strlen(SETUP_A));
+    recorder_poll(31000);
+    CHECK(g_recorder.setup_dir == 5 && !g_recorder.setup_ok);
+    CHECK(g_recorder.state == REC_STATE_IDLE && g_recorder.errors == errors);
+    write_fail = false;
+    recorder_poll(32000);
+    CHECK(g_recorder.setup_dir == 5 && !g_recorder.setup_ok);
+    CHECK(recorder_push(40000, 0x90, 64, 100));
+    recorder_poll(40000);
+    CHECK(recorder_push(40100, 0x80, 64, 0));
+    recorder_poll(40100);
+    recorder_poll(70100);
+    CHECK(g_recorder.state == REC_STATE_IDLE && g_recorder.file_num == 2);
+    CHECK(count_channel_events("0005/0002.MID", evs, 2048, NULL) == 2);
+
+    // No text at all (no bridge settings yet): no SETUP.TXT, recording as before.
+    boot(0);
+    CHECK(recorder_push(200, 0x90, 60, 100));
+    recorder_poll(200);
+    recorder_poll(5000);
+    CHECK(g_recorder.dir_num == 6 && !exists("0006/SETUP.TXT", false));
+    CHECK(g_recorder.setup_dir == 0);
+
+    recorder_init();
+}
+
 static void test_smf_varlen(void) {
     uint8_t b[4];
     CHECK(smf_put_varlen(b, 0) == 1 && b[0] == 0x00);
@@ -348,6 +473,9 @@ int main(void) {
     run_suite(FM_FAT, FS_FAT16);
     run_suite(FM_FAT32, FS_FAT32);
     run_suite(FM_EXFAT, FS_EXFAT);
+    run_setup_suite(FM_FAT);
+    run_setup_suite(FM_FAT32);
+    run_setup_suite(FM_EXFAT);
     printf("test_recorder: %d checks passed\n", checks);
     return 0;
 }
