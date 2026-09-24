@@ -3,7 +3,10 @@
 // and file numbering across simulated power cycles, the lazy directory
 // create, flush-leaves-a-valid-file, the 30 s silence close and the
 // held-note cap, ring overflow accounting, card errors -> remount, no card
-// at boot -> late insert, the 9999 stop, and SETUP.TXT once per directory.
+// at boot -> late insert, SETUP.TXT once per directory, and the GGG/NNNNNN
+// layout: groups of a thousand, carrying on after a flat-layout card, empty
+// or stray group contents, more power-ons than a FAT16 root holds, and the
+// 999999 stop.
 // Each suite runs on FAT16, FAT32 and exFAT images.
 #include <assert.h>
 #include <stdio.h>
@@ -143,6 +146,22 @@ static size_t read_file(const char *path) {
     return br;
 }
 
+// "GGG/NNNNNN" or "GGG/NNNNNN/<file>" for power-on n (four rotating buffers,
+// so one CHECK can hold several).
+static const char *P(uint32_t n, const char *file) {
+    static char buf[4][40];
+    static int next;
+    char *b = buf[next++ & 3];
+    char dir[16];
+    recorder_dir_name(dir, sizeof dir, n);
+    if (file) {
+        snprintf(b, 40, "%s/%s", dir, file);
+    } else {
+        snprintf(b, 40, "%s", dir);
+    }
+    return b;
+}
+
 static bool exists(const char *path, bool want_dir) {
     FILINFO fno;
     if (f_stat(path, &fno) != FR_OK) return false;
@@ -177,24 +196,24 @@ static void run_suite(BYTE fmt, uint8_t expect_fs) {
     CHECK(g_recorder.fs_type == expect_fs);
     CHECK(g_recorder.next_dir == 1 && g_recorder.dir_num == 0);
     CHECK(g_recorder.card_mb >= 60 && g_recorder.free_mb <= g_recorder.card_mb);
-    CHECK(!exists("0001", true));
+    CHECK(!exists(P(1, NULL), true));
     recorder_poll(20000);
-    CHECK(!exists("0001", true));  // idle boots leave no trace
+    CHECK(!exists(P(1, NULL), true));  // idle boots leave no trace
 
     // First note: directory and file appear; flush after 500 ms.
     CHECK(recorder_push(1000, 0x91, 60, 100));
     recorder_poll(1000);
     CHECK(g_recorder.state == REC_STATE_RECORDING);
     CHECK(g_recorder.dir_num == 1 && g_recorder.file_num == 1);
-    CHECK(exists("0001", true) && exists("0001/0001.MID", false));
+    CHECK(exists(P(1, NULL), true) && exists(P(1, "0001.MID"), false));
     recorder_poll(1499);
     {   // flush cadence runs from the open: nothing on disk yet (size 0)
         FILINFO fno;
-        CHECK(f_stat("0001/0001.MID", &fno) == FR_OK && fno.fsize == 0);
+        CHECK(f_stat(P(1, "0001.MID"), &fno) == FR_OK && fno.fsize == 0);
     }
     CHECK(recorder_push(1500, 0x81, 60, 64));
     recorder_poll(1500);  // 500 ms after open: first flush, both events
-    int n = count_channel_events("0001/0001.MID", evs, 2048, text);
+    int n = count_channel_events(P(1, "0001.MID"), evs, 2048, text);
     CHECK(n == 2);
     CHECK(evs[0].delta == 0 && evs[0].status == 0x91 && evs[0].d1 == 60 && evs[0].d2 == 100);
     CHECK(evs[1].delta == 500 && evs[1].status == 0x81 && evs[1].d1 == 60 && evs[1].d2 == 64);
@@ -205,18 +224,18 @@ static void run_suite(BYTE fmt, uint8_t expect_fs) {
     CHECK(g_recorder.state == REC_STATE_RECORDING);
     recorder_poll(1500 + 30000);
     CHECK(g_recorder.state == REC_STATE_IDLE && g_recorder.files_closed == 1);
-    CHECK(count_channel_events("0001/0001.MID", evs, 2048, NULL) == 2);
+    CHECK(count_channel_events(P(1, "0001.MID"), evs, 2048, NULL) == 2);
 
     // Second episode in the same power-on: next file number, same directory.
     CHECK(recorder_push(40000, 0x90, 62, 80));
     recorder_poll(40000);
     CHECK(g_recorder.state == REC_STATE_RECORDING && g_recorder.file_num == 2);
-    CHECK(exists("0001/0002.MID", false) && !exists("0002", true));
+    CHECK(exists(P(1, "0002.MID"), false) && !exists(P(2, NULL), true));
     CHECK(recorder_push(40100, 0x80, 62, 0));
     recorder_poll(40100);
     recorder_poll(70100);
     CHECK(g_recorder.state == REC_STATE_IDLE && g_recorder.files_closed == 2);
-    n = count_channel_events("0001/0002.MID", evs, 2048, text);
+    n = count_channel_events(P(1, "0002.MID"), evs, 2048, text);
     CHECK(n == 2 && evs[1].delta == 100);
     CHECK(strcmp(text, "PHOTON power-on +00:00:40.000") == 0);
 
@@ -239,7 +258,7 @@ static void run_suite(BYTE fmt, uint8_t expect_fs) {
     recorder_poll(t0 + 600 * 7);
     recorder_poll(t0 + 600 * 7 + 30000);
     CHECK(g_recorder.state == REC_STATE_IDLE && g_recorder.file_num == 4);
-    n = count_channel_events("0001/0004.MID", evs, 2048, NULL);
+    n = count_channel_events(P(1, "0004.MID"), evs, 2048, NULL);
     CHECK(n == 600);
     uint32_t sum = 0;
     for (int i = 0; i < n; i++) sum += evs[i].delta;
@@ -258,14 +277,14 @@ static void run_suite(BYTE fmt, uint8_t expect_fs) {
     CHECK(g_recorder.state == REC_STATE_RECORDING);
     recorder_poll(t0 + 600 + 300000);
     CHECK(g_recorder.state == REC_STATE_IDLE);
-    CHECK(count_channel_events("0001/0005.MID", evs, 2048, NULL) == 512);
+    CHECK(count_channel_events(P(1, "0005.MID"), evs, 2048, NULL) == 512);
 
     // Power cycle: the next directory continues from what is on the card.
     boot(0);
     CHECK(g_recorder.state == REC_STATE_IDLE && g_recorder.next_dir == 2);
     CHECK(recorder_push(10, 0x90, 60, 100));
     recorder_poll(10);
-    CHECK(exists("0002/0001.MID", false));
+    CHECK(exists(P(2, "0001.MID"), false));
     CHECK(recorder_push(20, 0x80, 60, 0));
     recorder_poll(20);
     recorder_poll(30020);
@@ -288,12 +307,12 @@ static void run_suite(BYTE fmt, uint8_t expect_fs) {
     CHECK(g_recorder.state == REC_STATE_IDLE && g_recorder.next_dir == 3);
     CHECK(recorder_push(60000, 0x90, 60, 100));
     recorder_poll(60000);
-    CHECK(exists("0003/0001.MID", false));
+    CHECK(exists(P(3, "0001.MID"), false));
     CHECK(recorder_push(60010, 0x80, 60, 0));
     recorder_poll(60010);
     recorder_poll(90010);
     CHECK(g_recorder.state == REC_STATE_IDLE);
-    CHECK(count_channel_events("0003/0001.MID", evs, 2048, NULL) == 2);
+    CHECK(count_channel_events(P(3, "0001.MID"), evs, 2048, NULL) == 2);
 
     // No card at boot: events are dropped, a later insert mounts cleanly.
     card_present = false;
@@ -309,18 +328,20 @@ static void run_suite(BYTE fmt, uint8_t expect_fs) {
     CHECK(g_recorder.state == REC_STATE_IDLE && g_recorder.next_dir == 4);
     CHECK(g_recorder.last_error == NULL);
     recorder_poll(3000);
-    CHECK(!exists("0004", true));  // the pre-mount note was dropped, not replayed
+    CHECK(!exists(P(4, NULL), true));  // the pre-mount note was dropped, not replayed
 
-    // Directory 9999 on the card: stop, never wrap.
-    CHECK(f_mkdir("9999") == FR_OK);
+    // Power-on 999999 on the card: stop, never wrap.
+    CHECK(f_mkdir("999") == FR_OK);
+    CHECK(f_mkdir("999/999999") == FR_OK);
     boot(0);
     CHECK(g_recorder.state == REC_STATE_STOPPED);
-    CHECK(strstr(g_recorder.last_error, "9999") != NULL);
+    CHECK(strstr(g_recorder.last_error, "999999") != NULL);
     recorder_push(100, 0x90, 60, 100);
     recorder_poll(100);
     recorder_poll(200);
     CHECK(g_recorder.state == REC_STATE_STOPPED && g_recorder.events_written == 0);
-    CHECK(f_unlink("9999") == FR_OK);
+    CHECK(f_unlink("999/999999") == FR_OK);
+    CHECK(f_unlink("999") == FR_OK);
 
     // Non-numeric and foreign entries in the root are ignored by the scan.
     CHECK(f_mkdir("Spotlight-V100") == FR_OK);
@@ -351,41 +372,41 @@ static void run_setup_suite(BYTE fmt) {
     boot(0);
     recorder_set_setup(SETUP_A, (uint32_t)strlen(SETUP_A));
     recorder_poll(3000);
-    CHECK(!exists("0001", true) && g_recorder.setup_dir == 0);
+    CHECK(!exists(P(1, NULL), true) && g_recorder.setup_dir == 0);
     CHECK(recorder_push(5000, 0x90, 60, 100));
     recorder_poll(5000);
     CHECK(g_recorder.state == REC_STATE_RECORDING);
     CHECK(g_recorder.setup_dir == 1 && g_recorder.setup_ok);
-    CHECK(file_is("0001/SETUP.TXT", SETUP_A));
+    CHECK(file_is(P(1, "SETUP.TXT"), SETUP_A));
     // Once: removed, it is not written again in this directory.
-    CHECK(f_unlink("0001/SETUP.TXT") == FR_OK);
+    CHECK(f_unlink(P(1, "SETUP.TXT")) == FR_OK);
     CHECK(recorder_push(5100, 0x80, 60, 0));
     recorder_poll(5100);
     recorder_poll(35100);
     CHECK(g_recorder.state == REC_STATE_IDLE);
     CHECK(recorder_push(40000, 0x90, 62, 90));
     recorder_poll(40000);
-    CHECK(exists("0001/0002.MID", false) && !exists("0001/SETUP.TXT", false));
+    CHECK(exists(P(1, "0002.MID"), false) && !exists(P(1, "SETUP.TXT"), false));
     CHECK(recorder_push(40100, 0x80, 62, 0));
     recorder_poll(40100);
     recorder_poll(70100);
-    CHECK(count_channel_events("0001/0002.MID", evs, 2048, NULL) == 2);
+    CHECK(count_channel_events(P(1, "0002.MID"), evs, 2048, NULL) == 2);
 
     // Directory first (a note right after power-on), text while recording.
     boot(0);
     CHECK(recorder_push(200, 0x90, 60, 100));
     recorder_poll(200);
-    CHECK(g_recorder.dir_num == 2 && !exists("0002/SETUP.TXT", false));
+    CHECK(g_recorder.dir_num == 2 && !exists(P(2, "SETUP.TXT"), false));
     recorder_poll(1000);
-    CHECK(!exists("0002/SETUP.TXT", false));
+    CHECK(!exists(P(2, "SETUP.TXT"), false));
     recorder_set_setup(SETUP_A, (uint32_t)strlen(SETUP_A));
     CHECK(recorder_push(3000, 0x80, 60, 0));
     recorder_poll(3000);
     CHECK(g_recorder.state == REC_STATE_RECORDING && g_recorder.setup_dir == 2);
-    CHECK(file_is("0002/SETUP.TXT", SETUP_A));
+    CHECK(file_is(P(2, "SETUP.TXT"), SETUP_A));
     recorder_poll(33000);
     CHECK(g_recorder.state == REC_STATE_IDLE);
-    CHECK(count_channel_events("0002/0001.MID", evs, 2048, NULL) == 2);
+    CHECK(count_channel_events(P(2, "0001.MID"), evs, 2048, NULL) == 2);
 
     // Text after the first episode closed: written while idle.
     boot(0);
@@ -397,7 +418,7 @@ static void run_setup_suite(BYTE fmt) {
     CHECK(g_recorder.state == REC_STATE_IDLE && g_recorder.dir_num == 3);
     recorder_set_setup(SETUP_A, (uint32_t)strlen(SETUP_A));
     recorder_poll(31000);
-    CHECK(g_recorder.setup_dir == 3 && file_is("0003/SETUP.TXT", SETUP_A));
+    CHECK(g_recorder.setup_dir == 3 && file_is(P(3, "SETUP.TXT"), SETUP_A));
 
     // Card error -> remount -> fresh directory gets its own copy.
     CHECK(recorder_push(40000, 0x90, 61, 100));
@@ -412,10 +433,10 @@ static void run_setup_suite(BYTE fmt) {
     CHECK(g_recorder.state == REC_STATE_IDLE && g_recorder.next_dir == 4);
     CHECK(g_recorder.setup_dir == 0);
     recorder_poll(43000);
-    CHECK(!exists("0004", true));  // still no note, still no directory
+    CHECK(!exists(P(4, NULL), true));  // still no note, still no directory
     CHECK(recorder_push(50000, 0x90, 60, 100));
     recorder_poll(50000);
-    CHECK(g_recorder.setup_dir == 4 && file_is("0004/SETUP.TXT", SETUP_A));
+    CHECK(g_recorder.setup_dir == 4 && file_is(P(4, "SETUP.TXT"), SETUP_A));
     CHECK(recorder_push(50100, 0x80, 60, 0));
     recorder_poll(50100);
     recorder_poll(80100);
@@ -444,16 +465,119 @@ static void run_setup_suite(BYTE fmt) {
     recorder_poll(40100);
     recorder_poll(70100);
     CHECK(g_recorder.state == REC_STATE_IDLE && g_recorder.file_num == 2);
-    CHECK(count_channel_events("0005/0002.MID", evs, 2048, NULL) == 2);
+    CHECK(count_channel_events(P(5, "0002.MID"), evs, 2048, NULL) == 2);
 
     // No text at all (no bridge settings yet): no SETUP.TXT, recording as before.
     boot(0);
     CHECK(recorder_push(200, 0x90, 60, 100));
     recorder_poll(200);
     recorder_poll(5000);
-    CHECK(g_recorder.dir_num == 6 && !exists("0006/SETUP.TXT", false));
+    CHECK(g_recorder.dir_num == 6 && !exists(P(6, "SETUP.TXT"), false));
     CHECK(g_recorder.setup_dir == 0);
 
+    recorder_init();
+}
+
+// One note, then silence until the file closes.
+static void one_episode(uint32_t t) {
+    CHECK(recorder_push(t, 0x90, 60, 100));
+    recorder_poll(t);
+    CHECK(recorder_push(t + 10, 0x80, 60, 0));
+    recorder_poll(t + 10);
+    recorder_poll(t + 10 + PHOTON_REC_SILENCE_MS);
+    CHECK(g_recorder.state == REC_STATE_IDLE);
+}
+
+// GGG/NNNNNN: a card from the flat layout carries on after it, groups roll
+// over at a thousand, a group with nothing (or only strays) in it still
+// means its numbers come next, and look-alike names are ignored.
+static void run_layout_suite(BYTE fmt) {
+    format_disk(fmt);
+    card_present = true;
+    write_fail = false;
+
+    // Flat-layout card: NNNN/ in the root stays; numbering goes on after it.
+    boot(0);  // mounts the fresh card, so the test can populate it
+    CHECK(g_recorder.next_dir == 1);
+    CHECK(f_mkdir("0001") == FR_OK);
+    CHECK(f_mkdir("0005") == FR_OK);
+    boot(0);
+    CHECK(g_recorder.state == REC_STATE_IDLE && g_recorder.next_dir == 6);
+    one_episode(1000);
+    CHECK(exists("000/000006/0001.MID", false));
+    CHECK(exists("0001", true) && exists("0005", true));
+    boot(0);
+    CHECK(g_recorder.next_dir == 7);
+
+    // The last of a group: the next power-on opens the next group.
+    CHECK(f_mkdir("000/000999") == FR_OK);
+    boot(0);
+    CHECK(g_recorder.next_dir == 1000);
+    one_episode(1000);
+    CHECK(exists("001/001000/0001.MID", false));
+    boot(0);
+    CHECK(g_recorder.next_dir == 1001);
+
+    // An empty group (power cut between the two mkdirs): its numbers are next.
+    CHECK(f_mkdir("003") == FR_OK);
+    boot(0);
+    CHECK(g_recorder.next_dir == 3000);
+    // Names in it that do not belong to it do not count.
+    CHECK(f_mkdir("003/004500") == FR_OK);
+    CHECK(f_mkdir("003/3001") == FR_OK);
+    CHECK(f_mkdir("003/0030010") == FR_OK);
+    boot(0);
+    CHECK(g_recorder.next_dir == 3000);
+    one_episode(1000);
+    CHECK(exists("003/003000/0001.MID", false));
+
+    // A file named like a group is not a group; an odd root name is ignored.
+    FIL f;
+    CHECK(f_open(&f, "007", FA_WRITE | FA_CREATE_NEW) == FR_OK);
+    f_close(&f);
+    CHECK(f_mkdir("0A0") == FR_OK);
+    boot(0);
+    CHECK(g_recorder.next_dir == 3001);
+    recorder_init();
+
+    // A full flat-layout card (9999) used to stop; now it goes on at 10000.
+    format_disk(fmt);
+    boot(0);
+    CHECK(f_mkdir("9999") == FR_OK);
+    boot(0);
+    CHECK(g_recorder.state == REC_STATE_IDLE && g_recorder.next_dir == 10000);
+    one_episode(1000);
+    CHECK(exists("010/010000/0001.MID", false));
+    recorder_init();
+}
+
+// More power-ons than a FAT16 root has entries (512): the groups keep the
+// root at one entry per thousand.
+static void run_many_power_ons(void) {
+    format_disk(FM_FAT);
+    card_present = true;
+    write_fail = false;
+    for (uint32_t i = 1; i <= 600; i++) {
+        boot(0);
+        CHECK(g_recorder.next_dir == i);
+        CHECK(recorder_push(100, 0x90, 60, 100));
+        recorder_poll(100);
+        CHECK(g_recorder.state == REC_STATE_RECORDING && g_recorder.dir_num == i);
+    }
+    boot(0);
+    CHECK(g_recorder.state == REC_STATE_IDLE && g_recorder.next_dir == 601);
+    CHECK(exists(P(600, "0001.MID"), false));
+    // ... where 600 directories straight in the root would not fit.
+    int made = 0;
+    for (int i = 0; i < 600; i++) {
+        char name[8];
+        snprintf(name, sizeof name, "R%03d", i);
+        if (f_mkdir(name) != FR_OK) {
+            break;
+        }
+        made++;
+    }
+    CHECK(made < 512);
     recorder_init();
 }
 
@@ -476,6 +600,10 @@ int main(void) {
     run_setup_suite(FM_FAT);
     run_setup_suite(FM_FAT32);
     run_setup_suite(FM_EXFAT);
+    run_layout_suite(FM_FAT);
+    run_layout_suite(FM_FAT32);
+    run_layout_suite(FM_EXFAT);
+    run_many_power_ons();
     printf("test_recorder: %d checks passed\n", checks);
     return 0;
 }

@@ -264,17 +264,25 @@ it: everything the bridge emits as MIDI is also written to the card as
 Standard MIDI Files, whether or not a host is listening.
 
 ```
-0001/            one directory per power-on, created on the first note
-0001/0001.MID    one file per playing episode
-0001/0002.MID    ... opened on the first note, closed after 30 s of silence
-0001/SETUP.TXT   the settings and calibration this power-on played with
-0002/            next power-on
+000/000001/            one directory per power-on, created on the first note
+000/000001/0001.MID    one file per playing episode
+000/000001/0002.MID    ... opened on the first note, closed after 30 s of silence
+000/000001/SETUP.TXT   the settings and calibration this power-on played with
+000/000002/            next power-on
+...
+001/001000/            power-ons are grouped a thousand to a directory
 ```
 
-- **Numbering is the only bookkeeping.** At mount the bridge scans the root
-  for the highest `NNNN` directory and continues from there. Directories are
-  created lazily, so idle power cycles leave nothing behind. At 9999
-  (directories or files) the recorder stops; it never wraps or overwrites.
+- **Numbering is the only bookkeeping.** At mount the bridge finds the
+  highest group, then the highest power-on in it, and continues from there.
+  Directories are created lazily, so idle power cycles leave nothing behind.
+  Power-ons run to 999999 (a card fills up long before that), files to 9999
+  per power-on; at the end the recorder stops, it never wraps or overwrites.
+- **Groups of a thousand** keep every directory small: a FAT16 root holds
+  only 512 entries and FAT32 caps any directory near 65536, so a flat list
+  of power-ons would run out. A card from the earlier flat layout (`0001/`,
+  `0002/`, ... in the root) keeps those directories and carries on after the
+  highest one.
 - **No clock, no dates.** The board has no RTC and USB carries no time, so
   every file opens with a text meta event `PHOTON power-on +HH:MM:SS.mmm`
   (time since power-on). Inside a file the delta times are exact
@@ -303,8 +311,8 @@ Console: `sd` prints the status line (state, card size and free space,
 current directory/file, counters, last error); `sd test [n]` plays a scale
 through the MIDI output on a bare bridge so the recorder can be exercised
 without sensor boards. A connected terminal also gets one line per state
-change (`[SD] recording 0001/0003.MID`, `[SD] closed ...`, `[SD] no card`,
-`[SD] saved 0001/SETUP.TXT`).
+change (`[SD] recording 000/000001/0003.MID`, `[SD] closed ...`, `[SD] no card`,
+`[SD] saved 000/000001/SETUP.TXT`).
 
 ## Bench verification (M1–M5): results
 
@@ -350,4 +358,6 @@ swing capture; the session's statuses, neighbour rule, crosstalk rejection,
 save and wire payloads), and the microSD recorder (the production
 recorder + FatFs on a RAM disk formatted FAT16/FAT32/exFAT: numbering across
 power cycles, flush validity, silence close, held-note cap, ring overflow,
-card errors, late card insert, the 9999 stop) under ASan/UBSan.
+card errors, late card insert, SETUP.TXT, the grouped layout and a
+flat-layout card carrying on, 600 power-ons on FAT16, the 999999 stop) and
+the SETUP.TXT text, under ASan/UBSan.

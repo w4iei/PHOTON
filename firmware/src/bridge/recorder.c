@@ -120,18 +120,88 @@ static void stop(const char *why) {
     g_recorder.state = REC_STATE_STOPPED;
 }
 
-static bool parse_number4(const char *name, uint32_t *out) {
+// A name of exactly `digits` decimal digits.
+static bool parse_number(const char *name, int digits, uint32_t *out) {
     uint32_t v = 0;
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < digits; i++) {
         if (name[i] < '0' || name[i] > '9') {
             return false;
         }
         v = v * 10 + (uint32_t)(name[i] - '0');
     }
-    if (name[4] != '\0') {
+    if (name[digits] != '\0') {
         return false;
     }
     *out = v;
+    return true;
+}
+
+// The highest directory in `path` named with exactly `digits` digits and a
+// value in lo..hi; *found stays false if there is none.
+static bool highest(const char *path, int digits, uint32_t lo, uint32_t hi, uint32_t *max,
+                    bool *found) {
+    DIR dir;
+    FILINFO fno;
+    *found = false;
+    if (f_opendir(&dir, path) != FR_OK) {
+        return false;
+    }
+    for (;;) {
+        if (f_readdir(&dir, &fno) != FR_OK) {
+            f_closedir(&dir);
+            return false;
+        }
+        if (fno.fname[0] == '\0') {
+            break;
+        }
+        uint32_t n;
+        if ((fno.fattrib & AM_DIR) && parse_number(fno.fname, digits, &n) && n >= lo &&
+            n <= hi && (!*found || n > *max)) {
+            *max = n;
+            *found = true;
+        }
+    }
+    f_closedir(&dir);
+    return true;
+}
+
+void recorder_dir_name(char *buf, size_t size, uint32_t num) {
+    snprintf(buf, size, "%03lu/%06lu", (unsigned long)(num / PHOTON_REC_PER_GROUP),
+             (unsigned long)num);
+}
+
+// The highest power-on on the card: the highest group, then the highest
+// power-on inside it. A group with nothing in it (power cut between its
+// mkdir and the power-on's) still means its numbers come next. Root NNNN
+// directories of the earlier flat layout count as power-ons 1-9999.
+static bool last_power_on(uint32_t *last) {
+    uint32_t group, n;
+    bool found;
+    *last = 0;
+    if (!highest("", 4, 1, 9999, &n, &found)) {
+        return false;
+    }
+    if (found) {
+        *last = n;
+    }
+    if (!highest("", 3, 0, PHOTON_REC_MAX_POWER_ON / PHOTON_REC_PER_GROUP, &group, &found)) {
+        return false;
+    }
+    if (!found) {
+        return true;
+    }
+    char path[8];
+    snprintf(path, sizeof path, "%03lu", (unsigned long)group);
+    uint32_t first = group * PHOTON_REC_PER_GROUP;
+    if (!highest(path, 6, first, first + PHOTON_REC_PER_GROUP - 1, &n, &found)) {
+        return false;
+    }
+    if (!found) {
+        n = first ? first - 1 : 0;
+    }
+    if (n > *last) {
+        *last = n;
+    }
     return true;
 }
 
@@ -146,31 +216,14 @@ static void try_mount(uint32_t now_ms) {
     mounted = true;
     g_recorder.fs_type = fs.fs_type;
 
-    // Highest existing NNNN directory decides where this power-on continues.
-    DIR dir;
-    FILINFO fno;
-    uint32_t max = 0;
-    if (f_opendir(&dir, "") != FR_OK) {
-        fail(now_ms, "root directory unreadable");
+    // The highest power-on already on the card decides where this one goes.
+    uint32_t last;
+    if (!last_power_on(&last)) {
+        fail(now_ms, "directory unreadable");
         return;
     }
-    for (;;) {
-        if (f_readdir(&dir, &fno) != FR_OK) {
-            f_closedir(&dir);
-            fail(now_ms, "root directory unreadable");
-            return;
-        }
-        if (fno.fname[0] == '\0') {
-            break;
-        }
-        uint32_t n;
-        if ((fno.fattrib & AM_DIR) && parse_number4(fno.fname, &n) && n > max) {
-            max = n;
-        }
-    }
-    f_closedir(&dir);
-    next_dir = max + 1;
-    g_recorder.next_dir = (uint16_t)(next_dir > 0xFFFF ? 0xFFFF : next_dir);
+    next_dir = last + 1;
+    g_recorder.next_dir = next_dir;
     g_recorder.dir_num = 0;
     g_recorder.file_num = 0;
     g_recorder.setup_dir = 0;
@@ -185,8 +238,8 @@ static void try_mount(uint32_t now_ms) {
     }
 
     g_recorder.last_error = NULL;
-    if (next_dir > PHOTON_REC_MAX_NUMBER) {
-        stop("directory 9999 already on card");
+    if (next_dir > PHOTON_REC_MAX_POWER_ON) {
+        stop("power-on 999999 already on card");
         return;
     }
     g_recorder.state = REC_STATE_IDLE;
@@ -238,28 +291,33 @@ static bool flush(uint32_t now_ms) {
 }
 
 static bool open_file(uint32_t now_ms, uint32_t first_t_ms) {
-    char path[16];
+    char dir[16];
+    char path[32];
     if (g_recorder.dir_num == 0) {
-        if (next_dir > PHOTON_REC_MAX_NUMBER) {
-            stop("directory 9999 reached");
+        if (next_dir > PHOTON_REC_MAX_POWER_ON) {
+            stop("power-on 999999 reached");
             return false;
         }
-        snprintf(path, sizeof path, "%04lu", (unsigned long)next_dir);
+        snprintf(path, sizeof path, "%03lu", (unsigned long)(next_dir / PHOTON_REC_PER_GROUP));
         FRESULT fr = f_mkdir(path);
+        if (fr == FR_OK || fr == FR_EXIST) {
+            recorder_dir_name(path, sizeof path, next_dir);
+            fr = f_mkdir(path);
+        }
         if (fr != FR_OK && fr != FR_EXIST) {
             fail(now_ms, "mkdir failed");
             return false;
         }
-        g_recorder.dir_num = (uint16_t)next_dir;
+        g_recorder.dir_num = next_dir;
         g_recorder.file_num = 0;
     }
-    if (g_recorder.file_num >= PHOTON_REC_MAX_NUMBER) {
+    if (g_recorder.file_num >= PHOTON_REC_MAX_FILE) {
         stop("file 9999 reached");
         return false;
     }
     g_recorder.file_num++;
-    snprintf(path, sizeof path, "%04u/%04u.MID", (unsigned)g_recorder.dir_num,
-             (unsigned)g_recorder.file_num);
+    recorder_dir_name(dir, sizeof dir, g_recorder.dir_num);
+    snprintf(path, sizeof path, "%s/%04u.MID", dir, (unsigned)g_recorder.file_num);
     if (f_open(&fil, path, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK) {
         fail(now_ms, "file create failed");
         return false;
@@ -296,8 +354,10 @@ static void write_setup(void) {
         return;
     }
     __dmb();
-    char path[16];
-    snprintf(path, sizeof path, "%04u/SETUP.TXT", (unsigned)g_recorder.dir_num);
+    char dir[16];
+    char path[32];
+    recorder_dir_name(dir, sizeof dir, g_recorder.dir_num);
+    snprintf(path, sizeof path, "%s/SETUP.TXT", dir);
     UINT bw = 0;
     FRESULT fr = f_open(&setup_fil, path, FA_WRITE | FA_CREATE_ALWAYS);
     if (fr == FR_OK) {

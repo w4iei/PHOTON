@@ -52,7 +52,7 @@ static struct {
     // microSD recorder change reporting (bridge)
     uint8_t sd_last_state;
     const char *sd_last_error;
-    uint16_t sd_last_setup_dir;
+    uint32_t sd_last_setup_dir;
 } C;
 
 void console_init(bool is_bridge, bool sensor_role) {
@@ -106,34 +106,42 @@ static const char *sd_fs_name(uint8_t t) {
 static void print_sd_status(void) {
     const recorder_status_t *r = &g_recorder;
     const char *err = r->last_error;
-    uint16_t sdir = r->setup_dir;
-    char setup[32] = "setup -";
-    if (sdir) {
-        snprintf(setup, sizeof setup, "setup %04u/SETUP.TXT%s", (unsigned)sdir,
-                 r->setup_ok ? "" : " FAILED");
+    uint32_t sdir = r->setup_dir;
+    char dir[16] = "-";
+    char next[16];
+    char setup[40] = "setup -";
+    if (r->dir_num) {
+        recorder_dir_name(dir, sizeof dir, r->dir_num);
     }
-    log_printf("[SD] %s | card %lu MB %s, %lu MB free | dir %04u file %04u (next dir %04u) | "
+    recorder_dir_name(next, sizeof next, r->next_dir);
+    if (sdir) {
+        char sd[16];
+        recorder_dir_name(sd, sizeof sd, sdir);
+        snprintf(setup, sizeof setup, "setup %s/SETUP.TXT%s", sd, r->setup_ok ? "" : " FAILED");
+    }
+    log_printf("[SD] %s | card %lu MB %s, %lu MB free | dir %s file %04u (next dir %s) | "
                "files=%lu events=%lu bytes=%lu drops=%lu errors=%lu | %s%s%s",
                recorder_state_name(r->state), (unsigned long)r->card_mb,
-               sd_fs_name(r->fs_type), (unsigned long)r->free_mb,
-               (unsigned)r->dir_num, (unsigned)r->file_num, (unsigned)r->next_dir,
-               (unsigned long)r->files_closed, (unsigned long)r->events_written,
+               sd_fs_name(r->fs_type), (unsigned long)r->free_mb, dir, (unsigned)r->file_num,
+               next, (unsigned long)r->files_closed, (unsigned long)r->events_written,
                (unsigned long)r->bytes_written, (unsigned long)r->ring_drops,
                (unsigned long)r->errors, setup, err ? " | " : "", err ? err : "");
 }
 
 // One line per state change, so a terminal left open narrates the card:
-// mounted / recording NNNN/MMMM.MID / closed / no card / stopped.
+// mounted / recording GGG/NNNNNN/MMMM.MID / closed / no card / stopped.
 static void sd_report_changes(void) {
     if (!has_recorder()) {
         return;
     }
-    uint16_t sdir = g_recorder.setup_dir;
+    char dir[16];
+    uint32_t sdir = g_recorder.setup_dir;
     if (sdir != C.sd_last_setup_dir) {
         C.sd_last_setup_dir = sdir;
         if (sdir && log_console_connected()) {
-            log_info("[SD] %s %04u/SETUP.TXT", g_recorder.setup_ok ? "saved" : "could not write",
-                     (unsigned)sdir);
+            recorder_dir_name(dir, sizeof dir, sdir);
+            log_info("[SD] %s %s/SETUP.TXT", g_recorder.setup_ok ? "saved" : "could not write",
+                     dir);
         }
     }
     uint8_t st = g_recorder.state;
@@ -150,19 +158,20 @@ static void sd_report_changes(void) {
     switch (st) {
     case REC_STATE_IDLE:
         if (prev == REC_STATE_RECORDING) {
-            log_info("[SD] closed %04u/%04u.MID (files=%lu events=%lu)",
-                     (unsigned)g_recorder.dir_num, (unsigned)g_recorder.file_num,
-                     (unsigned long)g_recorder.files_closed,
+            recorder_dir_name(dir, sizeof dir, g_recorder.dir_num);
+            log_info("[SD] closed %s/%04u.MID (files=%lu events=%lu)", dir,
+                     (unsigned)g_recorder.file_num, (unsigned long)g_recorder.files_closed,
                      (unsigned long)g_recorder.events_written);
         } else {
-            log_info("[SD] card mounted: %lu MB %s, %lu MB free; next directory %04u",
+            recorder_dir_name(dir, sizeof dir, g_recorder.next_dir);
+            log_info("[SD] card mounted: %lu MB %s, %lu MB free; next directory %s",
                      (unsigned long)g_recorder.card_mb, sd_fs_name(g_recorder.fs_type),
-                     (unsigned long)g_recorder.free_mb, (unsigned)g_recorder.next_dir);
+                     (unsigned long)g_recorder.free_mb, dir);
         }
         break;
     case REC_STATE_RECORDING:
-        log_info("[SD] recording %04u/%04u.MID", (unsigned)g_recorder.dir_num,
-                 (unsigned)g_recorder.file_num);
+        recorder_dir_name(dir, sizeof dir, g_recorder.dir_num);
+        log_info("[SD] recording %s/%04u.MID", dir, (unsigned)g_recorder.file_num);
         break;
     case REC_STATE_NO_CARD:
         log_info("[SD] %s (retrying every %u s)", err ? err : "no card",
