@@ -51,6 +51,38 @@ SPI with a CST328 capacitive touch controller over I2C. Carries RP2350 with
 external W25Q128 flash and an APS6404L PSRAM, plus one VCNT2025X01 fitted for
 bench work. Use this only if the application wants a local display.
 
+### Touchscreen and PSRAM bring-up notes
+
+Verified on 2026-09-30 on an early 001 ("A003"). Its pins match every
+schematic revision:
+
+| Signal | GPIO |
+|---|---|
+| LCD SPI1 SCK / MOSI / MISO | 10 / 11 / 12 (shared with the microSD socket) |
+| LCD CS / DC / RST / backlight | 8 / 14 / 9 / 15 |
+| Touch I2C1 SDA / SCL | 6 / 7 |
+| Touch INT / RST | 2 / 3 |
+| PSRAM CS (QMI CS1) | 0 |
+
+- **Display.** The ST7789T3 runs at 37.5 MHz SPI (clk_peri / 4), with colour
+  order RGB and inversion on. It **never answers register reads** on this
+  board: MISO and SDA both read the microSD socket's pull-ups. So check first
+  light by eye, not by reading an ID.
+- **Touch.** The CST328 (address 0x1A, signature 0xCACA, reports 240x320)
+  sends a report every ~26 ms while a finger is down. **INT falls about 2 ms
+  before the report registers are updated.** Read the chip right on the edge
+  and you get the previous, already-consumed report, which says zero
+  fingers. So wait ~2 ms after INT, and treat a finger as lifted only after
+  ~80 ms without a report. The observed worst gap was 72 ms. A shorter window
+  releases and re-presses a held finger, and that double-toggles buttons.
+- **PSRAM.** The APS6404L answers on GPIO0 (known-good-die byte 0x5D, 8 MB). A full
+  8 MB write/read test passed with 0 errors.
+
+Firmware support lives in `firmware/src/hw/psram.c` (board support; the
+PHOTON image doesn't call it). The **optional** touchscreen drivers are in
+`firmware/src/touchscreen/`. They are only for firmware that wants a local
+UI, and are built only with `-DPHOTON_TOUCHSCREEN=ON`, which fetches LVGL.
+
 ## No bridge at all
 
 **Neither bridge board is required.** A sensor node has its own USB-C
