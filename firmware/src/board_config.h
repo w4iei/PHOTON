@@ -185,4 +185,39 @@
 #define PHOTON_SD_BAUD_INIT_HZ   (250 * 1000)         // spec: <= 400 kHz until ready
 #define PHOTON_SD_BAUD_HZ        (12500 * 1000)       // 150 MHz / 12; SPI-mode max is 25
 
+// ---------------------------------------------------------------------------
+// Main controller board 001 only (not the 001D, not sensor boards, whose
+// pins mean other things), verified on hardware 2026-09-30 on an early 001
+// ("A003", same pins as every schematic revision).
+//
+// OPTIONAL touchscreen (src/touchscreen/, built only with
+// -DPHOTON_TOUCHSCREEN=ON; not part of the PHOTON image). The LCD shares SPI1
+// with the microSD socket above: firmware using both must keep them apart
+// (the recorder runs on core 1).
+// ---------------------------------------------------------------------------
+#define PHOTON_LCD_SPI           spi1
+#define PHOTON_LCD_SCK           10
+#define PHOTON_LCD_MOSI          11
+#define PHOTON_LCD_MISO          12   // wired, unused: the panel never answers reads
+#define PHOTON_LCD_CS            8
+#define PHOTON_LCD_DC            14
+#define PHOTON_LCD_RST           9
+#define PHOTON_LCD_BL            15   // backlight enable, active high (PWM dims)
+#define PHOTON_LCD_SPI_HZ        (37500 * 1000)  // 150 MHz / 4; ST7789 write limit 62.5
+#define PHOTON_LCD_WIDTH         240  // native portrait
+#define PHOTON_LCD_HEIGHT        320
+
+#define PHOTON_TOUCH_I2C         i2c1
+#define PHOTON_TOUCH_SDA         6
+#define PHOTON_TOUCH_SCL         7
+#define PHOTON_TOUCH_INT         2    // CST328 output, active low
+#define PHOTON_TOUCH_RST         3
+#define PHOTON_TOUCH_ADDR        0x1A
+#define PHOTON_TOUCH_I2C_HZ      (400 * 1000)
+
+// PSRAM (board support, src/hw/psram.c; not called by the image yet)
+#define PHOTON_PSRAM_CS          0    // APS6404L on QMI chip select 1
+#define PHOTON_PSRAM_BASE        0x11000000u  // cached window
+#define PHOTON_PSRAM_BASE_NC     0x15000000u  // uncached alias
+
 #endif // PHOTON_BOARD_CONFIG_H
