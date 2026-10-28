@@ -13,9 +13,14 @@ Design details: [docs/architecture/01-native-dual-core-firmware.md](../docs/arch
 
 ## Build
 
-Requirements: `arm-none-eabi-gcc`, `cmake`, `ninja`, `picotool` ≥ 2.3
-(all in Homebrew), and a pico-sdk ≥ 2.1 checkout with the `lib/tinyusb`
-submodule initialized:
+Requirements: `arm-none-eabi-gcc`, `cmake`, `ninja`, `picotool` ≥ 2.3:
+
+```bash
+brew install cmake ninja picotool arm-none-eabi-gcc
+```
+
+plus a pico-sdk ≥ 2.1 checkout with the `lib/tinyusb` submodule initialized
+(the SDK is not vendored here; it is a separate clone the build points at):
 
 ```bash
 git clone --depth 1 --branch 2.3.0 https://github.com/raspberrypi/pico-sdk.git ~/pico-sdk
@@ -35,18 +40,23 @@ flash writes (calibration saves) can never stall the core-1 scan loop.
 
 ## Flash / update
 
-First time (blank board): hold **USB-BOOT** while connecting USB-C (or short
-the USB-BOOT jumper), then:
+A board with no firmware on it comes up in BOOTSEL by itself: connect USB-C
+and it mounts as the `RP2350` drive, nothing to hold. Then:
 
 ```bash
 picotool load -f build/photon.uf2 && picotool reboot
 ```
 
-or copy `photon.uf2` onto the `RP2350` drive.
+or copy `photon.uf2` onto the drive.
 
-Updating a running board never needs the button: type `bootsel` on its
-console (or `bootsel <id>` from the bridge for a remote node), then run the
-same `picotool` line. `tools/flash_all.sh` does this for the whole system.
+Updating a board that is already running PHOTON needs no button either: type
+`bootsel` on its console (or `bootsel <id>` from the bridge for a remote
+node), then run the same `picotool` line. `tools/flash_all.sh` does this for
+the whole system.
+
+**USB-BOOT** (hold while connecting USB-C, or short the jumper) is the
+recovery path only — for a board carrying an image that boots but whose
+console is unreachable.
 
 **Everything configured survives a reflash**: node id, calibration, disabled
 masks, channel map, scan mode/rate, velocity range. Config lives in two

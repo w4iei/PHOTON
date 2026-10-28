@@ -57,14 +57,14 @@ See `hardware/README.md` for board-specific notes and layout sources.
 - DAW or MIDI viewer (Pianoteq, Ableton Live, Reaper, Max/MSP, etc.)
 
 ## Build & Flash
-1. Hold **USB-BOOT** (or short the USB-BOOT jumper) and connect via USB-C; copy `photon.uf2` to the mounted `RP2350` drive. The same image runs every board.
+1. A new board arrives with empty flash, so it comes up in BOOTSEL on its own: connect via USB-C and copy `photon.uf2` to the mounted `RP2350` drive. The same image runs every board.
 2. On each sensor board, set its bus id once via the USB console (`setid N`); in an instrument without a main board, also `master on` on each (see `firmware/README.md`).
 3. Calibrate. Two ways:
    - **One board, on its own USB console:** `r` clears that board's table and starts learning; play every key it covers once, one at a time, with a normal full stroke; `s` freezes the table and saves it (`x` aborts without saving).
    - **The whole instrument, from the bridge console:** `cal reset` clears every sensor board and starts learning on all of them; play every key on every manual; `cal save` then stores each board's table in its own flash. To redo a single board without disturbing the others, give its bus id: `cal reset <id>`, play that board's keys, `cal save <id>`.
 
    Calibration and configuration persist in flash and survive reflashing; only `cal reset`, `r` and `setid` clear them.
-4. Boards already running PHOTON reflash over USB alone: the `bootsel` console command enters the bootloader without touching the button.
+4. Boards already running PHOTON reflash over USB alone: the `bootsel` console command re-enters the bootloader, so the `RP2350` drive comes back without touching the board. **USB-BOOT** (hold while connecting USB-C, or short the jumper) is only needed to recover a board whose console is unreachable.
 
 ## Notes
 - **Double-manual harpsichords** run on a single bus: each manual is a pair of sensor boards mapped to its own MIDI channel (`chmap` console command). The polled protocol eliminates inter-board collisions, so simultaneous playing on both manuals loses nothing.

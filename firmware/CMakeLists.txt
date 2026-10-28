@@ -11,6 +11,25 @@ set(PICO_PLATFORM rp2350-arm-s)
 set(PICO_BOARD photon_rp2350)
 list(APPEND PICO_BOARD_HEADER_DIRS ${CMAKE_CURRENT_LIST_DIR}/boards)
 
+# Fail early and legibly when the SDK is missing or was cloned without the
+# tinyusb submodule: pico_sdk_import.cmake only checks that the directory
+# exists, so a submodule-less checkout otherwise fails much later with a
+# bare "tusb.h: No such file or directory".
+set(PHOTON_SDK_CHECK "${PICO_SDK_PATH}")
+if (NOT PHOTON_SDK_CHECK)
+    set(PHOTON_SDK_CHECK "$ENV{PICO_SDK_PATH}")
+endif ()
+if (NOT EXISTS "${PHOTON_SDK_CHECK}/lib/tinyusb/src/tusb.h")
+    message(FATAL_ERROR
+        "No usable Pico SDK at '${PHOTON_SDK_CHECK}'.\n"
+        "PHOTON needs a pico-sdk >= 2.1 checkout WITH the lib/tinyusb submodule "
+        "(USB-MIDI and the console are TinyUSB):\n"
+        "  git clone --depth 1 --branch 2.3.0 https://github.com/raspberrypi/pico-sdk.git ~/pico-sdk\n"
+        "  git -C ~/pico-sdk submodule update --init --depth 1 lib/tinyusb\n"
+        "Or point the build at an existing checkout:\n"
+        "  cmake -B build -G Ninja -DPICO_SDK_PATH=/path/to/pico-sdk")
+endif ()
+
 include(pico_sdk_import.cmake)
 
 project(photon_firmware C CXX ASM)
