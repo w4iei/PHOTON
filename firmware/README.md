@@ -59,7 +59,7 @@ recovery path only — for a board carrying an image that boots but whose
 console is unreachable.
 
 **Everything configured survives a reflash**: node id, calibration, disabled
-masks, channel map, scan mode/rate, velocity range. Config lives in two
+masks, channel map, scan mode/rate, velocity range, note-on margin. Config lives in two
 sectors above the program image, which a UF2 drop does not touch, and the
 loader accepts records written by any older build (fields are append-only,
 so an old record is a prefix of the current one; missing fields take
@@ -85,6 +85,16 @@ flash.
 
 Mode 0 (sequential, ~390 Hz ceiling) lights one emitter at a time and is
 kept only as a crosstalk-free benchmarking reference.
+
+**Note-on margin** (`strikemargin <pts>`, default 1, saved and broadcast to
+every board): note-on fires this many points above 60% of each key's
+calibrated range. Only the note-on point moves; the velocity timer still
+starts at 30% and release is unchanged. A very gentle press can flex a
+plectrum past 60% without plucking, the way an 8'+4' can sound the 4'
+alone, so the margin moves note-on past that point. It is kept apart from
+calibration, so `cal reset` leaves it alone. The default comes from an
+on-instrument finding (2026-10-28), not from the 2026-09-02 measurements
+above.
 
 One hardware quirk the driver works around: on every TLA2518 fitted, GPIO0
 in push-pull mode drives high regardless of GPO_VALUE, so the slot-3
@@ -164,7 +174,7 @@ Any node's USB-C gives a console (`screen /dev/tty.usbmodem* 115200`).
 `help` lists commands: `stats`, `nodes`, `data`, `minmax`, `ping`, `trace`,
 `capture`, `burst`, `test` (pseudorandom load), `cal save|reset`, `r`/`s`/`x`
 (calibration), `mode`, `rate`, `localmidi`, `master`, `chmap`,
-`disable`/`enable`, `velrange`, `velcurve`, `setid`, `log on|off`,
+`disable`/`enable`, `velrange`, `velcurve`, `strikemargin`, `setid`, `log on|off`,
 `flashtest`, `sd`, `reboot`, `bootsel`, `id`.
 The banner and `id` name the build: git short hash (`-dirty` when `firmware/`
 had uncommitted changes) and build time, from a `build_id.h` that CMake

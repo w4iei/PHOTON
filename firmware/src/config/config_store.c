@@ -95,6 +95,7 @@ static void fill_defaults(photon_config_t *c) {
     c->vel_curve = PHOTON_VEL_CURVE;
     c->vel_out_min = PHOTON_VEL_OUT_MIN;
     c->vel_out_max = PHOTON_VEL_OUT_MAX;
+    c->strike_margin_pct = PHOTON_STRIKE_MARGIN_PCT;
 }
 
 static void load_defaults(void) {

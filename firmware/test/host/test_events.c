@@ -86,6 +86,28 @@ static void test_strike_disarm_hysteresis(void) {
     CHECK(ev.state == 1 && ev.dt_us == 0);  // both crossings in one sweep
 }
 
+// Margin +1: note-on at 61% -> press 1220 (value 2220). A press past 60% but
+// short of 61% (a plectrum flexing without plucking) stays silent; the
+// velocity timer still starts at the 30% crossing.
+static void test_strike_margin(void) {
+    setup();
+    g_events.strike_margin_pct = 1;
+    feed(1000, 0);
+    feed(1700, 1000);       // press 700: arms, t=1000
+    feed(2210, 2000);       // press 1210: past 60%, short of 61%
+    CHECK(ring_count() == 0);
+    feed(2230, 3000);       // press 1230 >= 1220: ON, dt = 3000-1000
+    CHECK(ring_count() == 1);
+    photon_event_t ev = pop();
+    CHECK(ev.state == 1 && ev.dt_us == 2000);
+
+    feed(2500, 4000);       // press 1500 <= 1600: release arms, t=4000
+    feed(1700, 5000);       // press 700 <= 800: OFF, release unchanged
+    CHECK(ring_count() == 1);
+    ev = pop();
+    CHECK(ev.state == 0 && ev.dt_us == 1000);
+}
+
 static void test_range_gate(void) {
     setup();
     events_reset_cal();          // no calibration: learn from signal
@@ -152,6 +174,7 @@ int main(void) {
     test_drift_below_frozen_min();
     test_strike_release_dt();
     test_strike_disarm_hysteresis();
+    test_strike_margin();
     test_range_gate();
     test_frozen_empty_cal_inert();
     test_zero_reading_ignored();

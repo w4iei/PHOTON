@@ -244,6 +244,9 @@ static void print_help(void) {
                " broadcast)");
     log_printf("  velcurve <min_ms> <max_ms> <gamma>  dt window (log) and skew"
                " (saved, broadcast)");
+    log_printf("  strikemargin <pts>   note-on this many points above %d%% of the"
+               " calibrated range (0-%d; saved, broadcast)",
+               PHOTON_STRIKE_PCT, PHOTON_STRIKE_MARGIN_MAX_PCT);
     log_printf("  disable|enable [idx]  mask a sensor (node: local idx; bridge/master: global idx);"
                " no idx: list");
     log_printf("  setid <n> | setid <node> <newid>   bus id, local or remote");
@@ -292,11 +295,13 @@ void console_print_banner(int banks_found) {
                    (unsigned long)g_config_migrated_from,
                    (unsigned)sizeof(photon_config_t));
     }
-    log_printf("[CFG] RS-485: %.2f Mbaud | scan: %u Hz paced | vel: %u-%u",
+    log_printf("[CFG] RS-485: %.2f Mbaud | scan: %u Hz paced | vel: %u-%u"
+               " | note-on: %u%%",
                (double)PHOTON_RS485_BAUD / 1e6,
                g_config.scan_rate_hz ? g_config.scan_rate_hz
                                      : PHOTON_DEFAULT_SCAN_RATE_HZ,
-               (unsigned)g_config.vel_out_min, (unsigned)g_config.vel_out_max);
+               (unsigned)g_config.vel_out_min, (unsigned)g_config.vel_out_max,
+               (unsigned)(PHOTON_STRIKE_PCT + g_config.strike_margin_pct));
     if (has_recorder()) {
         print_sd_status();
     }
@@ -848,6 +853,40 @@ static void handle_line(char *line) {
                          (double)g_config.vel_min_ms, (double)g_config.vel_max_ms,
                          (double)g_config.vel_curve,
                          C.is_bridge ? "; broadcast" : "");
+            }
+        }
+    } else if (strcmp(cmd, "strikemargin") == 0) {
+        // Points of each key's calibrated range above PHOTON_STRIKE_PCT before
+        // note-on: a gentle press can flex a plectrum past the strike
+        // threshold without plucking. Calibration is untouched.
+        if (a1 == NULL) {
+            log_note("strikemargin <0-%d> (now %u: note-on at %u%% of the"
+                     " calibrated range)",
+                     PHOTON_STRIKE_MARGIN_MAX_PCT,
+                     (unsigned)g_config.strike_margin_pct,
+                     (unsigned)(PHOTON_STRIKE_PCT + g_config.strike_margin_pct));
+        } else {
+            int pts = atoi(a1);
+            if (pts < 0 || pts > PHOTON_STRIKE_MARGIN_MAX_PCT) {
+                log_note("strikemargin: 0-%d", PHOTON_STRIKE_MARGIN_MAX_PCT);
+            } else {
+                // Applied here AND broadcast, like velrange: the scanner on
+                // each node uses it, and every board holds an identical copy.
+                g_config.strike_margin_pct = (uint8_t)pts;
+                config_store_save();
+                if (C.sensor_role) {
+                    photon_cmd_t cmdm = { .op = PHOTON_CMD_STRIKE_MARGIN,
+                                          .a = (uint32_t)pts };
+                    push_core1_cmd(&cmdm);
+                }
+                if (C.is_bridge) {
+                    send_nodectl(10, (uint16_t)pts, PHOTON_ADDR_BROADCAST);
+                }
+                log_info("note-on margin -> %d (note-on at %d%%; saved%s)", pts,
+                         PHOTON_STRIKE_PCT + pts,
+                         C.is_bridge ? "; broadcast, brief node drop-out while"
+                                       " they write flash"
+                                     : "");
             }
         }
     } else if (strcmp(cmd, "log") == 0 && a1 != NULL) {

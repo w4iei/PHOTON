@@ -116,7 +116,7 @@ void events_process(const uint16_t *readings, uint32_t now_us) {
             press = rng;
         }
         uint32_t vel_start_thr = rng * vel_start_pct / 100;
-        uint32_t strike_thr = rng * PHOTON_STRIKE_PCT / 100;
+        uint32_t strike_thr = rng * (PHOTON_STRIKE_PCT + e->strike_margin_pct) / 100;
         uint32_t rel_vel_thr = rng * rel_vel_pct / 100;
         uint32_t rel_thr = rng * rel_pct / 100;
 

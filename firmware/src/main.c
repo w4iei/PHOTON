@@ -102,6 +102,10 @@ int main(void) {
         // calibration => boot straight into learning so the board is usable,
         // with the console banner flagging the uncalibrated state.
         g_events.learning = !have_cal;
+        g_events.strike_margin_pct =
+            g_config.strike_margin_pct <= PHOTON_STRIKE_MARGIN_MAX_PCT
+                ? g_config.strike_margin_pct
+                : PHOTON_STRIKE_MARGIN_PCT;
         g_scan_ctl.mode = g_config.scan_mode <= PHOTON_SCAN_TWO_PHASE
                               ? g_config.scan_mode
                               : PHOTON_SCAN_PARALLEL;

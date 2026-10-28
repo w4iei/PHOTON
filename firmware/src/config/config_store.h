@@ -60,6 +60,11 @@ typedef struct __attribute__((packed)) {
     // carries the USB cable runs the bus. 0 (and every config saved before
     // the field existed) = plain node.
     uint8_t bus_master;
+    // Note-on margin, points above PHOTON_STRIKE_PCT ('strikemargin'). Held
+    // identical on every board, like the velocity settings. Separate from
+    // calibration: 'cal reset' leaves it alone. Configs saved before the
+    // field existed take PHOTON_STRIKE_MARGIN_PCT.
+    uint8_t strike_margin_pct;
     uint32_t crc;             // CRC32 over all preceding bytes
 } photon_config_t;
 

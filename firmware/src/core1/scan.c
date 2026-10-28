@@ -281,6 +281,11 @@ static void drain_mailbox(void) {
                     g_scan_ctl.settle_us = (uint16_t)cmd.a;
                 }
                 break;
+            case PHOTON_CMD_STRIKE_MARGIN:
+                if (cmd.a <= PHOTON_STRIKE_MARGIN_MAX_PCT) {
+                    g_events.strike_margin_pct = (uint8_t)cmd.a;
+                }
+                break;
             case PHOTON_CMD_SCAN_RATE:
                 g_scan_ctl.rate_hz = cmd.a == 0 ? PHOTON_DEFAULT_SCAN_RATE_HZ
                                    : cmd.a >= 0xFFFF ? 0

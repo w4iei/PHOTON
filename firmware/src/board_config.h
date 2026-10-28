@@ -66,6 +66,14 @@
 #define PHOTON_VELOCITY_WINDOW_PCT   20
 #define PHOTON_STRIKE_WINDOW_PCT     30
 #define PHOTON_MIN_EVENT_RANGE       170  // scaled by << osr_mode at runtime (1360 @ OSR 3)
+// Note-on margin, points of the calibrated range added to PHOTON_STRIKE_PCT
+// for the note-on threshold only (the velocity timer still starts at
+// STRIKE - STRIKE_WINDOW; release is unchanged). A very gentle press can flex
+// a plectrum past the strike threshold without plucking, as on an 8'+4'
+// where the 4' sounds alone. +1 from an on-instrument finding (2026-10-28),
+// not part of the 2026-09-02 measurements. Runtime: 'strikemargin' (saved).
+#define PHOTON_STRIKE_MARGIN_PCT     1
+#define PHOTON_STRIKE_MARGIN_MAX_PCT 20
 
 // ---------------------------------------------------------------------------
 // RS-485 transport (current hardware, Plan 1)

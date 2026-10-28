@@ -27,6 +27,9 @@ typedef struct {
     uint32_t disabled_mask;
     uint32_t last_now_us;   // timestamp of the current sweep (for synthesized OFFs)      // bit per local sensor
     uint32_t polarity_mask;      // bit set = inverted (pressed = lower value)
+    // Note-on margin, points above PHOTON_STRIKE_PCT. events_init() leaves
+    // it 0; main sets it from the config, the mailbox updates it.
+    uint8_t  strike_margin_pct;
     bool     note_on[PHOTON_MAX_SENSORS];
     // strike/release arming state
     bool     strike_pending[PHOTON_MAX_SENSORS];

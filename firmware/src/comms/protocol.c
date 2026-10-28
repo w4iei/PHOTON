@@ -421,6 +421,20 @@ static void node_handle_request(const photon_frame_t *f, bool addressed) {
                     }
                     break;
                 }
+                case 10: {   // note-on margin + persist
+                    // Same rationale as op 6: kept identical on every board.
+                    uint8_t ok = 0;
+                    if (arg <= PHOTON_STRIKE_MARGIN_MAX_PCT) {
+                        photon_cmd_t c = { .op = PHOTON_CMD_STRIKE_MARGIN, .a = arg };
+                        cmd_mailbox_push(&c);
+                        g_config.strike_margin_pct = (uint8_t)arg;
+                        ok = config_store_save() ? 1 : 0;
+                    }
+                    if (addressed) {
+                        send_reply(PHOTON_FT_CAL_ACK, f->src, f->seq, &ok, 1, false);
+                    }
+                    break;
+                }
                 default:
                     break;
             }
