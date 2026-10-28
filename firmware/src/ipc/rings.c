@@ -6,12 +6,14 @@ photon_event_ring_t g_event_ring;
 photon_snapshot_t g_snapshot;
 photon_cmd_mailbox_t g_cmd_mailbox;
 photon_trace_ring_t g_trace_ring;
+uint8_t g_strike_stage[PHOTON_MAX_SENSORS];
 
 void rings_init(void) {
     memset(&g_event_ring, 0, sizeof g_event_ring);
     memset(&g_snapshot, 0, sizeof g_snapshot);
     memset(&g_cmd_mailbox, 0, sizeof g_cmd_mailbox);
     memset(&g_trace_ring, 0, sizeof g_trace_ring);
+    memset(g_strike_stage, 0, sizeof g_strike_stage);
 }
 
 void snapshot_read(photon_snapshot_t *out) {

@@ -14,12 +14,15 @@
 #include "board_config.h"
 #include "bridge/midi_map.h"
 #include "bridge/recorder.h"
+#include "bridge/setup_log.h"
+#include "cal/cal_session.h"
 #include "comms/protocol.h"
 #include "comms/transport.h"
 #include "config/config_store.h"
 #include "core1/events.h"
 #include "core1/scan.h"
 #include "ipc/rings.h"
+#include "usb/cal_view.h"
 #include "usb/midi_out.h"
 #include "util/log.h"
 
@@ -49,6 +52,7 @@ static struct {
     // microSD recorder change reporting (bridge)
     uint8_t sd_last_state;
     const char *sd_last_error;
+    uint32_t sd_last_setup_dir;
 } C;
 
 void console_init(bool is_bridge, bool sensor_role) {
@@ -58,10 +62,14 @@ void console_init(bool is_bridge, bool sensor_role) {
     C.trace_sensor = PHOTON_TRACE_DEFAULT_SENSOR;
     C.log_events = true;
     C.next_heartbeat_at = make_timeout_time_ms(5000);
+    calview_init(is_bridge, sensor_role);
     C.sd_last_state = 0xFF;
 }
 
-void console_set_bus_master(bool on) { C.is_bridge = on; }
+void console_set_bus_master(bool on) {
+    C.is_bridge = on;
+    calview_set_bus_master(on);
+}
 
 // The microSD socket exists on the main controller board only.
 static bool has_recorder(void) { return C.is_bridge && !C.sensor_role; }
@@ -98,21 +106,43 @@ static const char *sd_fs_name(uint8_t t) {
 static void print_sd_status(void) {
     const recorder_status_t *r = &g_recorder;
     const char *err = r->last_error;
-    log_printf("[SD] %s | card %lu MB %s, %lu MB free | dir %04u file %04u (next dir %04u) | "
-               "files=%lu events=%lu bytes=%lu drops=%lu errors=%lu%s%s",
+    uint32_t sdir = r->setup_dir;
+    char dir[16] = "-";
+    char next[16];
+    char setup[40] = "setup -";
+    if (r->dir_num) {
+        recorder_dir_name(dir, sizeof dir, r->dir_num);
+    }
+    recorder_dir_name(next, sizeof next, r->next_dir);
+    if (sdir) {
+        char sd[16];
+        recorder_dir_name(sd, sizeof sd, sdir);
+        snprintf(setup, sizeof setup, "setup %s/SETUP.TXT%s", sd, r->setup_ok ? "" : " FAILED");
+    }
+    log_printf("[SD] %s | card %lu MB %s, %lu MB free | dir %s file %04u (next dir %s) | "
+               "files=%lu events=%lu bytes=%lu drops=%lu errors=%lu | %s%s%s",
                recorder_state_name(r->state), (unsigned long)r->card_mb,
-               sd_fs_name(r->fs_type), (unsigned long)r->free_mb,
-               (unsigned)r->dir_num, (unsigned)r->file_num, (unsigned)r->next_dir,
-               (unsigned long)r->files_closed, (unsigned long)r->events_written,
+               sd_fs_name(r->fs_type), (unsigned long)r->free_mb, dir, (unsigned)r->file_num,
+               next, (unsigned long)r->files_closed, (unsigned long)r->events_written,
                (unsigned long)r->bytes_written, (unsigned long)r->ring_drops,
-               (unsigned long)r->errors, err ? " | " : "", err ? err : "");
+               (unsigned long)r->errors, setup, err ? " | " : "", err ? err : "");
 }
 
 // One line per state change, so a terminal left open narrates the card:
-// mounted / recording NNNN/MMMM.MID / closed / no card / stopped.
+// mounted / recording GGG/NNNNNN/MMMM.MID / closed / no card / stopped.
 static void sd_report_changes(void) {
     if (!has_recorder()) {
         return;
+    }
+    char dir[16];
+    uint32_t sdir = g_recorder.setup_dir;
+    if (sdir != C.sd_last_setup_dir) {
+        C.sd_last_setup_dir = sdir;
+        if (sdir && log_console_connected()) {
+            recorder_dir_name(dir, sizeof dir, sdir);
+            log_info("[SD] %s %s/SETUP.TXT", g_recorder.setup_ok ? "saved" : "could not write",
+                     dir);
+        }
     }
     uint8_t st = g_recorder.state;
     const char *err = g_recorder.last_error;
@@ -128,19 +158,20 @@ static void sd_report_changes(void) {
     switch (st) {
     case REC_STATE_IDLE:
         if (prev == REC_STATE_RECORDING) {
-            log_info("[SD] closed %04u/%04u.MID (files=%lu events=%lu)",
-                     (unsigned)g_recorder.dir_num, (unsigned)g_recorder.file_num,
-                     (unsigned long)g_recorder.files_closed,
+            recorder_dir_name(dir, sizeof dir, g_recorder.dir_num);
+            log_info("[SD] closed %s/%04u.MID (files=%lu events=%lu)", dir,
+                     (unsigned)g_recorder.file_num, (unsigned long)g_recorder.files_closed,
                      (unsigned long)g_recorder.events_written);
         } else {
-            log_info("[SD] card mounted: %lu MB %s, %lu MB free; next directory %04u",
+            recorder_dir_name(dir, sizeof dir, g_recorder.next_dir);
+            log_info("[SD] card mounted: %lu MB %s, %lu MB free; next directory %s",
                      (unsigned long)g_recorder.card_mb, sd_fs_name(g_recorder.fs_type),
-                     (unsigned long)g_recorder.free_mb, (unsigned)g_recorder.next_dir);
+                     (unsigned long)g_recorder.free_mb, dir);
         }
         break;
     case REC_STATE_RECORDING:
-        log_info("[SD] recording %04u/%04u.MID", (unsigned)g_recorder.dir_num,
-                 (unsigned)g_recorder.file_num);
+        recorder_dir_name(dir, sizeof dir, g_recorder.dir_num);
+        log_info("[SD] recording %s/%04u.MID", dir, (unsigned)g_recorder.file_num);
         break;
     case REC_STATE_NO_CARD:
         log_info("[SD] %s (retrying every %u s)", err ? err : "no card",
@@ -189,8 +220,8 @@ static const char *note_name(int16_t note, char *buf, size_t n) {
 
 void console_print_event(uint8_t node_id, const photon_event_t *ev,
                          int16_t note, uint8_t velocity, uint8_t channel) {
-    if (!C.log_events) {
-        return;
+    if (!C.log_events || calview_busy()) {
+        return;  // off, or the calibration view / a dump owns the screen
     }
     char nm[8];
     log_printf("[EVT] %-3s node=%u s=%-2u %s(%d) ch=%u vel=%-3u dt=%lu.%lums",
@@ -228,12 +259,21 @@ static void print_help(void) {
     log_printf("  minmax [id]      calibration min/max");
     log_printf("  ping <id>        probe a node id");
     log_printf("  <Enter>          live sensor table");
-    log_printf("  r / s / x        calibrate: start / freeze+save / abort");
+    log_printf("  r / s / x        calibrate this board: start / freeze+save / abort");
     log_printf("  trace <sensor> [node] / trace stop");
     log_printf("  capture [sec]    timed local trace of last/default sensor");
     log_printf("  burst <n> [id]   inject one-shot synthetic events");
     log_printf("  test <evps|stop> [id]  pseudorandom load for loss validation");
-    log_printf("  cal save|reset [id]  persist / clear calibration (one node or all)");
+    log_printf("  cal reset|save [id ...]  start / store calibration (every board, or the"
+               " ids given)");
+    log_printf("  cal view [on|off]    live keyboard: a key turns green once its pluck is"
+               " captured");
+    log_printf("  cal compare [id ...] calibration before vs after (min, max, strike %%)");
+    log_printf("  cal dump [id] [key]  captured swings as CSV (tools/cal_dump.py saves them)");
+    log_printf("  cal rules [w r j m] [id ...]  knee search: window +/-w%%, snap r x steeper,"
+               " jump j%%, threshold m%% above (saved)");
+    log_printf("  strike [knee|global] [id ...]  per-key thresholds from calibration, or"
+               " %d%% for every key (saved)", PHOTON_STRIKE_PCT);
     log_printf("  mode <0|1|2> [id]    scan: 0=seq 1=parallel 2=two-phase (bridge: remote)");
     log_printf("  rate <hz>|max [id]   paced sweep rate (saved; bridge: remote)");
     log_printf("  settle <us> [id]     emitter settle for A/B (5-500; NOT saved)");
@@ -244,9 +284,9 @@ static void print_help(void) {
                " broadcast)");
     log_printf("  velcurve <min_ms> <max_ms> <gamma>  dt window (log) and skew"
                " (saved, broadcast)");
-    log_printf("  strikemargin <pts>   note-on this many points above %d%% of the"
-               " calibrated range (0-%d; saved, broadcast)",
-               PHOTON_STRIKE_PCT, PHOTON_STRIKE_MARGIN_MAX_PCT);
+    log_printf("  strikemargin <pts>   note-on this many points past each key's"
+               " strike threshold (0-%d; saved, broadcast)",
+               PHOTON_STRIKE_MARGIN_MAX_PCT);
     log_printf("  disable|enable [idx]  mask a sensor (node: local idx; bridge/master: global idx);"
                " no idx: list");
     log_printf("  setid <n> | setid <node> <newid>   bus id, local or remote");
@@ -295,13 +335,18 @@ void console_print_banner(int banks_found) {
                    (unsigned long)g_config_migrated_from,
                    (unsigned)sizeof(photon_config_t));
     }
-    log_printf("[CFG] RS-485: %.2f Mbaud | scan: %u Hz paced | vel: %u-%u"
-               " | note-on: %u%%",
+    log_printf("[CFG] RS-485: %.2f Mbaud | scan: %u Hz paced | vel: %u-%u",
                (double)PHOTON_RS485_BAUD / 1e6,
                g_config.scan_rate_hz ? g_config.scan_rate_hz
                                      : PHOTON_DEFAULT_SCAN_RATE_HZ,
-               (unsigned)g_config.vel_out_min, (unsigned)g_config.vel_out_max,
-               (unsigned)(PHOTON_STRIKE_PCT + g_config.strike_margin_pct));
+               (unsigned)g_config.vel_out_min, (unsigned)g_config.vel_out_max);
+    if (C.sensor_role || C.is_bridge) {
+        log_printf("[CFG] strike: %s | note-on margin +%u",
+                   g_config.strike_mode == PHOTON_STRIKE_MODE_GLOBAL
+                       ? "global (every key at the fixed threshold)"
+                       : "knee (per-key thresholds where calibrated)",
+                   (unsigned)g_config.strike_margin_pct);
+    }
     if (C.is_bridge && PHOTON_REVERSED_NODES != 0) {
         char ids[3 * PHOTON_MAX_NODE_ID + 1] = "";
         int off = 0;
@@ -441,16 +486,27 @@ static void cal_enter(void) {
     photon_cmd_t c2 = { .op = PHOTON_CMD_CAL_LEARN, .a = 1 };
     push_core1_cmd(&c1);
     push_core1_cmd(&c2);
-    log_info("CALIBRATION: play every key one at a time, full swing.");
-    log_info("Enter shows the table; 's' freezes+saves, 'x' aborts (freeze only).");
+    log_info("CALIBRATION: slow-press every key until it plucks, then let it up. Coupler off;"
+             " keys that are not neighbours may go down together.");
+    log_info("'s' freezes+saves, 'x' aborts (freeze only).");
+    calview_show(true, true);
 }
 
 static void cal_freeze(bool save) {
     photon_cmd_t c = { .op = PHOTON_CMD_CAL_LEARN, .a = 0 };
     push_core1_cmd(&c);
+    calview_show(false, false);
     if (save) {
+        // Knees become per-key strike thresholds; a board that was not
+        // calibrating keeps the ones it has.
+        bool knees = cal_session_commit();
         config_store_save();
-        log_info("calibration frozen and saved");
+        log_info("calibration frozen and saved%s",
+                 knees ? " with a strike threshold per key" : "");
+        if (knees) {
+            uint8_t id = g_config.node_id;
+            calview_compare(&id, 1, 0);
+        }
     } else {
         log_info("calibration frozen (not saved)");
     }
@@ -528,6 +584,244 @@ static void capture_start(float seconds) {
     C.capture_deadline = make_timeout_time_us((uint64_t)(seconds * 1e6f));
     photon_cmd_t cmd = { .op = PHOTON_CMD_TRACE_TAP, .arg8 = C.trace_sensor, .a = 1 };
     push_core1_cmd(&cmd);
+}
+
+// ---------------------------------------------------------------------------
+// 'cal ...': knee calibration across the bus. Without ids the bus-wide form
+// reaches every board (and this board's own scanner); with ids only those.
+// ---------------------------------------------------------------------------
+
+static int parse_ids(char *first, char **save, uint8_t *ids, int max) {
+    int n = 0;
+    for (char *t = first; t != NULL && n < max; t = strtok_r(NULL, " \t", save)) {
+        int id = atoi(t);
+        if (id >= 1 && id <= PHOTON_MAX_NODE_ID) {
+            ids[n++] = (uint8_t)id;
+        } else {
+            log_note("cal: board id 1-%d, not '%s'", PHOTON_MAX_NODE_ID, t);
+        }
+    }
+    return n;
+}
+
+static bool is_own_id(uint8_t id) {
+    return C.sensor_role && id == g_config.node_id;
+}
+
+static void print_rules(void) {
+    uint8_t margin;
+    knee_rules_t r = cal_session_rules(&margin);
+    log_printf("knee rules%s: search %u-%u%% of the travel, snap %u.%ux steeper than the"
+               " approach and %u%% of the travel, threshold %u%% above the knee",
+               C.is_bridge && !C.sensor_role ? " (this bridge's copy)" : "", r.lo_pct,
+               r.hi_pct, r.ratio_x10 / 10, r.ratio_x10 % 10, r.jump_pct, margin);
+}
+
+// 'cal rules <window%> <ratio> <jump%> <margin%> [id ...]'. Saved on each
+// board; a calibration in progress there is judged again straight away,
+// so the rules can be tuned against keys already pressed.
+static void cal_rules_cmd(char *first, char **save) {
+    if (first == NULL) {
+        print_rules();
+        return;
+    }
+    char *t2 = strtok_r(NULL, " \t", save);
+    char *t3 = t2 ? strtok_r(NULL, " \t", save) : NULL;
+    char *t4 = t3 ? strtok_r(NULL, " \t", save) : NULL;
+    uint8_t r[4] = { 0 };
+    if (t4 != NULL) {
+        r[0] = (uint8_t)atoi(first);
+        r[1] = (uint8_t)(atof(t2) * 10.0 + 0.5);
+        r[2] = (uint8_t)atoi(t3);
+        r[3] = (uint8_t)atoi(t4);
+    }
+    if (t4 == NULL || !cal_rules_valid(r)) {
+        log_note("cal rules <window 1-40> <ratio 1.1-10> <jump 1-50> <margin 0-20> [id ...]"
+                 " (0 = default %d %d.%d %d %d)", PHOTON_KNEE_WINDOW_PCT,
+                 PHOTON_KNEE_RATIO_X10 / 10, PHOTON_KNEE_RATIO_X10 % 10, PHOTON_KNEE_JUMP_PCT,
+                 PHOTON_KNEE_MARGIN_PCT);
+        return;
+    }
+    uint8_t ids[PHOTON_MAX_NODE_ID];
+    int n = parse_ids(strtok_r(NULL, " \t", save), save, ids, PHOTON_MAX_NODE_ID);
+    bool local = n == 0;  // this board's copy (and its keys, on a sensor board)
+    if (n == 0 && C.is_bridge) {
+        protocol_bridge_request(PHOTON_FT_CAL_RULES, PHOTON_ADDR_BROADCAST, r, 4);
+    }
+    for (int i = 0; i < n; i++) {
+        if (is_own_id(ids[i])) {
+            local = true;
+        } else if (C.is_bridge) {
+            protocol_bridge_request(PHOTON_FT_CAL_RULES, ids[i], r, 4);
+        }
+    }
+    if (local) {
+        g_config.knee_window_pct = r[0];
+        g_config.knee_ratio_x10 = r[1];
+        g_config.knee_jump_pct = r[2];
+        g_config.knee_margin_pct = r[3];
+        config_store_save();
+        cal_session_reanalyse();
+    }
+    print_rules();
+    if (C.is_bridge) {
+        log_info("sent to %s (saved there; boards calibrating now re-judge their keys)",
+                 n ? "the ids given" : "every board");
+    }
+}
+
+// 'strike [knee|global] [id ...]': the per-key thresholds knee calibration
+// found, or the fixed global one for every key (instruments with no pluck).
+// Knees are kept either way, so switching back needs no recalibration.
+static void handle_strike(const char *mode, char *first, char **save) {
+    if (mode == NULL) {
+        log_printf("strike: %s%s", g_config.strike_mode == PHOTON_STRIKE_MODE_GLOBAL
+                                        ? "global, every key at the fixed threshold"
+                                        : "knee, per-key thresholds where calibrated",
+                   C.is_bridge && !C.sensor_role ? " (this bridge's copy; the boards keep"
+                                                   " their own)" : "");
+        return;
+    }
+    uint8_t m;
+    if (strcmp(mode, "knee") == 0) {
+        m = PHOTON_STRIKE_MODE_KNEE;
+    } else if (strcmp(mode, "global") == 0) {
+        m = PHOTON_STRIKE_MODE_GLOBAL;
+    } else {
+        log_note("strike knee|global [id ...]");
+        return;
+    }
+    uint8_t ids[PHOTON_MAX_NODE_ID];
+    int n = parse_ids(first, save, ids, PHOTON_MAX_NODE_ID);
+    if (first != NULL && n == 0) {
+        return;
+    }
+    bool local = n == 0;
+    if (n == 0 && C.is_bridge) {
+        send_nodectl(10, m, PHOTON_ADDR_BROADCAST);
+    }
+    for (int i = 0; i < n; i++) {
+        if (is_own_id(ids[i])) {
+            local = true;
+        } else if (C.is_bridge) {
+            send_nodectl(10, m, ids[i]);
+        }
+    }
+    if (local) {
+        g_config.strike_mode = m;
+        config_store_save();
+        if (C.sensor_role) {
+            cal_session_apply_mode();
+        }
+    }
+    log_info("strike %s -> %s%s", mode, n ? "the ids given" : C.is_bridge ? "every board" :
+             "this board",
+             m == PHOTON_STRIKE_MODE_GLOBAL
+                 ? ": every key at the fixed threshold; calibration asks for no knees"
+                 : ": per-key thresholds from knee calibration (keys without one: fixed)");
+}
+
+static void handle_cal(const char *sub, char *first, char **save) {
+    if (sub == NULL) {
+        log_note("cal reset|save|compare [id ...] | cal view [on|off] | cal dump [id] [key]");
+        return;
+    }
+    if (strcmp(sub, "start") == 0) {
+        if (C.sensor_role) {
+            cal_enter();
+        }
+        return;
+    }
+    if (strcmp(sub, "view") == 0) {
+        calview_show(first == NULL ? !calview_showing() : strcmp(first, "off") != 0, false);
+        return;
+    }
+    if (strcmp(sub, "dump") == 0) {
+        char *key = first != NULL ? strtok_r(NULL, " \t", save) : NULL;
+        int node = first != NULL ? atoi(first) : (C.sensor_role ? g_config.node_id : 0);
+        if (node < 1 || node > PHOTON_MAX_NODE_ID) {
+            log_note("cal dump <id> [key]");
+            return;
+        }
+        calview_dump((uint8_t)node, key != NULL ? atoi(key) : -1);
+        return;
+    }
+
+    if (strcmp(sub, "rules") == 0) {
+        cal_rules_cmd(first, save);
+        return;
+    }
+
+    uint8_t ids[PHOTON_MAX_NODE_ID];
+    int n = parse_ids(first, save, ids, PHOTON_MAX_NODE_ID);
+    if (first != NULL && n == 0) {
+        return;
+    }
+    if (strcmp(sub, "compare") == 0) {
+        calview_compare(ids, n, 0);
+    } else if (strcmp(sub, "reset") == 0) {
+        uint8_t p[5] = { PHOTON_CAL_IDX_ALL, 0, 0, 0, 0 };
+        if (n == 0) {
+            if (C.is_bridge) {
+                protocol_bridge_request(PHOTON_FT_CAL_SET, PHOTON_ADDR_BROADCAST, p, 5);
+                log_info("calibration reset -> every board (learning ON there)");
+            }
+            if (C.sensor_role) {
+                cal_enter();
+            }
+        }
+        for (int i = 0; i < n; i++) {
+            if (is_own_id(ids[i])) {
+                cal_enter();
+            } else if (C.is_bridge) {
+                protocol_bridge_request(PHOTON_FT_CAL_SET, ids[i], p, 5);
+                log_info("calibration reset -> board %u (learning ON there)", ids[i]);
+            } else {
+                log_note("cal reset: this board is %u; other boards need the bridge",
+                         g_config.node_id);
+            }
+        }
+        calview_show(true, true);
+    } else if (strcmp(sub, "save") == 0) {
+        uint8_t remote[PHOTON_MAX_NODE_ID];
+        int nr = 0, dropped = 0;
+        bool local = n == 0 && C.sensor_role;
+        const photon_node_slot_t *t = protocol_node_table();
+        if (n == 0 && C.is_bridge) {
+            for (int id = 1; id <= PHOTON_MAX_NODE_ID; id++) {
+                if (t[id].alive && !is_own_id((uint8_t)id)) {
+                    remote[nr++] = (uint8_t)id;
+                }
+            }
+        }
+        for (int i = 0; i < n; i++) {
+            if (is_own_id(ids[i])) {
+                local = true;
+            } else if (C.is_bridge) {
+                remote[nr++] = ids[i];
+            }
+        }
+        if (local) {
+            cal_freeze(true);
+        }
+        int queued = 0;
+        for (int i = 0; i < nr; i++) {
+            if (protocol_bridge_request(PHOTON_FT_CAL_COMMIT, remote[i], NULL, 0)) {
+                remote[queued++] = remote[i];
+            } else {
+                dropped++;
+            }
+        }
+        calview_show(false, false);
+        if (queued > 0 || dropped > 0) {
+            log_info("CAL_COMMIT queued to %d board(s)%s; before/after follows", queued,
+                     dropped ? " — QUEUE FULL, retry cal save" : "");
+            // After the boards have written their flash.
+            calview_compare(remote, queued, 1500);
+        }
+    } else {
+        log_note("cal: unknown '%s'", sub);
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -650,49 +944,10 @@ static void handle_line(char *line) {
             photon_cmd_t cmdm = { .op = PHOTON_CMD_TEST_BURST, .a = n };
             push_core1_cmd(&cmdm);
         }
-    } else if (strcmp(cmd, "cal") == 0 && a1 != NULL) {
-        if (strcmp(a1, "start") == 0 && C.sensor_role) {
-            cal_enter();
-        } else if (strcmp(a1, "save") == 0) {
-            if (bus_form(a2)) {
-                // Optional node id: commit one board instead of the whole
-                // bus, so a single miscalibrated board can be redone without
-                // disturbing calibrations that are already good.
-                int only = a2 ? atoi(a2) : 0;
-                const photon_node_slot_t *t = protocol_node_table();
-                int queued = 0, dropped = 0;
-                for (int id = 1; id <= PHOTON_MAX_NODE_ID; id++) {
-                    if (only && id != only) {
-                        continue;
-                    }
-                    if (t[id].alive) {
-                        if (protocol_bridge_request(PHOTON_FT_CAL_COMMIT, (uint8_t)id, NULL, 0)) {
-                            queued++;
-                        } else {
-                            dropped++;
-                        }
-                    }
-                }
-                log_info("CAL_COMMIT queued to %d node(s)%s", queued,
-                         dropped ? " — QUEUE FULL, retry cal save" : "");
-            }
-            if (local_form(a2)) {
-                cal_freeze(true);
-            }
-        } else if (strcmp(a1, "reset") == 0) {
-            if (bus_form(a2)) {
-                uint8_t p[5] = { PHOTON_CAL_IDX_ALL, 0, 0, 0, 0 };
-                uint8_t dst = a2 ? (uint8_t)atoi(a2) : PHOTON_ADDR_BROADCAST;
-                protocol_bridge_request(PHOTON_FT_CAL_SET, dst, p, 5);
-                log_info("calibration reset -> %s (learning ON there)",
-                         a2 ? a2 : "ALL nodes");
-            }
-            if (local_form(a2)) {
-                photon_cmd_t cmdm = { .op = PHOTON_CMD_RESET_CAL };
-                push_core1_cmd(&cmdm);
-                log_info("calibration reset");
-            }
-        }
+    } else if (strcmp(cmd, "cal") == 0) {
+        handle_cal(a1, a2, &save);
+    } else if (strcmp(cmd, "strike") == 0) {
+        handle_strike(a1, a2, &save);
     } else if ((strcmp(cmd, "disable") == 0 || strcmp(cmd, "enable") == 0) && a1 == NULL) {
         // No argument: list the persisted masks, so they can be checked
         // after a reflash or before touching them.
@@ -866,15 +1121,14 @@ static void handle_line(char *line) {
             }
         }
     } else if (strcmp(cmd, "strikemargin") == 0) {
-        // Points of each key's calibrated range above PHOTON_STRIKE_PCT before
-        // note-on: a gentle press can flex a plectrum past the strike
-        // threshold without plucking. Calibration is untouched.
+        // Points of each key's calibrated range past its strike threshold
+        // (its knee) before note-on: a gentle press can flex a plectrum past
+        // the threshold without plucking. Calibration is untouched.
         if (a1 == NULL) {
-            log_note("strikemargin <0-%d> (now %u: note-on at %u%% of the"
-                     " calibrated range)",
+            log_note("strikemargin <0-%d> (now +%u: note-on that many points"
+                     " past each key's strike threshold)",
                      PHOTON_STRIKE_MARGIN_MAX_PCT,
-                     (unsigned)g_config.strike_margin_pct,
-                     (unsigned)(PHOTON_STRIKE_PCT + g_config.strike_margin_pct));
+                     (unsigned)g_config.strike_margin_pct);
         } else {
             int pts = atoi(a1);
             if (pts < 0 || pts > PHOTON_STRIKE_MARGIN_MAX_PCT) {
@@ -890,10 +1144,10 @@ static void handle_line(char *line) {
                     push_core1_cmd(&cmdm);
                 }
                 if (C.is_bridge) {
-                    send_nodectl(10, (uint16_t)pts, PHOTON_ADDR_BROADCAST);
+                    send_nodectl(11, (uint16_t)pts, PHOTON_ADDR_BROADCAST);
                 }
-                log_info("note-on margin -> %d (note-on at %d%%; saved%s)", pts,
-                         PHOTON_STRIKE_PCT + pts,
+                log_info("note-on margin -> +%d past each key's threshold (saved%s)",
+                         pts,
                          C.is_bridge ? "; broadcast, brief node drop-out while"
                                        " they write flash"
                                      : "");
@@ -1035,6 +1289,9 @@ static void handle_line(char *line) {
 // ---------------------------------------------------------------------------
 
 void console_on_bridge_response(const photon_frame_t *f) {
+    if (setup_log_on_response(f) || calview_on_response(f)) {
+        return;
+    }
     switch (f->type) {
         case PHOTON_FT_DATA_RESP: {
             // Never trust wire-supplied counts past local buffers: clamp to
@@ -1136,7 +1393,7 @@ void console_task(void) {
                 C.line[C.line_len] = 0;
                 C.line_len = 0;
                 handle_line(C.line);
-            } else {
+            } else if (!calview_showing()) {
                 print_table();  // bare Enter = live table, like the legacy console
             }
         } else if (ch == 0x7F || ch == '\b') {
@@ -1176,8 +1433,11 @@ void console_task(void) {
         }
     }
 
-    // Legacy-style 5 s heartbeat (suppressed during traces and by 'log off').
-    if (C.log_events && !C.trace_active && log_console_connected() &&
+    calview_task(C.line, C.line_len);
+
+    // Legacy-style 5 s heartbeat (suppressed during traces, the calibration
+    // view and dumps, and by 'log off').
+    if (C.log_events && !C.trace_active && !calview_busy() && log_console_connected() &&
         time_reached(C.next_heartbeat_at)) {
         C.next_heartbeat_at = make_timeout_time_ms(5000);
         if (C.sensor_role) {

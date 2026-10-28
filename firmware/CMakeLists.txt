@@ -42,16 +42,22 @@ add_executable(photon
     src/core1/tla2518.c
     src/core1/scan.c
     src/core1/events.c
+    src/core1/calcap.c
+    src/cal/knee.c
+    src/cal/cal_session.c
     src/ipc/rings.c
     src/comms/frame.c
     src/comms/rs485_bus.c
     src/comms/protocol.c
     src/usb/usb_descriptors.c
     src/usb/cdc_console.c
+    src/usb/cal_view.c
     src/usb/midi_out.c
     src/bridge/midi_map.c
     src/bridge/recorder.c
     src/bridge/sd_spi.c
+    src/bridge/setup_log.c
+    src/bridge/setup_text.c
     src/bridge/smf.c
     lib/fatfs/ff.c
     lib/fatfs/ffunicode.c

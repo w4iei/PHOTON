@@ -34,6 +34,14 @@
 #define PHOTON_FT_CAL_ACK    'k'
 #define PHOTON_FT_TEST_BURST 'B'
 #define PHOTON_FT_NODECTL    'Z'  // remote node control (op u8 | arg u16)
+// Knee calibration (payloads: cal/cal_session.h)
+#define PHOTON_FT_CAL_STATUS_REQ  'W'  // -> 'w': per-key status for the live view
+#define PHOTON_FT_CAL_STATUS_RESP 'w'
+#define PHOTON_FT_CAL_INFO_REQ    'X'  // start u8 | count u8 -> 'x': old vs new cal
+#define PHOTON_FT_CAL_INFO_RESP   'x'
+#define PHOTON_FT_CAL_SWING_REQ   'Y'  // key u8 | offset u16 -> 'y': kept swing samples
+#define PHOTON_FT_CAL_SWING_RESP  'y'
+#define PHOTON_FT_CAL_RULES       'V'  // window % | ratio x10 | jump % | margin % -> 'k'
 
 // flags
 #define PHOTON_FLAG_DIR        (1u << 0)  // reserved for RS-422 routing

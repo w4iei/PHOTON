@@ -86,16 +86,6 @@ flash.
 Mode 0 (sequential, ~390 Hz ceiling) lights one emitter at a time and is
 kept only as a crosstalk-free benchmarking reference.
 
-**Note-on margin** (`strikemargin <pts>`, default 1, saved and broadcast to
-every board): note-on fires this many points above 60% of each key's
-calibrated range. Only the note-on point moves; the velocity timer still
-starts at 30% and release is unchanged. A very gentle press can flex a
-plectrum past 60% without plucking, the way an 8'+4' can sound the 4'
-alone, so the margin moves note-on past that point. It is kept apart from
-calibration, so `cal reset` leaves it alone. The default comes from an
-on-instrument finding (2026-10-28), not from the 2026-09-02 measurements
-above.
-
 One hardware quirk the driver works around: on every TLA2518 fitted, GPIO0
 in push-pull mode drives high regardless of GPO_VALUE, so the slot-3
 emitter of each bank is switched through its drive-mode bit instead
@@ -125,14 +115,11 @@ serial terminal (115200, any rate — CDC):
 setid 1        # 1..6, unique per node
 ```
 
-then calibrate at the operating scan rate: `r`, play every key once at normal
-force, `s`. The same can be done for the whole bus from the bridge console:
-`cal reset` clears every node and starts learning, play every key on every
-manual, `cal save` stores each node's table; `cal reset <id>` / `cal save
-<id>` target one node and leave the others alone. Id and calibration persist
-in flash. On the bridge, `chmap <manual> <channel>` maps each manual (board
-pair) to its MIDI channel and `disable <global idx>` masks unpopulated slots
-on remote boards.
+then calibrate at the operating scan rate, as described under
+[Calibration](#calibration): `r`, slow-press every key until it plucks, `s`.
+Id and calibration persist in flash. On the bridge, `chmap <manual>
+<channel>` maps each manual (board pair) to its MIDI channel and `disable
+<global idx>` masks unpopulated slots on remote boards.
 
 **Rotated boards.** A sensor board can be mounted rotated 180°, for
 clearance or to bring its USB-C to a reachable edge. List those node ids in
@@ -143,6 +130,113 @@ from its highest enabled slot down, so slots cut off or disabled at the
 high-index end are skipped whichever way the board faces. Calibration,
 `disable` indexes and `data`/`minmax`/`trace` keep physical slot numbers.
 The main board's banner lists the rotated ids.
+
+## Calibration
+
+Calibration learns each key's travel (min and max) and finds the point in
+that travel where the key plucks. A fixed strike threshold at 60% of the
+travel sits at a different place relative to each key's pluck. On a recorded
+MIDI+audio corpus it fired 8-60 ms before the pluck on slow presses and a few ms
+after it on fast ones, with a different offset per key. So calibration
+captures every key's swing and saves a strike threshold per key, at its
+pluck.
+
+The plectrum loads the string as the key goes down: the key slows or creeps,
+for 0.2-1 s on a slow press, while the finger's force builds. When the
+plectrum lets go the load vanishes and the key snaps down. That knee in the
+position trace is the pluck. It is searched within 40-80% of the travel
+(the 60% threshold ± 20%). The snap builds up over 5-13 ms, not in one
+sample: it must be 2.5 times steeper, over 8 ms, than both the approach
+over the preceding 20 ms and its last 10 ms, and carry 8% of the travel.
+If the snap already started below the window, the key has no knee in it
+(the pluck is not reported at the window's edge). The key's threshold is
+saved 3% above the knee, so the creep while the string is loaded cannot
+reach it early. Each swing is captured for up to 3.4 s, from just before
+the key starts down, and ends once the key is back within a fifth of its
+depth: keys settle hundreds to thousands of counts off where they started,
+and that level becomes their rest.
+
+The test instrument's upper manual, calibrated this way on 2026-09-24 (61/61 keys),
+plucks between 41% and 77% of the travel, with thresholds from 44% to 80%.
+In the bass several keys climb in two or three steps before the final snap
+(more than one register?); the first knee inside the window is the one
+taken.
+
+From the bridge console (or a board's own, with `r` / `s` / `x`):
+
+```
+cal reset 1 2      # boards 1 and 2 start learning; the live view opens
+                   # slow-press every key until it plucks, then let it up
+cal save 1 2       # store; the before/after table follows
+```
+
+- **Coupler off.** With the coupler engaged, the other manual's key moves too
+  and the swing carries two plucks. A key seen moving with its twin on the
+  other manual is marked `C`.
+- **Slow presses.** A fast stroke is usually steep throughout, with no knee
+  to find (marked `?`: press it again, slower). Once a key is green, a later
+  bad press does not undo it. Each key keeps up to four good knees; the
+  median is used.
+- **Keys that are not neighbours may go down together**, so a hand can take
+  several at once. Neighbours pressed together light each other's sensors,
+  so both are marked `A` and redone one at a time.
+- **The live view** shows each manual being calibrated as a keyboard, with
+  black keys raised: `+` green (pluck captured), `.` not yet, `?` / `A` / `C`
+  redo, with the reason listed under the keyboard. `cal view` toggles it.
+- **Before/after:** `cal compare [id ...]` prints, per key, the min, max and
+  strike threshold (% of travel and in counts) that were in force when
+  calibration started, next to the new ones. `cal save` prints it itself.
+  A `g` marks the global 60%.
+- **The swings themselves** stay on the boards until the next calibration:
+  `cal dump <id> [key]` prints them, and `tools/cal_dump.py --port <tty>
+  --boards 1 2 --plot` saves every key's swing as CSV, with the before/after
+  tables and a plot per board.
+- A key without a knee at save time keeps the global 60%. `cal save` on a
+  board that was not calibrating leaves its thresholds alone. Configs from
+  older builds load with every key at 60%.
+
+**Tuning the rules.** `cal rules <window> <ratio> <jump> <margin> [id ...]`
+sets the search window (± % around 60), how many times steeper the snap must
+be than the approach, how much of the travel it must carry, and the
+threshold's margin above the knee. `0` for any of them is the default: `cal
+rules 20 2.5 8 3`, printed by `cal rules`. The rules are saved on each
+board. A calibration in progress there is judged again from each key's last
+swing, one key per pass of the main loop (so the board keeps answering the
+bus); re-judging finds new knees but never turns a green key back.
+The defaults were tuned on 34 swings of the test instrument's upper manual and checked
+against the January 2026 single-sensor traces: they find the knee in 32 of
+the 34 (the other two show no pluck), in all four slow January presses,
+and nothing in the two January traces with the action disengaged (no
+string, no pluck). A window of ±30 finds a false knee in one of those; keep
+it at 20 unless a manual plucks lower. Save a manual's swings with `cal
+dump` (or `tools/cal_dump.py`) when tuning.
+
+### Strike mode: knee or global
+
+`strike knee|global [id ...]` (saved per board; no ids = every board):
+
+- **knee** (default): each key strikes at its own threshold from knee
+  calibration; keys without one use 60%.
+- **global**: every key strikes at 60%, the fixed threshold used before
+  knee calibration. Use it for an instrument without a pluck (an organ, say),
+  or as a fallback. Calibration then asks for no knees: any full press turns
+  a key green, as in the old flow. Knees found along the way are still saved,
+  so switching back to `strike knee` needs no recalibration.
+
+`strike` alone shows the mode; the banner shows it too.
+
+### Note-on margin
+
+`strikemargin <pts>` (default 1, saved and broadcast to every board) makes
+note-on wait this many points of the travel past each key's strike
+threshold: with the defaults, knee + 3% (`cal rules`) + 1. Only note-on
+moves; the velocity window and release keep the calibrated threshold. A
+very gentle press can flex a plectrum past its threshold without plucking,
+the way an 8'+4' can sound the 4' alone, so the margin waits past it. It is
+kept apart from calibration: changing it needs no recalibration, and `cal
+reset` leaves it alone. The +1 default comes from an on-instrument finding
+(2026-10-28), not from measurements. `strikemargin` alone shows it, and the
+banner's `[CFG] strike:` line.
 
 ## Without a main controller board
 
@@ -182,9 +276,10 @@ the next power-up.
 
 Any node's USB-C gives a console (`screen /dev/tty.usbmodem* 115200`).
 `help` lists commands: `stats`, `nodes`, `data`, `minmax`, `ping`, `trace`,
-`capture`, `burst`, `test` (pseudorandom load), `cal save|reset`, `r`/`s`/`x`
-(calibration), `mode`, `rate`, `localmidi`, `master`, `chmap`,
-`disable`/`enable`, `velrange`, `velcurve`, `strikemargin`, `setid`, `log on|off`,
+`capture`, `burst`, `test` (pseudorandom load),
+`cal reset|save|view|compare|dump|rules`, `r`/`s`/`x` (calibration), `strike`,
+`strikemargin`, `mode`, `rate`, `localmidi`, `master`, `chmap`,
+`disable`/`enable`, `velrange`, `velcurve`, `setid`, `log on|off`,
 `flashtest`, `sd`, `reboot`, `bootsel`, `id`.
 The banner and `id` name the build: git short hash (`-dirty` when `firmware/`
 had uncommitted changes) and build time, from a `build_id.h` that CMake
@@ -202,16 +297,25 @@ it: everything the bridge emits as MIDI is also written to the card as
 Standard MIDI Files, whether or not a host is listening.
 
 ```
-0001/            one directory per power-on, created on the first note
-0001/0001.MID    one file per playing episode
-0001/0002.MID    ... opened on the first note, closed after 30 s of silence
-0002/            next power-on
+000/000001/            one directory per power-on, created on the first note
+000/000001/0001.MID    one file per playing episode
+000/000001/0002.MID    ... opened on the first note, closed after 30 s of silence
+000/000001/SETUP.TXT   the settings and calibration this power-on played with
+000/000002/            next power-on
+...
+001/001000/            power-ons are grouped a thousand to a directory
 ```
 
-- **Numbering is the only bookkeeping.** At mount the bridge scans the root
-  for the highest `NNNN` directory and continues from there. Directories are
-  created lazily, so idle power cycles leave nothing behind. At 9999
-  (directories or files) the recorder stops; it never wraps or overwrites.
+- **Numbering is the only bookkeeping.** At mount the bridge finds the
+  highest group, then the highest power-on in it, and continues from there.
+  Directories are created lazily, so idle power cycles leave nothing behind.
+  Power-ons run to 999999 (a card fills up long before that), files to 9999
+  per power-on; at the end the recorder stops, it never wraps or overwrites.
+- **Groups of a thousand** keep every directory small: a FAT16 root holds
+  only 512 entries and FAT32 caps any directory near 65536, so a flat list
+  of power-ons would run out. A card from the earlier flat layout (`0001/`,
+  `0002/`, ... in the root) keeps those directories and carries on after the
+  highest one.
 - **No clock, no dates.** The board has no RTC and USB carries no time, so
   every file opens with a text meta event `PHOTON power-on +HH:MM:SS.mmm`
   (time since power-on). Inside a file the delta times are exact
@@ -222,6 +326,12 @@ Standard MIDI Files, whether or not a host is listening.
   last half second.
 - **A held key delays the close.** The 30 s silence close waits for every
   note to be released, capped at 5 minutes.
+- **SETUP.TXT: what the recordings were played with.** Three seconds after
+  power-on the bridge reads every board's calibration table (the one
+  `cal compare` shows: min, max and strike threshold per key, strike mode)
+  and adds its own build, serial, channel map and velocity settings. The
+  text goes into the power-on's directory once it exists. It is read once
+  per power-on: a change made later shows up in the next power-on's file.
 - **Cards:** FAT16, FAT32 and exFAT (a 64 GB card as sold). No card, a
   pulled card, or a card error just means a retry every 2 s; nothing
   else on the bridge notices.
@@ -234,7 +344,8 @@ Console: `sd` prints the status line (state, card size and free space,
 current directory/file, counters, last error); `sd test [n]` plays a scale
 through the MIDI output on a bare bridge so the recorder can be exercised
 without sensor boards. A connected terminal also gets one line per state
-change (`[SD] recording 0001/0003.MID`, `[SD] closed ...`, `[SD] no card`).
+change (`[SD] recording 000/000001/0003.MID`, `[SD] closed ...`, `[SD] no card`,
+`[SD] saved 000/000001/SETUP.TXT`).
 
 ## Bench verification (M1–M5): results
 
@@ -273,7 +384,13 @@ cmake -B build -G Ninja && ninja -C build && ctest --test-dir build
 
 Covers: frame codec (CRC vectors, roundtrip, per-byte corruption rejection,
 streaming fuzz with 100% recovery), the event engine (dt math, hysteresis,
-range gate, boot-disable), and the microSD recorder (the production
+range gate, boot-disable, per-key strike thresholds), knee calibration (the
+detector on synthetic slow presses and their look-alikes: fast strokes, a
+finger speeding up, a slipping plectrum, a one-sample glitch; the core-1
+swing capture; the session's statuses, neighbour rule, crosstalk rejection,
+save and wire payloads), and the microSD recorder (the production
 recorder + FatFs on a RAM disk formatted FAT16/FAT32/exFAT: numbering across
 power cycles, flush validity, silence close, held-note cap, ring overflow,
-card errors, late card insert, the 9999 stop) under ASan/UBSan.
+card errors, late card insert, SETUP.TXT, the grouped layout and a
+flat-layout card carrying on, 600 power-ons on FAT16, the 999999 stop) and
+the SETUP.TXT text, under ASan/UBSan.

@@ -26,6 +26,19 @@ target_compile_definitions(test_midi_map PRIVATE "PHOTON_REVERSED_NODES=((1u<<2)
 target_link_libraries(test_midi_map shims m)
 add_test(NAME midi_map COMMAND test_midi_map)
 
+add_executable(test_knee test_knee.c ${FW}/cal/knee.c)
+target_link_libraries(test_knee shims)
+add_test(NAME knee COMMAND test_knee)
+
+add_executable(test_calcap test_calcap.c ${FW}/core1/calcap.c ${FW}/core1/events.c)
+target_link_libraries(test_calcap shims)
+add_test(NAME calcap COMMAND test_calcap)
+
+add_executable(test_cal_session test_cal_session.c ${FW}/cal/cal_session.c ${FW}/cal/knee.c
+               ${FW}/core1/calcap.c ${FW}/core1/events.c)
+target_link_libraries(test_cal_session shims)
+add_test(NAME cal_session COMMAND test_cal_session)
+
 # microSD recorder: the real recorder + SMF encoder + FatFs on a RAM disk,
 # driven by a fake clock, formatted FAT16 / FAT32 / exFAT in turn.
 set(FATFS ${CMAKE_CURRENT_LIST_DIR}/../../lib/fatfs)
@@ -35,3 +48,8 @@ target_include_directories(test_recorder PRIVATE ${FATFS})
 target_compile_definitions(test_recorder PRIVATE PHOTON_HOST_TEST=1)
 target_link_libraries(test_recorder shims)
 add_test(NAME recorder COMMAND test_recorder)
+
+# SETUP.TXT text (the bus side, bridge/setup_log.c, is checked on hardware).
+add_executable(test_setup_text test_setup_text.c ${FW}/bridge/setup_text.c)
+target_link_libraries(test_setup_text shims)
+add_test(NAME setup_text COMMAND test_setup_text)

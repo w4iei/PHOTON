@@ -21,6 +21,8 @@
 #include "board_config.h"
 #include "bridge/midi_map.h"
 #include "bridge/recorder.h"
+#include "bridge/setup_log.h"
+#include "cal/cal_session.h"
 #include "comms/protocol.h"
 #include "comms/transport.h"
 #include "config/config_store.h"
@@ -96,6 +98,10 @@ int main(void) {
                 events_seed_cal((uint8_t)i, g_config.cal_min[i], g_config.cal_max[i]);
                 have_cal = true;
             }
+            bool knee = g_config.strike_mode == PHOTON_STRIKE_MODE_KNEE;
+            events_set_strike((uint8_t)i, knee && g_config.strike_pct[i] <= 100
+                                              ? g_config.strike_pct[i]
+                                              : 0);
         }
         // Saved calibration => frozen thresholds for performance (continuous
         // learning is polluted by adjacent-key cross-illumination). No saved
@@ -124,6 +130,7 @@ int main(void) {
         recorder_init();
         multicore_launch_core1_with_stack(recorder_core1_entry, recorder_stack,
                                           sizeof recorder_stack);
+        setup_log_init();  // SETUP.TXT: this power-on's settings, next to its recordings
     }
 
     tud_init(0);
@@ -163,6 +170,11 @@ int main(void) {
         }
         transport_task();
         protocol_task();
+        if (sensor_role) {
+            cal_session_task();
+        } else {
+            setup_log_task();
+        }
         console_task();
 
         // Startup zero-fault escalation (legacy microcontroller.reset()

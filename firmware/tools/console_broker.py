@@ -5,7 +5,11 @@ Owns the (exclusive) serial device once and fans it out over TCP so any
 number of terminals can watch and type at the same time:
 
     python3 console_broker.py                # broker on localhost:7777
-    nc localhost 7777                        # ...in as many terminals as you like
+    python3 console_client.py                # ...in as many terminals as you like
+
+(`nc localhost 7777` also works, but it sends a line only on Enter, so the
+calibration view paints over what is being typed; console_client.py sends
+each key as it is typed.)
 
 Everything from the device goes to every client and to --log (default
 /tmp/photon-console.log); anything any client types goes to the device.
