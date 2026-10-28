@@ -2,6 +2,8 @@
 // midi_mapping.py + event_mode.py, fed microsecond dt:
 //   - note range (midi_low..midi_high) restarts for every manual
 //     (PHOTON_SENSORS_PER_MANUAL global sensors), skipping disabled sensors
+//   - a board mounted rotated 180 degrees (PHOTON_REVERSED_NODES) takes its
+//     notes from its last slot down
 //   - each manual gets its own MIDI channel (midi_channel + manual index)
 //   - dt -> velocity curve applies to NoteOn AND NoteOff (release speed)
 //   - OR-group arbitration per (manual, note), tracked per node so a node

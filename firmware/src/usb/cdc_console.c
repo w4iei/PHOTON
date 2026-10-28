@@ -302,6 +302,16 @@ void console_print_banner(int banks_found) {
                                      : PHOTON_DEFAULT_SCAN_RATE_HZ,
                (unsigned)g_config.vel_out_min, (unsigned)g_config.vel_out_max,
                (unsigned)(PHOTON_STRIKE_PCT + g_config.strike_margin_pct));
+    if (C.is_bridge && PHOTON_REVERSED_NODES != 0) {
+        char ids[3 * PHOTON_MAX_NODE_ID + 1] = "";
+        int off = 0;
+        for (int id = 1; id <= PHOTON_MAX_NODE_ID; id++) {
+            if ((PHOTON_REVERSED_NODES >> id) & 1u) {
+                off += snprintf(ids + off, sizeof ids - (size_t)off, " %d", id);
+            }
+        }
+        log_printf("[CFG] rotated boards (notes reversed): node%s", ids);
+    }
     if (has_recorder()) {
         print_sd_status();
     }

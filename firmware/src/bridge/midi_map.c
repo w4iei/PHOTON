@@ -20,6 +20,23 @@ static inline bool global_disabled(uint32_t g) {
     return (g_config.global_disabled[g / 8] >> (g % 8)) & 1u;
 }
 
+// A manual is whole boards, so walking one board backwards never crosses
+// into another manual.
+_Static_assert(PHOTON_SENSORS_PER_MANUAL % PHOTON_MAX_SENSORS == 0,
+               "a manual must be whole boards");
+
+// Physical global index at position p of the note walk. A board in
+// PHOTON_REVERSED_NODES (mounted rotated 180 degrees) is walked from its
+// last slot down.
+static inline uint32_t walk_to_global(uint32_t p) {
+    uint32_t node_id = p / PHOTON_MAX_SENSORS + 1;
+    uint32_t slot = p % PHOTON_MAX_SENSORS;
+    if ((PHOTON_REVERSED_NODES >> node_id) & 1u) {
+        slot = PHOTON_MAX_SENSORS - 1 - slot;
+    }
+    return (node_id - 1) * PHOTON_MAX_SENSORS + slot;
+}
+
 // Single source of truth for manual -> wire channel (0-based): a configured
 // user channel (1-16) wins; 0 = auto (base + manual index). The console's
 // chmap listing uses this too, so display and emission can never disagree.
@@ -38,7 +55,8 @@ void midi_map_init(void) {
     }
     // Per-manual linear assignment low..high over enabled sensors — the
     // legacy build_index_to_midi_by_manual(): the note range and channel
-    // restart every PHOTON_SENSORS_PER_MANUAL global sensors.
+    // restart every PHOTON_SENSORS_PER_MANUAL global sensors. Rotated boards
+    // are walked backwards (walk_to_global).
     memset(group_refcount, 0, sizeof group_refcount);
     memset(node_notes_on, 0, sizeof node_notes_on);
     for (uint32_t g = 0; g < PHOTON_GLOBAL_SENSORS; g++) {
@@ -51,7 +69,7 @@ void midi_map_init(void) {
         uint32_t base = manual * PHOTON_SENSORS_PER_MANUAL;
         for (uint32_t k = 0; k < PHOTON_SENSORS_PER_MANUAL &&
                              base + k < PHOTON_GLOBAL_SENSORS; k++) {
-            uint32_t g = base + k;
+            uint32_t g = walk_to_global(base + k);
             if (global_disabled(g) || note > g_config.midi_high) {
                 continue;
             }

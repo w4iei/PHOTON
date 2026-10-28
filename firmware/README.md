@@ -134,6 +134,16 @@ in flash. On the bridge, `chmap <manual> <channel>` maps each manual (board
 pair) to its MIDI channel and `disable <global idx>` masks unpopulated slots
 on remote boards.
 
+**Rotated boards.** A sensor board can be mounted rotated 180°, for
+clearance or to bring its USB-C to a reachable edge. List those node ids in
+`PHOTON_REVERSED_NODES` in `src/board_config.h` (bit n = node id n, e.g.
+`(1u << 2)` for node 2) and rebuild the main board's image; the sensor
+boards need nothing. The main board then gives a rotated board its notes
+from its highest enabled slot down, so slots cut off or disabled at the
+high-index end are skipped whichever way the board faces. Calibration,
+`disable` indexes and `data`/`minmax`/`trace` keep physical slot numbers.
+The main board's banner lists the rotated ids.
+
 ## Without a main controller board
 
 Two sensor boards make a whole single-manual instrument on their own. Cable

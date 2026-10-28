@@ -20,6 +20,12 @@ add_executable(test_events test_events.c ${FW}/core1/events.c)
 target_link_libraries(test_events shims)
 add_test(NAME events COMMAND test_events)
 
+# Note map with nodes 2 and 3 mounted rotated 180 degrees.
+add_executable(test_midi_map test_midi_map.c ${FW}/bridge/midi_map.c)
+target_compile_definitions(test_midi_map PRIVATE "PHOTON_REVERSED_NODES=((1u<<2)|(1u<<3))")
+target_link_libraries(test_midi_map shims m)
+add_test(NAME midi_map COMMAND test_midi_map)
+
 # microSD recorder: the real recorder + SMF encoder + FatFs on a RAM disk,
 # driven by a fake clock, formatted FAT16 / FAT32 / exFAT in turn.
 set(FATFS ${CMAKE_CURRENT_LIST_DIR}/../../lib/fatfs)

@@ -129,6 +129,16 @@
 #define PHOTON_MIDI_CHANNEL      1    // 0-based wire channel (user-facing "2")
 #define PHOTON_SENSORS_PER_MANUAL 64  // BOARD_PAIR_SIZE(2) boards x 32 slots;
                                       // note range + MIDI channel restart per manual
+// Sensor boards mounted rotated 180 degrees: bit n = node id n, e.g.
+// (1u << 2) for node 2. Only the bridge's note map reads it: a rotated
+// board's notes run from its highest enabled slot down, so cut-off or
+// disabled high slots are skipped first. Calibration, 'disable' indexes and
+// data/minmax/trace stay in physical slot order. Set per instrument at build
+// time; not saved in the config, so a rebuild takes effect without a config
+// wipe. Guarded so the host test can set it.
+#ifndef PHOTON_REVERSED_NODES
+#define PHOTON_REVERSED_NODES    0u
+#endif
 #define PHOTON_MAX_MANUALS       ((PHOTON_MAX_NODE_ID * PHOTON_MAX_SENSORS + \
                                    PHOTON_SENSORS_PER_MANUAL - 1) / PHOTON_SENSORS_PER_MANUAL)
 #define PHOTON_TRACE_DEFAULT_SENSOR 24  // legacy bench default (SENSOR_IDX)
