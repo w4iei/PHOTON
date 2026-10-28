@@ -229,7 +229,8 @@ dump` (or `tools/cal_dump.py`) when tuning.
 
 `strikemargin <pts>` (default 1, saved and broadcast to every board) makes
 note-on wait this many points of the travel past each key's strike
-threshold: with the defaults, knee + 3% (`cal rules`) + 1. Only note-on
+threshold. **The default note-on point is knee + 4%**: 3% saved with each
+key's threshold at calibration (`cal rules`), plus this 1. Only note-on
 moves; the velocity window and release keep the calibrated threshold. A
 very gentle press can flex a plectrum past its threshold without plucking,
 the way an 8'+4' can sound the 4' alone, so the margin waits past it. It is

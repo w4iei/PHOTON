@@ -71,8 +71,9 @@
 // for the note-on only; the velocity window and release keep the calibrated
 // threshold. A very gentle press can flex a plectrum past its threshold
 // without plucking, as on an 8'+4' where the 4' sounds alone. +1 from an
-// on-instrument finding (2026-10-28), not measured. Runtime: 'strikemargin'
-// (saved, broadcast).
+// on-instrument finding (2026-10-28), not measured. With KNEE_MARGIN_PCT the
+// default note-on point is knee + 4%. Runtime: 'strikemargin' (saved,
+// broadcast).
 #define PHOTON_STRIKE_MARGIN_PCT     1
 #define PHOTON_STRIKE_MARGIN_MAX_PCT 20
 
