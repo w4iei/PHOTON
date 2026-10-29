@@ -31,6 +31,12 @@ under the **jack** or under the **key lever**. **Every harpsichord is
 different.** Measure your own instrument and validate the fit before ordering
 boards.
 
+Smaller compasses (58 keys GG–e‴, for example) often have no centre vertical
+rail, so the boards mount on the horizontal rail near the pins at the far end
+of the keybed; check the clearance there carefully. Many instruments taper,
+so the jack spacing is not 13.33 mm: either make a board to match, or mount
+the standard board where the keys' centre-to-centre spacing is 13.33 mm.
+
 **The board is designed to be shortened.** Mousebite perforations
 (`photon_common:mousebite_34mm`) let you snap or cut sections off with
 scissors to fit a shorter compass or an awkward case. Signals are routed
